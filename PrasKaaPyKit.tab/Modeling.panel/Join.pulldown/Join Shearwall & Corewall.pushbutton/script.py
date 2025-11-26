@@ -18,8 +18,14 @@ from pyrevit import forms
 from pyrevit import script
 from pyrevit import revit
 
-# Import smart selection utility from lib
-from Snippets.smart_selection import get_filtered_selection
+# Local lib imports
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'lib'))
+
+from Snippets._selection import get_selected_elements, pick_by_category
+from Snippets._context_manager import ef_Transaction
+from join_utils import get_intersecting_elements, perform_join_if_needed, ensure_join_order
 
 # Get current document and UI
 doc = revit.doc
@@ -50,121 +56,45 @@ structural_categories = [
     BuiltInCategory.OST_IOSModelGroups  # Added support for Model Groups
 ]
 
-# Get filtered walls using smart selection
-walls_to_process = get_filtered_selection(
-    doc=doc,
-    uidoc=uidoc,
-    category_filter_func=lambda elem: isinstance(elem, Wall),
-    prompt_message="Select Walls to join with structure",
-    no_selection_message="No walls selected. Please select walls to process.",
-    filter_name="Wall Selection"
-)
+# Get selected walls (if any)
+selected_elements = get_selected_elements(uidoc, exitscript=False)
 
-# Initialize counters
-num_walls_processed = 0
-total_join_success = 0
-total_join_fail = 0
-total_switch_success = 0
-error_messages = []  # For storing specific errors
+# Filter for walls
+selected_walls = []
+if selected_elements:
+    for elem in selected_elements:
+        if elem and isinstance(elem, Wall):
+            selected_walls.append(elem)
 
-# Start Transaction
-t = Transaction(doc, "Join Walls to Structure")
-t.Start()
+# If no walls selected, prompt user to select
+if not selected_walls:
+    selected_walls = pick_by_category([BuiltInCategory.OST_Walls], exit_if_none=True)
 
-try:
-    for wall in walls_to_process:
-        num_walls_processed += 1
-        
-        # Phase 1: Check Intersection and Join
-        try:
-            wall_bb = wall.get_BoundingBox(None)
-            if wall_bb:
-                # Expand bounding box slightly to catch touching elements
-                tolerance = 0.001  # 1mm tolerance for touching elements
-                expanded_min = XYZ(wall_bb.Min.X - tolerance,
-                                 wall_bb.Min.Y - tolerance,
-                                 wall_bb.Min.Z - tolerance)
-                expanded_max = XYZ(wall_bb.Max.X + tolerance,
-                                 wall_bb.Max.Y + tolerance,
-                                 wall_bb.Max.Z + tolerance)
-                outline = Outline(expanded_min, expanded_max)
-                bb_filter = BoundingBoxIntersectsFilter(outline)
-                ids_to_exclude = List[ElementId]([wall.Id])
-                exclude_self_filter = ExclusionFilter(ids_to_exclude)
-                not_element_type_filter = ElementIsElementTypeFilter(True)
-                  # Get all potential elements to join
-                intersect_candidates = (FilteredElementCollector(doc)
-                    .WherePasses(bb_filter)
-                    .WherePasses(exclude_self_filter)
-                    .WherePasses(not_element_type_filter)
-                    .ToElements())
-                
-                # Try to join with found elements
-                for intersecting_element in intersect_candidates:
-                    # Skip if not a structural element except for foundations
-                    if intersecting_element.Category and id_val(intersecting_element.Category.Id) not in [int(cat) for cat in structural_categories]:
-                        continue
-                    
-                    # Only try to join if not already joined
-                    if not JoinGeometryUtils.AreElementsJoined(doc, wall, intersecting_element):
-                        try:
-                            JoinGeometryUtils.JoinGeometry(doc, wall, intersecting_element)
-                            total_join_success += 1
-                        except Exception as join_err:
-                            if "cannot be joined" in str(join_err):
-                                total_join_fail += 1
-                            else:
-                                error_messages.append("Join Error (Wall {} - Elem {}): {}".format(
-                                    str(id_val(wall.Id)), 
-                                    str(id_val(intersecting_element.Id)), 
-                                    str(join_err)))
-                                total_join_fail += 1
+# Define shearwall/corewall join logic (MUST ALWAYS BE CUTTING ELEMENT)
+def join_shearwall_with_structure(wall):
+    """Join shearwall/corewall with intersecting structural elements and ensure wall ALWAYS cuts"""
 
-        except Exception as e1:
-            error_messages.append("Intersection Check Error (Wall {}): {}".format(
-                str(id_val(wall.Id)), str(e1)))
+    # Get intersecting structural elements
+    intersecting_elements = get_intersecting_elements(wall, doc, structural_categories)
 
-        # Phase 2: Check Join with Structural Elements and Switch Order
-        # ENSURE SHEARWALL/COREWALL ALWAYS CUT THROUGH OTHER ELEMENTS (TOP PRIORITY)
-        try:
-            joined_elements_ids = JoinGeometryUtils.GetJoinedElements(doc, wall)
-            if joined_elements_ids:
-                for joined_id in joined_elements_ids:
-                    joined_element = doc.GetElement(joined_id)
-                    if joined_element and joined_element.Category:
-                        joined_cat = joined_element.Category.BuiltInCategory
-                        if joined_cat in structural_categories:
-                            # SHEARWALL/COREWALL MUST ALWAYS BE CUTTING ELEMENT
-                            # If wall is NOT cutting element, switch order to make it cutting
-                            if not JoinGeometryUtils.IsCuttingElementInJoin(doc, wall, joined_element):
-                                try:
-                                    JoinGeometryUtils.SwitchJoinOrder(doc, wall, joined_element)
-                                    total_switch_success += 1
-                                except Exception as switch_err:
-                                    error_messages.append("Switch Error (Wall {} - Elem {}): {}".format(
-                                        str(id_val(wall.Id)),
-                                        str(id_val(joined_element.Id)),
-                                        str(switch_err)))
-        except Exception as e2:
-            error_messages.append("Join/Switch Check Error (Wall {}): {}".format(
-                str(id_val(wall.Id)), str(e2)))
+    # Join with intersecting elements
+    for intersecting_elem in intersecting_elements:
+        perform_join_if_needed(doc, wall, intersecting_elem)
 
-    # Commit the transaction if everything went well
-    t.Commit()
-except Exception as e3:
-    # If something went wrong, roll back the transaction
-    t.RollBack()
-    error_messages.append("Transaction Error: {}".format(str(e3)))
+    # SHEARWALL/COREWALL MUST ALWAYS BE CUTTING ELEMENT
+    joined_elements_ids = JoinGeometryUtils.GetJoinedElements(doc, wall)
+    for joined_id in joined_elements_ids:
+        joined_element = doc.GetElement(joined_id)
+        if (joined_element and joined_element.Category and
+            joined_element.Category.BuiltInCategory in structural_categories):
+            # Wall MUST cut through other elements
+            ensure_join_order(doc, wall, joined_element)
 
-# Final Summary Output
-output = script.get_output()
-output.print_md("# Wall Join Process Results")
-output.print_md("- **Total Walls Processed:** {}".format(num_walls_processed))
-output.print_md("- **Total New Joins Successful:** {}".format(total_join_success))
-output.print_md("- **Total New Joins Failed:** {}".format(total_join_fail))
-output.print_md("- **Total Join Switches Successful:** {}".format(total_switch_success))
-
-if error_messages:
-    output.print_md("\n### Error/Warning Messages:")
-    for error in error_messages:
-        output.print_md("- {}".format(error))
+# Process walls silently
+if selected_walls:
+    with ef_Transaction(doc, "Join Shearwall & Corewall", debug=False, exitscript=False):
+        for wall in selected_walls:
+            try:
+                join_shearwall_with_structure(wall)
+            except:
+                continue

@@ -1,0 +1,8 @@
+title: "Join Columns"
+tooltip: "Join structural columns with nearby beams, floors, foundations, and walls. Ensures columns win in join order."
+author: PrasKaa Team
+help_url: ""
+image: icon.png
+context: doc-project
+min_revit_ver: 2018
+max_revit_ver: 2026

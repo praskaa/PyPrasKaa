@@ -289,10 +289,10 @@ def pick_curve(given_uidoc = uidoc):
 
 
 
-def pick_by_category(list_categories):
+def pick_by_category(list_categories, exit_if_none = True):
     """Picks elements of specified categories from a selection.
     Args:
-        list_types (list): A list of BuiltInCategories to filter selections by.
+        list_categories (list): A list of BuiltInCategories to filter selections by.
         exit_if_none (bool, optional): Whether to exit if no elements are selected. Defaults to True.
 
     Returns:

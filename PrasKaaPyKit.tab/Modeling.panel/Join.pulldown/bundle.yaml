@@ -15,6 +15,7 @@ tooltip:
     FEATURES:
     • Disallow/Allow Join - Toggle auto-join functionality
     • Join All Elements - Manual join completion for structural elements
+    • Join Columns - Column-specific joining with nearby elements
     • Join Foundation - Specialized foundation joining tools
     • Join Walls to Structure - Wall-to-structural element connections
 
@@ -35,6 +36,7 @@ tooltip:
     FITUR:
     • Disallow/Allow Join - Toggle fungsionalitas auto-join
     • Join All Elements - Penyelesaian join manual untuk elemen struktur
+    • Join Columns - Join kolom dengan elemen sekitar
     • Join Foundation - Alat join foundation khusus
     • Join Walls to Structure - Koneksi dinding ke elemen struktur
 
@@ -53,6 +55,7 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Join-Tools
 layout:
   - DisallowAllowJoin
   - JoinAllElements
+  - JoinColumns
   - JoinFoundation
   - Join Regular Wall
   - Join Shearwall & Corewall
