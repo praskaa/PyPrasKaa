@@ -1,0 +1,67 @@
+# pyRevit Bundle Configuration - Transfer Mark Pulldown
+
+title:
+  en_us: Transfer Mark
+  id: Transfer Mark
+
+tooltip:
+  en_us: |
+    Transfer Mark Tools - Framing Mark Transfer Operations
+
+    Advanced mark transfer tools for structural framing elements.
+    Transfer marks between linked models with override options and
+    manual controls for precise mark management.
+
+    FEATURES:
+    • Transfer Mark - Standard mark transfer
+    • Transfer Mark Manual - Manual transfer controls
+    • Transfer Mark with Override - Transfer with override options
+    • Configuration-based transfers
+
+    WORKFLOW SUPPORT:
+    • Linked model mark synchronization
+    • Override capability for conflicts
+    • Manual control options
+    • Batch transfer operations
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Transfer Mark - Operasi Transfer Mark Rangka
+
+    Alat transfer mark canggih untuk elemen rangka struktur.
+    Transfer mark antar model yang di-link dengan opsi override dan
+    kontrol manual untuk manajemen mark yang presisi.
+
+    FITUR:
+    • Transfer Mark - Transfer mark standar
+    • Transfer Mark Manual - Kontrol transfer manual
+    • Transfer Mark with Override - Transfer dengan opsi override
+    • Transfer berbasis konfigurasi
+
+    DUKUNGAN ALUR KERJA:
+    • Sinkronisasi mark model yang di-link
+    • Kemampuan override untuk konflik
+    • Opsi kontrol manual
+    • Operasi transfer batch
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Transfer-Mark-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - TransferMark
+  - TransferMarkManual
+  - TransferMarkWithOverride
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

@@ -1,0 +1,111 @@
+# -*- coding: UTF-8 -*-
+from pyrevit import EXEC_PARAMS
+from pyrevit import forms, script
+from hooksScripts import hookTurnOff
+from pyrevit.userconfig import user_config
+
+import os.path as op
+import datetime
+import getpass
+
+# Function to log family loading details
+def log_family_load(family_path, family_name, document):
+    """
+    Log family loading details to a log file
+    """
+    try:
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        username = getpass.getuser()
+        
+        # Calculate file size
+        full_path = op.join(family_path, family_name + ".rfa")
+        file_size = 0
+        if op.exists(full_path):
+            file_size = op.getsize(full_path)
+        
+        # Get document title safely
+        doc_title = "Unknown"
+        if document:
+            doc_title = document.Title
+        
+        # Create log entry using string formatting compatible with IronPython
+        log_entry = "{0} | {1} | {2} | {3} | {4} bytes | {5}".format(
+            timestamp, username, family_name, family_path, file_size, doc_title
+        )
+        
+        # Write to log file
+        import System
+        documents_path = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+        log_file_path = op.join(documents_path, "family_load_log.txt")
+        
+        # Create/append to log file
+        with open(log_file_path, "a") as log_file:
+            log_file.write(log_entry + "\n")
+            
+    except:
+        # Silently handle logging errors to avoid breaking the hook
+        pass
+
+# showing of dialog box with warning
+def dialogBox():
+    doc = __eventargs__.Document
+
+    # if family is saved
+    try:
+        fam_path = __eventargs__.FamilyPath
+        fam_name = __eventargs__.FamilyName
+        famSize = op.getsize(fam_path + fam_name + ".rfa")
+
+        # checking if family is larger than 1 megabyte 
+        if famSize > 1048576:
+            from hook_translate import hook_texts, lang
+
+            title = "Load Family"
+            # the language value is read from pyrevit config file
+            lang = lang()
+
+            # WARNING WINDOW
+            res = forms.alert(hook_texts[lang][title]["text"],
+                             options = hook_texts[lang][title]["buttons"],
+                             title = title,
+                             footer = "CustomTools Hooks")
+            # BUTTONS
+            # Load
+            if res  == hook_texts[lang][title]["buttons"][1]:
+                # Log family loading details
+                log_family_load(fam_path, fam_name, doc)
+                
+                # logging to server - cannot access active document
+                from hooksScripts import hooksLogger
+                hooksLogger("Family loading over 1 MB", doc)
+            # Cancel
+            elif res  == hook_texts[lang][title]["buttons"][0]:
+                EXEC_PARAMS.event_args.Cancel()
+            # More info
+            elif res  == hook_texts[lang][title]["buttons"][2]:
+                wiki_url = user_config.CustomToolsSettings.wiki
+                # if lang == "SK":
+                if len(wiki_url) > 0:
+                    url = wiki_url + '/wiki/Chyby_vo_families_Revitu#Ve.C4.BEkos.C5.A5_Family'
+                else:
+                    url = 'https://customtools.notion.site/Procedures-to-be-avoided-e6e4ce335d544040acee210943afa237'
+                script.open_url(url)
+                EXEC_PARAMS.event_args.Cancel()
+            else:
+                EXEC_PARAMS.event_args.Cancel()
+        else:
+            # Log family loading details for small families too
+            log_family_load(fam_path, fam_name, doc)
+    # if family is not saved yet famSize does not exist
+    except:
+        # Log family loading details even if size can't be determined
+        try:
+            fam_path = __eventargs__.FamilyPath
+            fam_name = __eventargs__.FamilyName
+            log_family_load(fam_path, fam_name, doc)
+        except:
+            pass
+
+
+# try to find config file for people who dont want to see the hook
+hookTurnOff(dialogBox,7)

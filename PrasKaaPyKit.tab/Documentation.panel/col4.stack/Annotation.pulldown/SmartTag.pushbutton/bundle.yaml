@@ -1,0 +1,23 @@
+title:
+  en_us: Smart Tag
+tooltip:
+  en_us: |
+    Smart Tag System - Intelligent Structural Element Tagging
+
+    FEATURES:
+    • Automatically tag structural framing, columns, and walls
+    • Smart positioning with size-based offsets
+    • Multi-view batch processing
+    • Real-time view filtering and search
+    • Native Shift+Click/Ctrl+Click selection support
+
+    USAGE:
+    • Click: Open main tagging dialog
+    • Shift+Click: Open settings configuration
+
+    PERFORMANCE:
+    • Optimized for 1000+ elements
+    • Tag caching for maximum speed
+    • Real-time performance monitoring
+
+    Version: 2.0 | Author: PrasKaa Team

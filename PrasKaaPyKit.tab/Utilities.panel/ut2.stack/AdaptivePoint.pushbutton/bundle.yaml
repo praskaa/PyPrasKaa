@@ -1,0 +1,12 @@
+title:
+  ru: Адаптивные точки
+  fr_fr: Points adaptatifs
+  en_us: Adaptive Points
+  de_de: Adaptive Punkte
+tooltip:
+  ru: Переключает видимость адаптивных точек в текущем 3D виде.
+  fr_fr: Bascule la visibilité des points adaptatifs dans la vue 3D actuelle
+  en_us: Toggles visibility of Adaptive Points in current 3D view
+  de_de: >-
+    Dieses Werkzeug schaltet die Sichtbarkeit der adaptiven Punkte in der
+    aktuellen 3D-Ansicht um.

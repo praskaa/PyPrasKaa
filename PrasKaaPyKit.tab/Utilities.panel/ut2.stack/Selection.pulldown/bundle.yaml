@@ -1,0 +1,64 @@
+# pyRevit Bundle Configuration - Selection Pulldown
+
+title:
+  en_us: Selection
+  id: Seleksi
+
+tooltip:
+  en_us: |
+    Selection Tools - Advanced Element Selection
+
+    Powerful selection utilities for efficient element management in Revit.
+    Advanced filtering and selection operations for productivity enhancement.
+
+    FEATURES:
+    • Select All Hatch - Hatch element selection
+    • Advanced selection filters
+    • Batch selection operations
+    • Element type filtering
+
+    WORKFLOW SUPPORT:
+    • Quick element identification
+    • Filtered selection workflows
+    • Batch processing preparation
+    • Selection state management
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Seleksi - Seleksi Elemen Canggih
+
+    Utilitas seleksi powerful untuk manajemen elemen yang efisien di Revit.
+    Operasi filter dan seleksi canggih untuk peningkatan produktivitas.
+
+    FITUR:
+    • Select All Hatch - Seleksi elemen hatch
+    • Filter seleksi canggih
+    • Operasi seleksi batch
+    • Filter tipe elemen
+
+    DUKUNGAN ALUR KERJA:
+    • Identifikasi elemen cepat
+    • Alur kerja seleksi terfilter
+    • Persiapan pemrosesan batch
+    • Manajemen state seleksi
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Selection-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - SelectAllHatch
+  - SelectAllPlanRegion
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

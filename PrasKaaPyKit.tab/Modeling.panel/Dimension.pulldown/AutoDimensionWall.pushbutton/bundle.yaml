@@ -1,0 +1,8 @@
+title: "Auto Dimension Wall"
+tooltip: "Automatically create dimensions for walls (length and width)"
+author: PrasKaaPyKit
+help_url: "https://github.com/praskaa/PrasKaaPyKit"
+min_revit_ver: 2020
+max_revit_ver: 2026
+engines:
+  CPython: 273

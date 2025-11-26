@@ -1,0 +1,70 @@
+# pyRevit Bundle Configuration - Families Panel
+
+title:
+  en_us: Families
+  id: Families
+
+tooltip:
+  en_us: |
+    Family Management Tools - Profile Updates & Template Systems
+
+    Advanced tools for managing Revit families, profiles, and template
+    systems. Streamline family creation, modification, and maintenance
+    workflows.
+
+    FEATURES:
+    • Profile Updates - CSV-based family type updates
+    • Parameter Mapping - Intelligent parameter synchronization
+    • Unit Conversion - Automatic unit handling
+    • Template Repository - Centralized family template management
+    • Family Sync - UI-based template synchronization
+
+    WORKFLOW SUPPORT:
+    • Batch family type updates
+    • CSV import/export capabilities
+    • Parameter validation and error handling
+    • Repository-based template management
+    • Real-time synchronization
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Manajemen Family - Pembaruan Profil & Sistem Template
+
+    Alat canggih untuk mengelola family Revit, profil, dan sistem
+    template. Merampingkan pembuatan, modifikasi, dan pemeliharaan
+    alur kerja family.
+
+    FITUR:
+    • Pembaruan Profil - Pembaruan tipe family berbasis CSV
+    • Mapping Parameter - Sinkronisasi parameter cerdas
+    • Konversi Unit - Penanganan unit otomatis
+    • Repository Template - Manajemen template family terpusat
+    • Sync Family - Sinkronisasi template berbasis UI
+
+    DUKUNGAN ALUR KERJA:
+    • Pembaruan tipe family batch
+    • Kemampuan import/export CSV
+    • Validasi parameter dan penanganan error
+    • Manajemen template berbasis repository
+    • Sinkronisasi real-time
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Family-Tools
+
+# Panel Layout Configuration
+layout:
+  # Family tools moved to Templates.panel/Family.pulldown
+
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project", "Family"]
+min_revit_ver: 2018
+max_revit_ver: 2026

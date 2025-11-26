@@ -1,0 +1,68 @@
+# pyRevit Bundle Configuration - Join Pulldown
+
+title:
+  en_us: Join
+  id: Join
+
+tooltip:
+  en_us: |
+    Join Tools - Structural Element Connection Management
+
+    Advanced tools for managing joins between structural elements.
+    Control auto-join behavior and manually complete join operations
+    for complex structural connections.
+
+    FEATURES:
+    • Disallow/Allow Join - Toggle auto-join functionality
+    • Join All Elements - Manual join completion for structural elements
+    • Join Foundation - Specialized foundation joining tools
+    • Join Walls to Structure - Wall-to-structural element connections
+
+    WORKFLOW SUPPORT:
+    • Selective auto-join control
+    • Post-matching join completion
+    • Foundation-specific joining logic
+    • Wall attachment management
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Join - Manajemen Koneksi Elemen Struktur
+
+    Alat canggih untuk mengelola join antar elemen struktur.
+    Kontrol perilaku auto-join dan selesaikan operasi join secara manual
+    untuk koneksi struktur yang kompleks.
+
+    FITUR:
+    • Disallow/Allow Join - Toggle fungsionalitas auto-join
+    • Join All Elements - Penyelesaian join manual untuk elemen struktur
+    • Join Foundation - Alat join foundation khusus
+    • Join Walls to Structure - Koneksi dinding ke elemen struktur
+
+    DUKUNGAN ALUR KERJA:
+    • Kontrol auto-join selektif
+    • Penyelesaian join pasca-matching
+    • Logika join spesifik foundation
+    • Manajemen attachment dinding
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Join-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - DisallowAllowJoin
+  - JoinAllElements
+  - JoinFoundation
+  - Join Regular Wall
+  - Join Shearwall & Corewall
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

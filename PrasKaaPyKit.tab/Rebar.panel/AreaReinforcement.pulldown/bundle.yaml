@@ -1,0 +1,7 @@
+ layout:
+ - byFilledRegion
+ - ListAreaReinforcementTypes
+ - InspectAreaReinforcementType
+ - InspectRebarBarTypes
+ - Inspect Area Reinforcement Parameters
+ - Multi Layer Area Reinforcement by Filled Region

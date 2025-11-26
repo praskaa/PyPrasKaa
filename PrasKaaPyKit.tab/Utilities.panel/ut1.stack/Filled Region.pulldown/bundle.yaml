@@ -1,0 +1,20 @@
+# pyRevit Bundle Configuration - Selection Pulldown
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Selection-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - BakeHatchColor
+  - DisableFilledRegionMasking
+  - RandomizeHatchPattern
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

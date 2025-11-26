@@ -1,0 +1,6 @@
+title:
+  en_us: Bake Hatch Color
+  id_id: Bake Warna Hatch
+tooltip:
+  en_us: Create new filled region types with overridden colors baked into the type definition
+  id_id: Buat tipe filled region baru dengan warna override yang dibakar ke dalam definisi tipe

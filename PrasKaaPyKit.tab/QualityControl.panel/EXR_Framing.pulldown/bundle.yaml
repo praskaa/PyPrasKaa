@@ -1,0 +1,77 @@
+# pyRevit Bundle Configuration - EXR Framing Pulldown
+
+title:
+  en_us: EXR Framing
+  id: Rangka EXR
+
+tooltip:
+  en_us: |
+    EXR Framing Tools - Linked Model Framing Management
+
+    Comprehensive tools for managing structural framing in linked EXR models.
+    Matching, dimension validation, and mark transfer operations for
+    beams, columns, and other framing elements.
+
+    FEATURES:
+    • Matching Framing - Intelligent framing matching
+    • Pre-run Matching Dimension - Dimension preparation
+    • Transfer Mark - Mark transfer with options
+    • Manual Transfer Mark - Advanced transfer controls
+
+    WORKFLOW SUPPORT:
+    • Linked model synchronization
+    • Dimension consistency validation
+    • Mark management across models
+    • Quality control automation
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Rangka EXR - Manajemen Rangka Model yang Di-link
+
+    Alat komprehensif untuk mengelola rangka struktur dalam model EXR
+    yang di-link. Pencocokan, validasi dimensi, dan operasi transfer mark
+    untuk balok, kolom, dan elemen rangka lainnya.
+
+    FITUR:
+    • Matching Framing - Pencocokan rangka cerdas
+    • Pre-run Matching Dimension - Persiapan dimensi
+    • Transfer Mark - Transfer mark dengan opsi
+    • Manual Transfer Mark - Kontrol transfer canggih
+
+    DUKUNGAN ALUR KERJA:
+    • Sinkronisasi model yang di-link
+    • Validasi konsistensi dimensi
+    • Manajemen mark di seluruh model
+    • Otomasi kontrol kualitas
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/EXR-Framing-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - CheckFramingDimensions
+  - ClearFramingComments
+  - -----
+  - PreRunMatchingDimension
+  - MatchingFraming
+  - -----
+  - TransferMarkManual
+  - TransferMarkWithOverride
+  - -----
+  - TransferETABSGUIDManual
+  - TransferMarkByGUID
+  - -----
+  - TestGeometryMatching
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

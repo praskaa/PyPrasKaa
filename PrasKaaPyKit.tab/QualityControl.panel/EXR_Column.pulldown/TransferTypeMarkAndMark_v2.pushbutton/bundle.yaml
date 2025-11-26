@@ -1,0 +1,8 @@
+title: "Transfer Type Mark and Mark v2"
+tooltip: "Transfer Mark values from Linked Model Type Names to Host Columns (Framework Migration)"
+author: Kilo Code
+help_url: ""
+image: icon.png
+context: []
+min_revit_ver: 2018
+max_revit_ver: 2025

@@ -1,0 +1,6 @@
+# Panel Layout Configuration
+layout:
+  - Sheets
+  - Views
+  - LoadPlan
+

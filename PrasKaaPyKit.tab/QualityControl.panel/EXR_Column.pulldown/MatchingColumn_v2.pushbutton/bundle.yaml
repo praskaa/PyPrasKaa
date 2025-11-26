@@ -1,0 +1,8 @@
+title: "Matching Dimension Column v2"
+tooltip: "Matches columns by geometry and transfers family types (Framework Migration)"
+author: Kilo Code
+help_url: ""
+image: icon.png
+context: zero-doc
+min_revit_ver: 2018
+max_revit_ver: 2026

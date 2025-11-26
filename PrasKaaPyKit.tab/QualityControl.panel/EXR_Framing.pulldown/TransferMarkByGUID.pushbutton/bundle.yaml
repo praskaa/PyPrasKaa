@@ -1,0 +1,9 @@
+title: "Transfer Mark by GUID"
+tooltip: "Extracts mark value from Type Name of linked beams and copies to host beams by matching 'Reference ETABS GUID' parameter with 'ETABS GUID' parameter."
+author: PrasKaa+KiloCode
+help_url: ""
+image: ""
+large_image: ""
+context: []
+min_revit_ver: 2018
+max_revit_ver: 2026

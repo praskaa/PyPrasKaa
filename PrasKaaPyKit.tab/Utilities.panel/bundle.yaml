@@ -1,0 +1,66 @@
+# pyRevit Bundle Configuration - Utilities Panel
+
+title:
+  en_us: Utilities
+  id: Utilitas
+
+tooltip:
+  en_us: |
+    Utility Tools - Grid Management & Selection Helpers
+
+    Essential utility tools for everyday Revit workflows. Enhance
+    productivity with grid management, selection tools, and adaptive
+    component controls.
+
+    FEATURES:
+    • Grid Tools - 2D/3D extent toggles, bubble flipping
+    • Selection Tools - Advanced selection filters and helpers
+    • Adaptive Points - Visibility controls for adaptive components
+    • Copy State Tools - Grid state management across views
+
+    WORKFLOW SUPPORT:
+    • Quick grid modifications
+    • Batch selection operations
+    • View-specific utility controls
+    • State preservation across sessions
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Utilitas - Manajemen Grid & Pembantu Seleksi
+
+    Alat utilitas penting untuk alur kerja Revit sehari-hari. Tingkatkan
+    produktivitas dengan manajemen grid, alat seleksi, dan kontrol
+    komponen adaptif.
+
+    FITUR:
+    • Alat Grid - Toggle extent 2D/3D, flipping bubble
+    • Alat Seleksi - Filter seleksi dan pembantu canggih
+    • Titik Adaptif - Kontrol visibilitas untuk komponen adaptif
+    • Alat Copy State - Manajemen state grid di seluruh tampilan
+
+    DUKUNGAN ALUR KERJA:
+    • Modifikasi grid cepat
+    • Operasi seleksi batch
+    • Kontrol utilitas spesifik tampilan
+    • Pelestarian state di seluruh sesi
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Utilities
+
+# Panel Layout Configuration
+layout:
+  - ut1
+  - ut2
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

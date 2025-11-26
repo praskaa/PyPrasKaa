@@ -1,0 +1,8 @@
+title: "Auto Load Missing Types"
+tooltip: "Automatically loads missing families and creates missing types from linked EXR model to prepare for Matching Dimension tools."
+author: Cline
+help_url: ""
+image: icon.png
+context: []
+min_revit_ver: 2018
+max_revit_ver: 2025

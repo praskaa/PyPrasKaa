@@ -1,0 +1,5 @@
+# -*- coding: utf-8 -*-
+name: Detail Item Inspector
+author: Kilo Code
+tooltip: Inspects parameters of selected detail item instances or family types.
+min_revit_version: 2020

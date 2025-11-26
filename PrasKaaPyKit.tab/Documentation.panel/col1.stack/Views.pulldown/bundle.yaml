@@ -1,0 +1,69 @@
+# pyRevit Bundle Configuration - Views Pulldown
+
+title:
+  en_us: Views
+  id: Tampilan
+
+tooltip:
+  en_us: |
+    View Management Tools - Configuration & Visualization
+
+    Advanced tools for managing Revit views, crop boxes, and view ranges.
+    Control view properties and visualize view depths for better
+    documentation control.
+
+    FEATURES:
+    • Set Crop View Standard - Crop box line weight management
+    • View Range - 3D visualization of view depths
+    • Create Filter by Subcategory - Advanced filtering tools
+    • Multi-view Operations - Batch view modifications
+
+    WORKFLOW SUPPORT:
+    • View property standardization
+    • Visual range analysis
+    • Filter-based view control
+    • Documentation consistency
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Manajemen Tampilan - Konfigurasi & Visualisasi
+
+    Alat canggih untuk mengelola tampilan Revit, crop box, dan view range.
+    Kontrol properti tampilan dan visualisasikan kedalaman tampilan untuk
+    kontrol dokumentasi yang lebih baik.
+
+    FITUR:
+    • Set Crop View Standard - Manajemen berat garis crop box
+    • View Range - Visualisasi 3D kedalaman tampilan
+    • Create Filter by Subcategory - Alat filter canggih
+    • Operasi Multi-tampilan - Modifikasi tampilan batch
+
+    DUKUNGAN ALUR KERJA:
+    • Standardisasi properti tampilan
+    • Analisis range visual
+    • Kontrol tampilan berbasis filter
+    • Konsistensi dokumentasi
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/View-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - SetCropViewToSectionStandard
+  - ViewRange
+  - CreateFilterSectionBySubcategory
+  - -----
+  - VisibilityLinkRevit
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

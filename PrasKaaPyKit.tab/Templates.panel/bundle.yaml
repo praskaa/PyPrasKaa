@@ -1,0 +1,64 @@
+# pyRevit Bundle Configuration - Templates Panel
+
+title:
+  en_us: Templates
+  id: Template
+
+tooltip:
+  en_us: |
+    Template Management System - Family & View Templates
+
+    Centralized template management system for Revit families and views.
+    Maintain consistency across projects with organized template libraries.
+
+    FEATURES:
+    • Family Templates - Pre-configured family templates
+    • View Templates - Standardized view configurations
+    • Repository Sync - UI-based template synchronization
+    • Template Browser - Easy template selection and application
+
+    WORKFLOW SUPPORT:
+    • Template library organization
+    • Version control integration
+    • Batch template application
+    • Template validation and updates
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Sistem Manajemen Template - Template Family & Tampilan
+
+    Sistem manajemen template terpusat untuk family dan tampilan Revit.
+    Jaga konsistensi di seluruh proyek dengan library template terorganisir.
+
+    FITUR:
+    • Template Family - Template family yang sudah dikonfigurasi
+    • Template Tampilan - Konfigurasi tampilan standar
+    • Sync Repository - Sinkronisasi template berbasis UI
+    • Browser Template - Pemilihan dan penerapan template mudah
+
+    DUKUNGAN ALUR KERJA:
+    • Organisasi library template
+    • Integrasi kontrol versi
+    • Penerapan template batch
+    • Validasi dan pembaruan template
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Template-System
+
+# Panel Layout Configuration
+layout:
+  - Family
+  - ViewTemplateRepository
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project", "Family"]
+min_revit_ver: 2018
+max_revit_ver: 2026

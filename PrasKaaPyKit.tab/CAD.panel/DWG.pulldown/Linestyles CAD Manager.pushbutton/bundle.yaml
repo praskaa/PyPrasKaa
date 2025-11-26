@@ -1,0 +1,8 @@
+title: Linestyles CAD Manager
+tooltip: |
+  Provides a comprehensive two-step tool for managing line styles of linked CAD files in Revit.
+  Features:
+  - Step 1: Select from a list of all linked CAD files in the project.
+  - Step 2: Manage layers, including changing line patterns and weights for selected CAD files.
+  - Option to go back and re-select CAD files.
+  - All changes are wrapped in a single Revit transaction for easy undo.

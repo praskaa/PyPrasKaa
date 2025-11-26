@@ -1,0 +1,12 @@
+
+title:
+  en_us: Randomize Hatch Pattern
+  id_id: Acak Pola Hatch
+tooltip:
+  en_us: Randomly assign different hatch patterns to selected filled region types
+  id_id: Secara acak menetapkan pola hatch yang berbeda ke tipe filled region yang dipilih
+
+# Context and Version Requirements
+context: doc-project
+min_revit_ver: 2018
+max_revit_ver: 2026

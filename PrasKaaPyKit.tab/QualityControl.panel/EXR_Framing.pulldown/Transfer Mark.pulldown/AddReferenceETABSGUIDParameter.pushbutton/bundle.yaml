@@ -1,0 +1,9 @@
+title: "Add Reference ETABS GUID"
+tooltip: "Creates 'Reference ETABS GUID' shared parameter for Structural Framing category."
+author: PrasKaa+KiloCode
+help_url: ""
+image: ""
+large_image: ""
+context: []
+min_revit_ver: 2018
+max_revit_ver: 2026

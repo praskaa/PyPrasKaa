@@ -1,0 +1,5 @@
+# -*- coding: utf-8 -*-
+name: Count Detail Item Reinforcement
+author: Kilo Code
+tooltip: Counts reinforcement detail items in current view by diameter.
+min_revit_version: 2020

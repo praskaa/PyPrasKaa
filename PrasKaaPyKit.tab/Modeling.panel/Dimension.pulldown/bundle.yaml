@@ -1,0 +1,66 @@
+# pyRevit Bundle Configuration - Dimension Pulldown
+
+title:
+  en_us: Dimension
+  id: Dimensi
+
+tooltip:
+  en_us: |
+    Dimension Tools - Automated Dimensioning for Structural Elements
+
+    Intelligent dimensioning tools for columns and walls with automated
+    placement and spacing calculations. Streamline documentation workflows
+    with precision and consistency.
+
+    FEATURES:
+    • Auto Dimension Column - Automated column dimensioning
+    • Auto Dimension Wall - Intelligent wall dimensioning
+    • Smart Spacing - Automatic dimension line spacing
+    • Multi-element Support - Batch dimensioning capabilities
+
+    WORKFLOW SUPPORT:
+    • Project-based dimensioning
+    • Configurable spacing rules
+    • Error handling and validation
+    • Transaction-safe operations
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Dimensi - Pendimensian Otomatis untuk Elemen Struktur
+
+    Alat pendimensian cerdas untuk kolom dan dinding dengan penempatan
+    otomatis dan kalkulasi jarak. Merampingkan alur kerja dokumentasi
+    dengan presisi dan konsistensi.
+
+    FITUR:
+    • Auto Dimension Kolom - Pendimensian kolom otomatis
+    • Auto Dimension Dinding - Pendimensian dinding cerdas
+    • Jarak Cerdas - Jarak garis dimensi otomatis
+    • Dukungan Multi-elemen - Kemampuan pendimensian batch
+
+    DUKUNGAN ALUR KERJA:
+    • Pendimensian berbasis proyek
+    • Aturan jarak yang dapat dikonfigurasi
+    • Penanganan error dan validasi
+    • Operasi aman transaksi
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Dimension-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - AutoDimensionColumn
+  - AutoDimensionWall
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

@@ -1,0 +1,5 @@
+# Pulldown Layout Configuration
+layout:
+  - Annotation
+  - Stairs
+  - Wall

@@ -1,0 +1,9 @@
+title: "Detail Item Parameter Lister"
+tooltip: "Lists all parameters of selected detail item instances with clean formatting"
+author: Kilo Code
+help_url: ""
+image: ""
+large_image: ""
+context: []
+min_revit_ver: 2020
+max_revit_ver: 2026

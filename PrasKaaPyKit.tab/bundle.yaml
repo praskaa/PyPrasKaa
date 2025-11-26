@@ -1,0 +1,83 @@
+# pyRevit Bundle Configuration - Main Tab
+# PrasKaaPyKit v2 - Comprehensive Revit Productivity Tools
+
+title:
+  en_us: PrasKaaPyKit v2
+  id: PrasKaaPyKit v2
+
+tooltip:
+  en_us: |
+    PrasKaaPyKit v2 - Advanced Revit Productivity Suite
+
+    A comprehensive collection of tools designed to enhance productivity
+    and streamline workflows in Autodesk Revit. Features advanced modeling,
+    documentation, quality control, and utility tools.
+
+    MAIN FEATURES:
+    • Advanced Modeling Tools - Structural element manipulation
+    • Documentation Suite - Smart tagging, view management, sheets
+    • CAD Integration - DWG management and line style controls
+    • Quality Control - EXR validation, type marking, matching tools
+    • Family Management - Profile updates, template systems
+    • Utility Tools - Grid management, selection helpers
+
+    PERFECT FOR:
+    • Structural engineers and BIM modelers
+    • Documentation specialists
+    • Quality assurance teams
+    • Large-scale Revit projects
+
+    Version: 2.0 | Author: PrasKaa Team | Compatible: Revit 2018-2026
+  id: |
+    PrasKaaPyKit v2 - Paket Produktivitas Revit Canggih
+
+    Kumpulan alat komprehensif yang dirancang untuk meningkatkan produktivitas
+    dan merampingkan alur kerja di Autodesk Revit. Fitur pemodelan canggih,
+    dokumentasi, kontrol kualitas, dan alat utilitas.
+
+    FITUR UTAMA:
+    • Alat Pemodelan Canggih - Manipulasi elemen struktur
+    • Suite Dokumentasi - Penandaan cerdas, manajemen tampilan, lembar
+    • Integrasi CAD - Manajemen DWG dan kontrol gaya garis
+    • Kontrol Kualitas - Validasi EXR, penandaan tipe, alat pencocokan
+    • Manajemen Family - Pembaruan profil, sistem template
+    • Alat Utilitas - Manajemen grid, pembantu seleksi
+
+    SEMPURNA UNTUK:
+    • Insinyur struktur dan pemodel BIM
+    • Spesialis dokumentasi
+    • Tim jaminan kualitas
+    • Proyek Revit berskala besar
+
+    Versi: 2.0 | Penulis: PrasKaa | Kompatibel: Revit 2024-2026
+
+author: PrasKaa
+image: icon.png
+
+# Tab Layout Configuration
+layout:
+  - Modeling
+  - Documentation
+  - CAD
+  - Line Color
+  - Templates
+  - QualityControl
+  - Utilities
+  #- Rebar
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026
+
+# Extension Metadata
+version: "2.0.0"
+description:
+  en_us: "Advanced Revit productivity tools suite for structural engineering and BIM workflows"
+  id: "Paket alat produktivitas Revit canggih untuk rekayasa struktur dan alur kerja BIM"

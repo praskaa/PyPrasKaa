@@ -1,0 +1,9 @@
+title: "Transfer ETABS GUID Manual"
+tooltip: "Manually pair beams between host and linked models to transfer ETABS GUID values from linked beams to host beams. Press ESC to exit the continuous selection loop."
+author: PrasKaa+KiloCode
+help_url: ""
+image: ""
+large_image: ""
+context: []
+min_revit_ver: 2018
+max_revit_ver: 2026

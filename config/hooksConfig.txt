@@ -1,0 +1,24 @@
+111111111111
+------------
+index
+123456789012
+
+
+
+
+
+#	HookName							Cancelable
+---------------------------------------------------
+1	In Place Family						N
+2	Import CAD							Y
+3	Link CAD							Y
+4	Link CAD in 3D						Y
+5	Architectural Column				N
+6	Ramp								N
+7	Large Family						Y
+8	Roof by Extrusion					Y
+9	Shared Parameters					Y
+10	Unpin								Y
+11	View, Schedule or Sheet Deletion	Y
+12	Save List Of Opened Views			Y
+

@@ -1,0 +1,8 @@
+title: "Join All Elements"
+tooltip: "Manually join structural elements that were not auto-joined during Matching Dimension process. Useful for completing model joins after disabling auto-joins."
+author: PrasKaa
+help_url: ""
+image: icon.png
+context: []
+min_revit_ver: 2018
+max_revit_ver: 2026

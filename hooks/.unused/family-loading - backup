@@ -1,0 +1,387 @@
+# -*- coding: UTF-8 -*-
+from pyrevit import EXEC_PARAMS
+from pyrevit import forms, script
+from hooksScripts import hookTurnOff
+from pyrevit.userconfig import user_config
+
+import os.path as op
+import os
+import datetime
+import getpass
+import uuid
+
+# JSON Logging Configuration
+ENABLE_JSON_LOGGING = True
+JSON_LOG_FILENAME = "family_load_log.json"
+TEXT_LOG_FILENAME = "family_load_log.txt"
+
+# Log Rotation Configuration
+MAX_LOG_FILE_SIZE_MB = 10
+MAX_BACKUP_FILES = 5
+ENABLE_LOG_COMPRESSION = False  # Set to False for IronPython compatibility
+
+# Session Management - Generate once per Revit session
+SESSION_ID = str(uuid.uuid4())
+
+# JSON Serialization Functions
+def safe_json_dumps(data):
+    """
+    Safe JSON serialization compatible with IronPython
+    """
+    try:
+        import json
+        return json.dumps(data, separators=(',', ':'))
+    except ImportError:
+        # Fallback manual JSON creation for IronPython
+        return manual_json_serialize(data)
+    except Exception:
+        return None
+
+def manual_json_serialize(data):
+    """
+    Manual JSON serialization as fallback
+    """
+    if isinstance(data, dict):
+        items = []
+        for key, value in data.items():
+            key_str = '"{0}"'.format(str(key))
+            value_str = manual_json_serialize(value)
+            items.append('{0}:{1}'.format(key_str, value_str))
+        return '{{{0}}}'.format(','.join(items))
+    elif isinstance(data, (list, tuple)):
+        items = [manual_json_serialize(item) for item in data]
+        return '[{0}]'.format(','.join(items))
+    elif isinstance(data, str):
+        # Escape quotes and backslashes
+        escaped = data.replace('\\', '\\\\').replace('"', '\\"')
+        return '"{0}"'.format(escaped)
+    elif isinstance(data, bool):
+        return 'true' if data else 'false'
+    elif data is None:
+        return 'null'
+    else:
+        return str(data)
+
+# Log Rotation Functions
+def get_log_file_size_mb(file_path):
+    """
+    Get log file size in MB
+    """
+    try:
+        if op.exists(file_path):
+            size_bytes = op.getsize(file_path)
+            return size_bytes / (1024.0 * 1024.0)
+        return 0
+    except:
+        return 0
+
+def rotate_log_files(log_file_path):
+    """
+    Rotate log files when size limit exceeded
+    """
+    try:
+        if not op.exists(log_file_path):
+            return True
+        
+        # Get base name and extension
+        base_name = op.splitext(log_file_path)[0]
+        extension = op.splitext(log_file_path)[1]
+        
+        # Rotate existing backup files
+        for i in range(MAX_BACKUP_FILES - 1, 0, -1):
+            old_backup = "{0}.{1}{2}".format(base_name, i, extension)
+            new_backup = "{0}.{1}{2}".format(base_name, i + 1, extension)
+            
+            if op.exists(old_backup):
+                if i + 1 <= MAX_BACKUP_FILES:
+                    # Move to next backup number
+                    if op.exists(new_backup):
+                        os.remove(new_backup)
+                    os.rename(old_backup, new_backup)
+                else:
+                    # Delete if exceeds max backups
+                    os.remove(old_backup)
+        
+        # Move current log to .1 backup
+        first_backup = "{0}.1{1}".format(base_name, extension)
+        if op.exists(first_backup):
+            os.remove(first_backup)
+        os.rename(log_file_path, first_backup)
+        
+        return True
+        
+    except Exception as e:
+        # Silently handle rotation errors
+        return False
+
+def check_and_rotate_log(log_file_path):
+    """
+    Check if log rotation is needed and perform it
+    """
+    try:
+        current_size_mb = get_log_file_size_mb(log_file_path)
+        if current_size_mb > MAX_LOG_FILE_SIZE_MB:
+            return rotate_log_files(log_file_path)
+        return True
+    except:
+        return True  # Continue even if rotation check fails
+
+# Enhanced Log Entry Creation
+def create_json_log_entry(family_path, family_name, document, load_context=None):
+    """
+    Create structured JSON log entry
+    """
+    try:
+        timestamp = datetime.datetime.now()
+        iso_timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+07:00"
+        
+        # Calculate file size
+        full_path = op.join(family_path, family_name + ".rfa")
+        file_size = 0
+        if op.exists(full_path):
+            file_size = op.getsize(full_path)
+        
+        # Get document information
+        doc_title = "Unknown"
+        doc_path = "Unknown"
+        if document:
+            doc_title = document.Title
+            try:
+                doc_path = document.PathName if document.PathName else "Unsaved"
+            except:
+                doc_path = "Unknown"
+        
+        # Get Revit username (if available)
+        revit_username = "Unknown"
+        try:
+            from Autodesk.Revit.ApplicationServices import Application
+            app = document.Application if document else None
+            if app and hasattr(app, 'Username'):
+                revit_username = app.Username
+        except:
+            pass
+        
+        # Create structured log entry
+        log_entry = {
+            "timestamp": iso_timestamp,
+            "event_type": "family_load",
+            "user": {
+                "windows_username": getpass.getuser(),
+                "revit_username": revit_username
+            },
+            "family": {
+                "name": family_name,
+                "path": full_path,
+                "size_bytes": file_size,
+                "size_mb": round(file_size / (1024.0 * 1024.0), 2)
+            },
+            "document": {
+                "title": doc_title,
+                "path": doc_path
+            },
+            "load_context": load_context or {
+                "trigger": "hook",
+                "size_warning": file_size > 1048576,
+                "load_approved": True
+            },
+            "session_id": SESSION_ID
+        }
+        
+        return log_entry
+        
+    except Exception as e:
+        # Return minimal entry on error
+        return {
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+            "event_type": "family_load",
+            "family_name": family_name,
+            "error": "Failed to create full log entry",
+            "session_id": SESSION_ID
+        }
+
+# Enhanced Logging Function
+def log_family_load_enhanced(family_path, family_name, document, load_context=None):
+    """
+    Enhanced family loading logger with JSON support and rotation
+    """
+    try:
+        # Get log file paths
+        import System
+        documents_path = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+        json_log_path = op.join(documents_path, JSON_LOG_FILENAME)
+        text_log_path = op.join(documents_path, TEXT_LOG_FILENAME)
+        
+        # Check and rotate logs if needed
+        if ENABLE_JSON_LOGGING:
+            check_and_rotate_log(json_log_path)
+        check_and_rotate_log(text_log_path)
+        
+        # Create log entries
+        success = False
+        
+        # Try JSON logging first
+        if ENABLE_JSON_LOGGING:
+            try:
+                json_entry = create_json_log_entry(family_path, family_name, document, load_context)
+                json_string = safe_json_dumps(json_entry)
+                
+                if json_string:
+                    with open(json_log_path, "a") as json_file:
+                        json_file.write(json_string + "\n")
+                    success = True
+            except Exception as e:
+                pass  # Fall back to text logging
+        
+        # Always create text log entry as backup
+        try:
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            username = getpass.getuser()
+            
+            # Calculate file size
+            full_path = op.join(family_path, family_name + ".rfa")
+            file_size = 0
+            if op.exists(full_path):
+                file_size = op.getsize(full_path)
+            
+            # Get document title safely
+            doc_title = "Unknown"
+            if document:
+                doc_title = document.Title
+            
+            # Create text log entry
+            text_entry = "{0} | {1} | {2} | {3} | {4} bytes | {5} | {6}".format(
+                timestamp, username, family_name, family_path, file_size, doc_title, SESSION_ID
+            )
+            
+            with open(text_log_path, "a") as text_file:
+                text_file.write(text_entry + "\n")
+                
+        except Exception as e:
+            pass  # Silently handle text logging errors
+            
+    except Exception as e:
+        # Ultimate fallback - try original simple logging
+        try:
+            log_family_load(family_path, family_name, document)
+        except:
+            pass  # Silently handle all logging errors to avoid breaking the hook
+
+# Function to log family loading details
+def log_family_load(family_path, family_name, document):
+    """
+    Log family loading details to a log file
+    """
+    try:
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        username = getpass.getuser()
+        
+        # Calculate file size
+        full_path = op.join(family_path, family_name + ".rfa")
+        file_size = 0
+        if op.exists(full_path):
+            file_size = op.getsize(full_path)
+        
+        # Get document title safely
+        doc_title = "Unknown"
+        if document:
+            doc_title = document.Title
+        
+        # Create log entry using string formatting compatible with IronPython
+        log_entry = "{0} | {1} | {2} | {3} | {4} bytes | {5}".format(
+            timestamp, username, family_name, family_path, file_size, doc_title
+        )
+        
+        # Write to log file
+        import System
+        documents_path = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+        log_file_path = op.join(documents_path, "family_load_log.txt")
+        
+        # Create/append to log file
+        with open(log_file_path, "a") as log_file:
+            log_file.write(log_entry + "\n")
+            
+    except:
+        # Silently handle logging errors to avoid breaking the hook
+        pass
+
+# showing of dialog box with warning
+def dialogBox():
+    doc = __eventargs__.Document
+
+    # if family is saved
+    try:
+        fam_path = __eventargs__.FamilyPath
+        fam_name = __eventargs__.FamilyName
+        famSize = op.getsize(fam_path + fam_name + ".rfa")
+
+        # checking if family is larger than 1 megabyte 
+        if famSize > 1048576:
+            from hook_translate import hook_texts, lang
+
+            title = "Load Family"
+            # the language value is read from pyrevit config file
+            lang = lang()
+
+            # WARNING WINDOW
+            res = forms.alert(hook_texts[lang][title]["text"],
+                             options = hook_texts[lang][title]["buttons"],
+                             title = title,
+                             footer = "CustomTools Hooks")
+            # BUTTONS
+            # Load
+            if res  == hook_texts[lang][title]["buttons"][1]:
+                # Log family loading details with enhanced logging
+                load_context = {
+                    "trigger": "user_dialog",
+                    "size_warning": True,
+                    "load_approved": True,
+                    "file_size_mb": round(famSize / (1024.0 * 1024.0), 2)
+                }
+                log_family_load_enhanced(fam_path, fam_name, doc, load_context)
+                
+                # logging to server - cannot access active document
+                from hooksScripts import hooksLogger
+                hooksLogger("Family loading over 1 MB", doc)
+            # Cancel
+            elif res  == hook_texts[lang][title]["buttons"][0]:
+                EXEC_PARAMS.event_args.Cancel()
+            # More info
+            elif res  == hook_texts[lang][title]["buttons"][2]:
+                wiki_url = user_config.CustomToolsSettings.wiki
+                # if lang == "SK":
+                if len(wiki_url) > 0:
+                    url = wiki_url + '/wiki/Chyby_vo_families_Revitu#Ve.C4.BEkos.C5.A5_Family'
+                else:
+                    url = 'https://customtools.notion.site/Procedures-to-be-avoided-e6e4ce335d544040acee210943afa237'
+                script.open_url(url)
+                EXEC_PARAMS.event_args.Cancel()
+            else:
+                EXEC_PARAMS.event_args.Cancel()
+        else:
+            # Log family loading details for small families too
+            load_context = {
+                "trigger": "automatic",
+                "size_warning": False,
+                "load_approved": True,
+                "file_size_mb": round(famSize / (1024.0 * 1024.0), 2)
+            }
+            log_family_load_enhanced(fam_path, fam_name, doc, load_context)
+    # if family is not saved yet famSize does not exist
+    except:
+        # Log family loading details even if size can't be determined
+        try:
+            fam_path = __eventargs__.FamilyPath
+            fam_name = __eventargs__.FamilyName
+            load_context = {
+                "trigger": "exception_handler",
+                "size_warning": False,
+                "load_approved": True,
+                "error": "Could not determine file size"
+            }
+            log_family_load_enhanced(fam_path, fam_name, doc, load_context)
+        except:
+            pass
+
+
+# try to find config file for people who dont want to see the hook
+hookTurnOff(dialogBox,7)

@@ -1,0 +1,71 @@
+# pyRevit Bundle Configuration - EXR Column Pulldown
+
+title:
+  en_us: EXR Column
+  id: Kolom EXR
+
+tooltip:
+  en_us: |
+    EXR Column Tools - Linked Model Column Management
+
+    Specialized tools for managing columns in linked EXR models.
+    Validation, dimension checking, and mark transfer operations
+    for structural columns.
+
+    FEATURES:
+    • Check Column Dimensions - Dimension validation tools
+    • Clear Column Comments - Comment management
+    • Matching Column - Column matching operations
+    • Transfer Column Mark - Mark transfer utilities
+
+    WORKFLOW SUPPORT:
+    • Linked model validation
+    • Dimension consistency checks
+    • Mark synchronization
+    • Quality assurance workflows
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Kolom EXR - Manajemen Kolom Model yang Di-link
+
+    Alat khusus untuk mengelola kolom dalam model EXR yang di-link.
+    Validasi, pemeriksaan dimensi, dan operasi transfer mark
+    untuk kolom struktur.
+
+    FITUR:
+    • Check Column Dimensions - Alat validasi dimensi
+    • Clear Column Comments - Manajemen komentar
+    • Matching Column - Operasi pencocokan kolom
+    • Transfer Column Mark - Utilitas transfer mark
+
+    DUKUNGAN ALUR KERJA:
+    • Validasi model yang di-link
+    • Pemeriksaan konsistensi dimensi
+    • Sinkronisasi mark
+    • Alur kerja jaminan kualitas
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/EXR-Column-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - PreRunMatchingDimension
+  - CheckColumnDimensions
+  - ClearColumnComments
+  - -----
+  - MatchingColumn_v2
+  - -----
+  - TransferTypeMarkAndMark_v2
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

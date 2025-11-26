@@ -1,0 +1,71 @@
+# pyRevit Bundle Configuration - Quality Control Panel
+
+title:
+  en_us: Quality Control
+  id: Kontrol Kualitas
+
+tooltip:
+  en_us: |
+    Quality Control Suite - EXR Validation & Type Management
+
+    Comprehensive quality assurance tools for Revit projects. Ensure
+    model accuracy, consistency, and compliance with standards through
+    automated validation and type management.
+
+    FEATURES:
+    • EXR Tools - Linked model validation and matching
+    • Type Management - Automated type marking and checking
+    • Column Tools - Dimension checking and mark transfer
+    • Framing Tools - Matching and transfer operations
+    • Validation Stack - Comprehensive model validation
+
+    WORKFLOW SUPPORT:
+    • Pre-run dimension matching
+    • Automated type loading
+    • Mark transfer with override options
+    • Batch processing capabilities
+    • Real-time validation feedback
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Suite Kontrol Kualitas - Validasi EXR & Manajemen Tipe
+
+    Alat jaminan kualitas komprehensif untuk proyek Revit. Pastikan
+    akurasi model, konsistensi, dan kepatuhan terhadap standar melalui
+    validasi otomatis dan manajemen tipe.
+
+    FITUR:
+    • Alat EXR - Validasi dan pencocokan model yang di-link
+    • Manajemen Tipe - Penandaan dan pemeriksaan tipe otomatis
+    • Alat Kolom - Pemeriksaan dimensi dan transfer mark
+    • Alat Rangka - Operasi pencocokan dan transfer
+    • Stack Validasi - Validasi model komprehensif
+
+    DUKUNGAN ALUR KERJA:
+    • Pencocokan dimensi pre-run
+    • Pemuatan tipe otomatis
+    • Transfer mark dengan opsi override
+    • Kemampuan pemrosesan batch
+    • Feedback validasi real-time
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Quality-Control
+
+# Panel Layout Configuration
+layout:
+  - EXR_Column
+  - EXR_Framing
+  - Validation
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

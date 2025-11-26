@@ -1,0 +1,4 @@
+title: Test Geometry Matching
+tooltip: Test geometry matching library performance and accuracy
+contextual_help:
+  location: lib/geometry_matching_plan.md

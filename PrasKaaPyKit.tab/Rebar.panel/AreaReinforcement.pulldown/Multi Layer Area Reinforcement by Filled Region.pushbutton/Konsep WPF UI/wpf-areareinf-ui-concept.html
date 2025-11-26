@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Layer Area Reinforcement UI Concept</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .wpf-window {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .title-bar {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title-bar h2 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-controls button {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-close { background: #ff5f57; }
+        .btn-minimize { background: #ffbd2e; }
+        .btn-maximize { background: #28ca42; }
+
+        .content {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .info-panel {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-panel p {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .info-panel strong {
+            color: #2c3e50;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #f0f0f0;
+            border-color: #999;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            border-color: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+            border-color: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .data-grid {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .grid-header {
+            display: grid;
+            grid-template-columns: 40px 80px 100px 120px 120px 120px 100px 80px;
+            background: #34495e;
+            color: white;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .grid-header div {
+            padding: 10px 8px;
+            border-right: 1px solid #4a5f7f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .grid-row {
+            display: grid;
+            grid-template-columns: 40px 80px 100px 120px 120px 120px 100px 80px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+
+        .grid-row:hover {
+            background: #f8f9fa;
+        }
+
+        .grid-row.selected {
+            background: #e3f2fd;
+        }
+
+        .grid-cell {
+            padding: 8px;
+            border-right: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .grid-cell input, .grid-cell select {
+            width: 100%;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .grid-cell input:focus, .grid-cell select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .layer-badge {
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .position-badge {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .position-bottom {
+            background: #e8f5e9;
+            color: #27ae60;
+        }
+
+        .position-top {
+            background: #fff3e0;
+            color: #f39c12;
+        }
+
+        .direction-badge {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .direction-x {
+            background: #ffebee;
+            color: #e74c3c;
+        }
+
+        .direction-y {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+
+        .summary-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-card.success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .summary-card.warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .summary-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preview-panel {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .preview-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .instance-preview {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .instance-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        .instance-details {
+            color: #7f8c8d;
+            line-height: 1.5;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #ddd;
+        }
+
+        .footer-info {
+            font-size: 11px;
+            color: #7f8c8d;
+        }
+
+        .footer-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .footer-buttons button {
+            padding: 8px 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .icon {
+            font-size: 14px;
+        }
+
+        .help-tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            margin-left: 5px;
+        }
+
+        .help-tooltip::after {
+            content: "?";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            background: #95a5a6;
+            color: white;
+            border-radius: 50%;
+            font-size: 10px;
+            line-height: 14px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .validation-error {
+            color: #e74c3c;
+            font-size: 11px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .validation-error.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .grid-header, .grid-row {
+                grid-template-columns: 30px 60px 80px 100px 100px 100px 80px 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="wpf-window">
+            <!-- Title Bar -->
+            <div class="title-bar">
+                <h2>⚡ Multi-Layer Area Reinforcement Configuration</h2>
+                <div class="window-controls">
+                    <button class="btn-minimize"></button>
+                    <button class="btn-maximize"></button>
+                    <button class="btn-close"></button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+                <!-- Info Panel -->
+                <div class="info-panel">
+                    <p><strong>📋 Filled Region:</strong> ID 1234567</p>
+                    <p><strong>🏗️ Host:</strong> Foundation - Raft 600mm (ID 7654321)</p>
+                    <p><strong>👁️ View:</strong> Level 1 - Structural Plan</p>
+                </div>
+
+                <!-- Layer Configuration Section -->
+                <div class="section">
+                    <div class="section-title">
+                        🔧 Layer Configuration
+                        <span class="help-tooltip"></span>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="toolbar">
+                        <button class="btn btn-primary" onclick="addLayer()">
+                            <span class="icon">➕</span> Add Layer
+                        </button>
+                        <button class="btn" onclick="removeSelected()">
+                            <span class="icon">➖</span> Remove Selected
+                        </button>
+                        <button class="btn" onclick="duplicateLayer()">
+                            <span class="icon">📋</span> Duplicate
+                        </button>
+                        <button class="btn" onclick="moveUp()">
+                            <span class="icon">⬆️</span> Move Up
+                        </button>
+                        <button class="btn" onclick="moveDown()">
+                            <span class="icon">⬇️</span> Move Down
+                        </button>
+                        <button class="btn btn-danger" onclick="clearAll()">
+                            <span class="icon">🗑️</span> Clear All
+                        </button>
+                    </div>
+
+                    <!-- Data Grid -->
+                    <div class="data-grid">
+                        <div class="grid-header">
+                            <div>☑️</div>
+                            <div>Layer</div>
+                            <div>Position</div>
+                            <div>Diameter (mm)</div>
+                            <div>Spacing (mm)</div>
+                            <div>Bar Type</div>
+                            <div>Direction</div>
+                            <div>Active</div>
+                        </div>
+
+                        <!-- Sample Rows -->
+                        <div class="grid-row">
+                            <div class="grid-cell">
+                                <input type="checkbox" class="checkbox">
+                            </div>
+                            <div class="grid-cell">
+                                <span class="layer-badge">1</span>
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option value="bottom" selected>Bottom</option>
+                                    <option value="top">Top</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <input type="number" value="32" min="6" max="50">
+                            </div>
+                            <div class="grid-cell">
+                                <input type="number" value="150" min="50" max="500">
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option>D32 - Grade 400</option>
+                                    <option>D25 - Grade 400</option>
+                                    <option>D20 - Grade 400</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option value="X" selected>X</option>
+                                    <option value="Y">Y</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <input type="checkbox" class="checkbox" checked>
+                            </div>
+                        </div>
+
+                        <div class="grid-row">
+                            <div class="grid-cell">
+                                <input type="checkbox" class="checkbox">
+                            </div>
+                            <div class="grid-cell">
+                                <span class="layer-badge">2</span>
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option value="bottom" selected>Bottom</option>
+                                    <option value="top">Top</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <input type="number" value="32" min="6" max="50">
+                            </div>
+                            <div class="grid-cell">
+                                <input type="number" value="150" min="50" max="500">
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option>D32 - Grade 400</option>
+                                    <option>D25 - Grade 400</option>
+                                    <option>D20 - Grade 400</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option value="X" selected>X</option>
+                                    <option value="Y">Y</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <input type="checkbox" class="checkbox" checked>
+                            </div>
+                        </div>
+
+                        <div class="grid-row">
+                            <div class="grid-cell">
+                                <input type="checkbox" class="checkbox">
+                            </div>
+                            <div class="grid-cell">
+                                <span class="layer-badge">3</span>
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option value="bottom" selected>Bottom</option>
+                                    <option value="top">Top</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <input type="number" value="25" min="6" max="50">
+                            </div>
+                            <div class="grid-cell">
+                                <input type="number" value="150" min="50" max="500">
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option selected>D25 - Grade 400</option>
+                                    <option>D32 - Grade 400</option>
+                                    <option>D20 - Grade 400</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option value="X" selected>X</option>
+                                    <option value="Y">Y</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <input type="checkbox" class="checkbox" checked>
+                            </div>
+                        </div>
+
+                        <div class="grid-row">
+                            <div class="grid-cell">
+                                <input type="checkbox" class="checkbox">
+                            </div>
+                            <div class="grid-cell">
+                                <span class="layer-badge">4</span>
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option value="bottom" selected>Bottom</option>
+                                    <option value="top">Top</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <input type="number" value="25" min="6" max="50">
+                            </div>
+                            <div class="grid-cell">
+                                <input type="number" value="150" min="50" max="500">
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option selected>D25 - Grade 400</option>
+                                    <option>D32 - Grade 400</option>
+                                    <option>D20 - Grade 400</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <select>
+                                    <option value="X" selected>X</option>
+                                    <option value="Y">Y</option>
+                                </select>
+                            </div>
+                            <div class="grid-cell">
+                                <input type="checkbox" class="checkbox" checked>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="validation-error" id="validationError">
+                        ⚠️ Error: All layers must have valid diameter and spacing values
+                    </div>
+                </div>
+
+                <!-- Summary Section -->
+                <div class="section">
+                    <div class="section-title">📊 Summary & Preview</div>
+                    
+                    <div class="summary-panel">
+                        <div class="summary-card">
+                            <div class="summary-value">4</div>
+                            <div class="summary-label">Total Layers</div>
+                        </div>
+                        <div class="summary-card success">
+                            <div class="summary-value">2</div>
+                            <div class="summary-label">Instances Created</div>
+                        </div>
+                        <div class="summary-card warning">
+                            <div class="summary-value">114mm</div>
+                            <div class="summary-label">Max Cover Offset</div>
+                        </div>
+                    </div>
+
+                    <!-- Instance Preview -->
+                    <div class="preview-panel">
+                        <div class="preview-title">🔍 Area Reinforcement Instances Preview:</div>
+                        
+                        <div class="instance-preview">
+                            <div class="instance-header">
+                                <span>📦 Instance 1</span>
+                                <span class="direction-x">Direction: X</span>
+                            </div>
+                            <div class="instance-details">
+                                • Layer 1: D32 @ 150mm (Bottom)<br>
+                                • Layer 2: D32 @ 150mm (Bottom)<br>
+                                • Additional Cover: 0mm<br>
+                                • Total Thickness: 64mm
+                            </div>
+                        </div>
+
+                        <div class="instance-preview">
+                            <div class="instance-header">
+                                <span>📦 Instance 2</span>
+                                <span class="direction-x">Direction: X</span>
+                            </div>
+                            <div class="instance-details">
+                                • Layer 3: D25 @ 150mm (Bottom)<br>
+                                • Layer 4: D25 @ 150mm (Bottom)<br>
+                                • Additional Cover: 64mm<br>
+                                • Total Thickness: 50mm
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div class="footer-info">
+                    ⚙️ PyRevit Extension v1.0 | Ready to create
+                </div>
+                <div class="footer-buttons">
+                    <button class="btn" onclick="saveTemplate()">
+                        💾 Save Template
+                    </button>
+                    <button class="btn" onclick="loadTemplate()">
+                        📂 Load Template
+                    </button>
+                    <button class="btn">
+                        ❌ Cancel
+                    </button>
+                    <button class="btn btn-success">
+                        ✅ Create Area Reinforcement
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addLayer() {
+            alert('🎉 Add Layer function - akan menambahkan row baru ke grid');
+        }
+
+        function removeSelected() {
+            alert('🗑️ Remove Selected - akan menghapus layer yang dicentang');
+        }
+
+        function duplicateLayer() {
+            alert('📋 Duplicate Layer - akan menduplikasi layer yang dipilih');
+        }
+
+        function moveUp() {
+            alert('⬆️ Move Up - akan memindahkan layer ke atas');
+        }
+
+        function moveDown() {
+            alert('⬇️ Move Down - akan memindahkan layer ke bawah');
+        }
+
+        function clearAll() {
+            if (confirm('Hapus semua layer?')) {
+                alert('🧹 Clear All - semua layer dihapus');
+            }
+        }
+
+        function saveTemplate() {
+            alert('💾 Save Template - simpan konfigurasi sebagai template');
+        }
+
+        function loadTemplate() {
+            alert('📂 Load Template - load konfigurasi dari template');
+        }
+
+        // Add interactivity to rows
+        document.querySelectorAll('.grid-row').forEach(row => {
+            row.addEventListener('click', function(e) {
+                if (e.target.type !== 'checkbox' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+                    this.classList.toggle('selected');
+                }
+            });
+        });
+
+        // Validate on input change
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.value < this.min || this.value > this.max) {
+                    this.style.borderColor = '#e74c3c';
+                    document.getElementById('validationError').classList.add('show');
+                } else {
+                    this.style.borderColor = '#ddd';
+                    document.getElementById('validationError').classList.remove('show');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

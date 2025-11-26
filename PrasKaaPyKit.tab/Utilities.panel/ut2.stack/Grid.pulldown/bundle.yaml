@@ -1,0 +1,69 @@
+# pyRevit Bundle Configuration - Grid Pulldown
+
+title:
+  en_us: Grid
+  id: Grid
+
+tooltip:
+  en_us: |
+    Grid Management Tools - Grid Control & Visualization
+
+    Essential tools for managing Revit grids and their properties.
+    Control grid visibility, extents, and bubble orientations across
+    different views and view types.
+
+    FEATURES:
+    • 2D/3D Extent Toggle - Grid extent management
+    • Copy State View Grid - Grid state copying
+    • Flip Bubble Grid - Bubble orientation control
+    • View-specific grid controls
+
+    WORKFLOW SUPPORT:
+    • Multi-view grid management
+    • State preservation across views
+    • Quick grid property changes
+    • Consistent grid visualization
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Manajemen Grid - Kontrol & Visualisasi Grid
+
+    Alat penting untuk mengelola grid Revit dan properti mereka.
+    Kontrol visibilitas grid, extent, dan orientasi bubble di seluruh
+    tampilan dan tipe tampilan yang berbeda.
+
+    FITUR:
+    • 2D/3D Extent Toggle - Manajemen extent grid
+    • Copy State View Grid - Penyalinan state grid
+    • Flip Bubble Grid - Kontrol orientasi bubble
+    • Kontrol grid spesifik tampilan
+
+    DUKUNGAN ALUR KERJA:
+    • Manajemen grid multi-tampilan
+    • Pelestarian state di seluruh tampilan
+    • Perubahan properti grid cepat
+    • Visualisasi grid yang konsisten
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Grid-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - 2D3DExtentToggle
+  - CopyStateViewGrid
+  - FlipBubbleGrid
+  - -----
+  - CreateGridTable
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

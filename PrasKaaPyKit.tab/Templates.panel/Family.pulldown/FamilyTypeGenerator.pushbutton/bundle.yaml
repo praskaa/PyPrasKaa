@@ -1,0 +1,8 @@
+title: "Family Type Generator"
+tooltip: "Generate family types from CSV with flexible parameter matching"
+author: PrasKaa
+help_url: ""
+image: icon.png
+context: doc-family
+min_revit_ver: 2020
+max_revit_ver: 2026

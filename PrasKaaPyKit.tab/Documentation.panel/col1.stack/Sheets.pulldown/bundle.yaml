@@ -1,0 +1,73 @@
+# pyRevit Bundle Configuration - Sheets Pulldown
+
+title:
+  en_us: Sheets
+  id: Lembar
+
+tooltip:
+  en_us: |
+    Sheet Management Tools - Organization & Numbering
+
+    Comprehensive tools for managing Revit sheets and viewports.
+    Automated numbering, alignment, and organization for professional
+    documentation sets.
+
+    FEATURES:
+    • Add Running Number - Automated sheet numbering
+    • Align Viewports - Precise viewport alignment
+    • Get Sort Number - Sheet sorting utilities
+    • Shift Selected Sheet Numbers - Custom sheet number shifting
+    • Multi-sheet Operations - Batch sheet processing
+
+    WORKFLOW SUPPORT:
+    • Sequential numbering systems
+    • Viewport positioning control
+    • Sheet organization automation
+    • Documentation set management
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Manajemen Lembar - Organisasi & Penomoran
+
+    Alat komprehensif untuk mengelola lembar dan viewport Revit.
+    Penomoran otomatis, perataan, dan organisasi untuk set dokumentasi
+    profesional.
+
+    FITUR:
+    • Add Running Number - Penomoran lembar otomatis
+    • Align Viewports - Perataan viewport presisi
+    • Get Sort Number - Utilitas pengurutan lembar
+    • Shift Selected Sheet Numbers - Pergeseran nomor lembar kustom
+    • Operasi Multi-lembar - Pemrosesan lembar batch
+
+    DUKUNGAN ALUR KERJA:
+    • Sistem penomoran berurutan
+    • Kontrol posisi viewport
+    • Otomasi organisasi lembar
+    • Manajemen set dokumentasi
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Sheet-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - AddRunningNumberToSheetList
+  - AlignViewports
+  - GetSortNumberToSheetParameter
+  - ShiftSelectedSheetNumbers
+  - -----
+  - XclTemplate
+  - SheetsCsv
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: doc-project
+min_revit_ver: 2018
+max_revit_ver: 2026

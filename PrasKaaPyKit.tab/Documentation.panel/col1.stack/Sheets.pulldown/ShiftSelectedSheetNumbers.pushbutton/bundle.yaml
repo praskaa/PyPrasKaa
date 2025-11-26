@@ -1,0 +1,8 @@
+title: "Shift Selected Sheet Numbers"
+tooltip: "Shift sheet numbers by a custom amount (positive for increment, negative for decrement)"
+author: Kilo Code
+help_url: ""
+image: icon.png
+context: doc-project
+min_revit_ver: 2018
+max_revit_ver: 2026

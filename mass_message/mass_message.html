@@ -1,0 +1,314 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="appversion" content="0.25.0.0">
+    <meta name="rendererversion" content="11.0.19041.450">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1E1E1E;
+            color: #FFFFFF;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .dashboard {
+            height: 100%;
+            background: #1E1E1E;
+            overflow-y: auto;
+        }
+        
+        .header {
+            background: #1E1E1E;
+            padding: 30px 20px 40px 20px;
+            text-align: center;
+            border-bottom: 1px solid #333333;
+        }
+        
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 0 0 12px 0;
+            color: #00BFFF;
+            letter-spacing: 1px;
+        }
+        
+        .header .subtitle {
+            font-size: 14px;
+            margin: 0 0 24px 0;
+            color: #B0B0B0;
+        }
+        
+        .stats-container {
+            width: 100%;
+            text-align: center;
+        }
+        
+        .stats-table {
+            display: inline-block;
+            margin: 0;
+        }
+        
+        .stat-card {
+            display: inline-block;
+            background: #0A2A3A;
+            border: 1px solid #006699;
+            margin: 0 8px;
+            padding: 16px 20px;
+            text-align: center;
+            vertical-align: top;
+            min-width: 100px;
+            cursor: pointer;
+        }
+        
+        .stat-card:hover {
+            background: #0F3F5A;
+            border-color: #00BFFF;
+        }
+        
+        .stat-value {
+            display: block;
+            font-size: 24px;
+            font-weight: bold;
+            color: #00BFFF;
+            margin-bottom: 6px;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #B0B0B0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px 30px 20px;
+        }
+        
+        .date-section {
+            margin-bottom: 30px;
+        }
+        
+        .date-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00BFFF;
+            margin: 0 0 16px 0;
+            padding: 0 0 8px 0;
+            border-bottom: 2px solid #006699;
+        }
+        
+        .activity-card {
+            background: #2A2A2A;
+            border: 1px solid #404040;
+            border-left: 4px solid #00BFFF;
+            margin: 12px 0;
+            padding: 20px;
+        }
+        
+        .activity-card:hover {
+            background: #333333;
+            border-color: #00BFFF;
+        }
+        
+        .project-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #FFFFFF;
+            margin: 0 0 16px 0;
+        }
+        
+        .activity-item {
+            margin: 8px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #404040;
+            overflow: hidden;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            float: left;
+            width: 24px;
+            font-size: 14px;
+            color: #00BFFF;
+            padding-top: 2px;
+        }
+        
+        .activity-description {
+            margin-left: 30px;
+            margin-right: 90px;
+            font-size: 13px;
+            color: #E0E0E0;
+            line-height: 1.4;
+        }
+        
+        .activity-status {
+            float: right;
+            width: 85px;
+            text-align: right;
+        }
+        
+        .activity-status span {
+            font-size: 10px;
+            padding: 3px 6px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+            min-width: 70px;
+            text-align: center;
+        }
+        
+        .status-completed span {
+            background: #0A2A0A;
+            color: #4CAF50;
+            border: 1px solid #2A7A2A;
+        }
+        
+        .status-progress span {
+            background: #2A1A0A;
+            color: #FF9800;
+            border: 1px solid #7A5A2A;
+        }
+        
+        .status-default span {
+            background: #0A2A3A;
+            color: #00BFFF;
+            border: 1px solid #006699;
+        }
+        
+        .footer {
+            background: #2A2A2A;
+            border-top: 1px solid #404040;
+            padding: 24px 20px;
+            text-align: center;
+            color: #B0B0B0;
+        }
+        
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .footer p {
+            margin: 6px 0;
+            font-size: 13px;
+        }
+        
+        .footer .main-stat {
+            font-size: 14px;
+            color: #00BFFF;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        
+        .no-activities {
+            text-align: center;
+            padding: 60px 20px;
+            color: #B0B0B0;
+        }
+        
+        .no-activities p {
+            font-size: 16px;
+        }
+        
+        /* Clear floats */
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        
+        /* IE-specific fixes */
+        .ie-fix {
+            zoom: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <div class="header-content">
+                <h1>PrasKaa Management Project</h1>
+                <p class="subtitle">Welcome back! Today is Tuesday, 25 November 2025</p>
+                <div class="stats-container">
+                    <div class="stats-table">
+                        <div class="stat-card">
+                            <span class="stat-value">9</span>
+                            <div class="stat-label">Active Projects</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">2</span>
+                            <div class="stat-label">Recent Activities</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">2</span>
+                            <div class="stat-label">Completed Tasks</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="date-section">
+  <h3 class="date-header">&#x1F4C5; 21 November 2025</h3>
+  <div class="activity-card">
+    <h4 class="project-name">&#x1F3E2; Daihatsu Jakarta</h4>
+    <div class="activity-item clearfix ie-fix">
+      <span class="activity-icon">&#x2713;</span>
+      <span class="activity-description">Pembuatan Model struktur awal by exr</span>
+      <span class="activity-status status-completed">Completed</span>
+    </div>
+  </div>
+  <div class="activity-card">
+    <h4 class="project-name">&#x1F3E2; Menara Bank Jakarta</h4>
+    <div class="activity-item clearfix ie-fix">
+      <span class="activity-icon">&#x2713;</span>
+      <span class="activity-description">Bantu Pak Toto buat tarikan balok dan kolom dari lantai 22-6</span>
+      <span class="activity-status status-completed">Completed</span>
+    </div>
+  </div>
+</div>
+<div class="date-section">
+  <h3 class="date-header">&#x1F4C5; 20 November 2025</h3>
+  <div class="activity-card">
+    <h4 class="project-name">&#x1F3E2; MMS Jakarta</h4>
+    <div class="activity-item clearfix ie-fix">
+      <span class="activity-icon">&#x27F3;</span>
+      <span class="activity-description">Detailing Sequence Galian, Check Material Element dan buat Concrete Strenght Diagram</span>
+      <span class="activity-status status-progress">In Progress</span>
+    </div>
+  </div>
+</div>
+
+        </div>
+        
+        <div class="footer">
+            <div class="footer-content">
+                <p class="main-stat">&#x1F4C8; Productivity Dashboard - 2 tasks completed recently</p>
+                <p>&#x1F527; pyRevit CustomTools | Revit 2024</p>
+                <p>Generated: 2025-11-25 07:44</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

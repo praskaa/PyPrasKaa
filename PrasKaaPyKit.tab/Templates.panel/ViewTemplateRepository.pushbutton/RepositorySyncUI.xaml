@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window x:Name="UI_Main"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    mc:Ignorable="d"
+    Title="View Template Repository Sync"
+    Height="800" Width="700"
+    WindowStartupLocation="CenterScreen" 
+    HorizontalAlignment="Center"
+    ShowInTaskbar="True"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    Background="#151E2B">
+
+    <Window.Resources>
+        <!-- Modern Dark Blue Color Scheme -->
+        <SolidColorBrush x:Key="header_background" Color="#1E2A3B"/>
+        <SolidColorBrush x:Key="text_white" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="text_gray" Color="#A3B4CC"/>
+        <SolidColorBrush x:Key="accent_color" Color="#2B5797"/>
+        <SolidColorBrush x:Key="accent_light" Color="#3B6DB0"/>
+        <SolidColorBrush x:Key="warning_color" Color="#FF6B6B"/>
+        <SolidColorBrush x:Key="list_hover" Color="#202D40"/>
+        
+        <!-- ScrollBar Colors -->
+        <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#1A2635"/>
+        <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#2B4766"/>
+        <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#3B6DB0"/>
+        
+        <!-- ScrollBar Style -->
+        <Style x:Key="ModernScrollBar" TargetType="{x:Type ScrollBar}">
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Track x:Name="PART_Track" 
+                               Background="{StaticResource ScrollBarTrackBrush}"
+                               IsDirectionReversed="True">
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Style>
+                                        <Style TargetType="{x:Type Thumb}">
+                                            <Setter Property="Background" Value="{StaticResource ScrollBarThumbBrush}"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="{x:Type Thumb}">
+                                                        <Border Background="{TemplateBinding Background}" 
+                                                                CornerRadius="4"/>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource ScrollBarThumbHoverBrush}"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Thumb.Style>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- ScrollViewer Style -->
+        <Style x:Key="ModernScrollViewer" TargetType="{x:Type ScrollViewer}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <ScrollContentPresenter Grid.Column="0" Grid.Row="0"/>
+                            
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                                     Grid.Column="1" Grid.Row="0"
+                                     Style="{StaticResource ModernScrollBar}"
+                                     Orientation="Vertical"
+                                     Value="{TemplateBinding VerticalOffset}"
+                                     Maximum="{TemplateBinding ScrollableHeight}"
+                                     ViewportSize="{TemplateBinding ViewportHeight}"
+                                     Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                            
+                            <ScrollBar x:Name="PART_HorizontalScrollBar"
+                                     Grid.Column="0" Grid.Row="1"
+                                     Style="{StaticResource ModernScrollBar}"
+                                     Orientation="Horizontal"
+                                     Value="{TemplateBinding HorizontalOffset}"
+                                     Maximum="{TemplateBinding ScrollableWidth}"
+                                     ViewportSize="{TemplateBinding ViewportWidth}"
+                                     Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Fonts -->
+        <FontFamily x:Key="HeaderFont">Roboto</FontFamily>
+        <FontFamily x:Key="BodyFont">Roboto</FontFamily>
+        
+        <!-- Button Style -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource accent_color}"/>
+            <Setter Property="Foreground" Value="{StaticResource text_white}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource accent_light}"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.6"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- TextBox Style -->
+        <Style x:Key="ModernTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#2A2B36"/>
+            <Setter Property="Foreground" Value="{StaticResource text_white}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#3D3E4D"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ListView Style -->
+        <Style x:Key="ModernListView" TargetType="ListView">
+            <Setter Property="Background" Value="#1A2635"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#2B4766"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="FontFamily" Value="{StaticResource BodyFont}"/>
+            <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
+            <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling"/>
+        </Style>        <!-- ListView Item Style -->
+        <Style TargetType="ListViewItem">
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderThickness="0"
+                                Padding="{TemplateBinding Padding}">
+                            <GridViewRowPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1E2E45"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#2B405F"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+          <!-- GridViewColumn Header Style -->
+        <Style x:Key="HeaderStyle" TargetType="{x:Type GridViewColumnHeader}">
+            <Setter Property="Background" Value="#2B4766"/>
+            <Setter Property="Foreground" Value="{StaticResource text_white}"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FontFamily" Value="{StaticResource HeaderFont}"/>
+            <Setter Property="FontWeight" Value="Regular"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="#3B5980"
+                                BorderThickness="0,0,1,0">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                     Foreground="{TemplateBinding Foreground}"
+                                     Padding="{TemplateBinding Padding}"
+                                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                     VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Text Block Style -->
+        <Style TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource BodyFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+        </Style>        <!-- CheckBox Style -->        <Style x:Key="ModernCheckBox" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource text_white}"/>
+            <Setter Property="Background" Value="#2A3847"/>
+            <Setter Property="BorderBrush" Value="{StaticResource text_white}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid>                            <Border x:Name="Border" 
+                                    HorizontalAlignment="Left"
+                                    Width="16" Height="16" 
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="2">
+                                <Path x:Name="Checkmark"
+                                      Data="M1,5 L4,9 L9,1"
+                                      Stroke="{StaticResource text_white}"
+                                      StrokeThickness="2"
+                                      Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Margin="18,0,0,0"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Checkmark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource accent_color}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource accent_light}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition/>
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Background="{StaticResource header_background}"
+              MouseLeftButtonDown="header_drag">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Logo & Title -->
+            <DockPanel Grid.Column="0" Grid.ColumnSpan="2"
+                      Margin="15,0,0,0"
+                      VerticalAlignment="Center">
+                <TextBlock x:Name="main_title"
+                          FontSize="16"
+                          FontWeight="SemiBold"
+                          Foreground="{StaticResource text_white}"/>
+            </DockPanel>
+
+            <!-- Close Button -->
+            <Button x:Name="UI_btn_close"
+                    Grid.Column="2"
+                    Width="30" Height="30"
+                    Margin="10,0"
+                    Click="button_close"
+                    Content="✕"
+                    FontSize="16"
+                    Style="{StaticResource ModernButton}"
+                    Background="Transparent"
+                    BorderThickness="0"/>
+        </Grid>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" Margin="20,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Repository Settings -->
+            <StackPanel Grid.Row="0" x:Name="UI_stack_repository">
+                <TextBlock Text="Repository Location"
+                         FontSize="14"
+                         FontWeight="SemiBold"
+                         Margin="0,0,0,10"
+                         Foreground="{StaticResource text_white}"/>
+
+                <Border Background="#252632"
+                        BorderBrush="#3D3E4D"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="15">
+                    <StackPanel>                        <TextBlock x:Name="repository_path" 
+                                 TextWrapping="Wrap"
+                                 Foreground="{StaticResource text_white}"/>
+
+                        <Separator Margin="0,15,0,10" 
+                                 Background="#3D3E4D"/>
+                          <CheckBox Style="{StaticResource ModernCheckBox}"
+                                IsChecked="True" 
+                                Margin="0,0,0,0"
+                                x:Name="UI_check_override">
+                            <TextBlock Text="Override Existing Templates"
+                                     Foreground="{StaticResource text_white}"/>
+                        </CheckBox>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Filter -->
+            <DockPanel Grid.Row="1" LastChildFill="True"
+                     Margin="0,20,0,10">
+                <TextBlock Text="Filter templates:"
+                         VerticalAlignment="Center"
+                         Foreground="{StaticResource text_white}"/>
+                <TextBox x:Name="UI_TextBox_Filter"
+                        Style="{StaticResource ModernTextBox}"
+                        Margin="10,0,0,0"
+                        TextChanged="UIe_text_filter_updated"/>
+            </DockPanel>            <!-- Template List -->
+            <ListView Grid.Row="2" x:Name="UI_ListBox_ViewTemplates"
+                     Style="{StaticResource ModernListView}"
+                     SelectionMode="Extended">
+                <ListView.View>
+                    <GridView AllowsColumnReorder="False">                        <GridViewColumn Header="Template" Width="520">
+                            <GridViewColumn.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}"
+                                             FontSize="14"
+                                             FontWeight="SemiBold"/>
+                                </DataTemplate>
+                            </GridViewColumn.HeaderTemplate>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>                                    <StackPanel Orientation="Horizontal">                        <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource ModernCheckBox}"
+                                                 Margin="0,0,8,0"
+                                                 Click="UIe_checkbox_clicked"/>
+                                        <TextBlock Text="{Binding Name}"
+                                                 FontSize="13"
+                                                 Foreground="{StaticResource text_white}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>                        <GridViewColumn Header="Status" Width="150">
+                            <GridViewColumn.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}"
+                                             FontSize="14"
+                                             FontWeight="SemiBold"
+                                             HorizontalAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.HeaderTemplate>
+                            <GridViewColumn.HeaderContainerStyle>
+                                <Style BasedOn="{StaticResource HeaderStyle}" TargetType="{x:Type GridViewColumnHeader}">
+                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                    <Setter Property="BorderThickness" Value="1,0,0,0"/>
+                                </Style>
+                            </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid Width="150" HorizontalAlignment="Center">
+                                        <Border Background="{Binding StatusColor}"
+                                                CornerRadius="4"
+                                                Padding="8,2"
+                                                HorizontalAlignment="Center"
+                                                MinWidth="80">
+                                            <TextBlock Text="{Binding Status}"
+                                                     Foreground="#252632"
+                                                     FontWeight="Medium"
+                                                     HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+            <!-- Bottom Section -->
+            <StackPanel Grid.Row="3" Margin="0,15,0,0">
+                <!-- Select All/None -->
+                <StackPanel Orientation="Horizontal" 
+                          HorizontalAlignment="Center"
+                          Margin="0,0,0,15"
+                          x:Name="UI_Buttons_all_none">
+                    <Button x:Name="select_all"                                Content="Select All"
+                                Click="UIe_btn_select_all"
+                                Style="{StaticResource ModernButton}"
+                                FontSize="13"
+                                Height="32"
+                                Margin="0,0,10,0"/>
+                        <Button x:Name="select_none"
+                                Content="Select None"
+                                Click="UIe_btn_select_none"
+                                Style="{StaticResource ModernButton}"
+                                FontSize="13"
+                                Height="32"/>
+                </StackPanel>
+
+                <!-- Action Buttons -->
+                <StackPanel x:Name="UI_stack_button">
+                    <Button x:Name="sync_button"
+                            Click="UIe_btn_sync"
+                            Content="Sync Selected Templates"
+                            Style="{StaticResource ModernButton}"
+                            Height="40"
+                            FontSize="14"/>
+
+                    <Button x:Name="UI_btn_Publish"
+                            Click="UIe_btn_publish"
+                            Content="Publish to Repository"
+                            Style="{StaticResource ModernButton}"
+                            Margin="0,10,0,0"
+                            Visibility="Collapsed"/>
+                </StackPanel>
+
+                <!-- Warning -->
+                <Border Margin="0,20,0,0"
+                        Background="#2A1E1E"
+                        BorderBrush="#FF6B6B"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="15,10">
+                    <StackPanel>
+                        <TextBlock Text="⚠ Warning"
+                                 Foreground="{StaticResource warning_color}"
+                                 FontWeight="SemiBold"
+                                 Margin="0,0,0,5"/>
+                        <TextBlock TextWrapping="Wrap"
+                                 Foreground="{StaticResource text_gray}">
+                            <Run Text="This will transfer view templates including filters and parameters. Please verify template settings after sync."/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <!-- Footer -->
+        <Grid Grid.Row="2"
+              Background="{StaticResource header_background}">
+            <TextBlock x:Name="footer_version"
+                      Text="Version: 1.0"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                      Foreground="{StaticResource text_gray}"/>
+        </Grid>
+    </Grid>
+</Window>

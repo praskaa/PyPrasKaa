@@ -1,0 +1,67 @@
+# pyRevit Bundle Configuration - CAD Panel
+
+title:
+  en_us: CAD
+  id: CAD
+
+tooltip:
+  en_us: |
+    CAD Integration Tools - DWG Management & Line Styles
+
+    Specialized tools for managing CAD files and line styles within
+    Revit projects. Streamline CAD workflows and maintain consistent
+    visual standards.
+
+    FEATURES:
+    • DWG Management - Linked CAD file layer control
+    • Line Style Manager - Comprehensive line style management
+    • Color Overrides - Quick projection and cut line color changes
+    • Pattern Controls - Line and pattern color combinations
+    • Preset Colors - Quick access to standard color palettes
+
+    WORKFLOW SUPPORT:
+    • Two-step CAD management process
+    • Transaction-safe operations
+    • Batch layer modifications
+    • Real-time preview capabilities
+
+    Version: 2.0 | Author: PrasKaa Team
+  id: |
+    Alat Integrasi CAD - Manajemen DWG & Gaya Garis
+
+    Alat khusus untuk mengelola file CAD dan gaya garis dalam
+    proyek Revit. Merampingkan alur kerja CAD dan menjaga standar
+    visual yang konsisten.
+
+    FITUR:
+    • Manajemen DWG - Kontrol layer file CAD yang di-link
+    • Manager Gaya Garis - Manajemen gaya garis komprehensif
+    • Override Warna - Perubahan warna garis proyeksi dan potong cepat
+    • Kontrol Pola - Kombinasi warna garis dan pola
+    • Warna Preset - Akses cepat ke palet warna standar
+
+    DUKUNGAN ALUR KERJA:
+    • Proses manajemen CAD dua langkah
+    • Operasi aman transaksi
+    • Modifikasi layer batch
+    • Kemampuan preview real-time
+
+    Versi: 2.0 | Penulis: Tim PrasKaa
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/CAD-Tools
+
+# Panel Layout Configuration
+layout:
+  - DWG
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

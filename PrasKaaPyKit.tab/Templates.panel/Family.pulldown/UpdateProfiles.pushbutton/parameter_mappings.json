@@ -1,0 +1,42 @@
+{
+  "profiles": {
+    "ANGLE_profiles": {
+      "Width": "LENGTH:b",
+      "Height": "LENGTH:d",
+      "Thickness": "LENGTH:t",
+      "Root_Radius": "LENGTH:r1",
+      "Toe_Radius": "LENGTH:r2",
+      "A": "AREA:A",
+      "WEIGHT": "WEIGHT:Nominal Weight",
+      "Center_of_Gravity": "LENGTH:x"
+    },
+    "RHS_profiles": {
+      "h": "LENGTH:d",
+      "b": "LENGTH:b",
+      "t": "LENGTH:t",
+      "r": "LENGTH:r1",
+      "A": "AREA:A",
+      "Weight": "WEIGHT:Nominal Weight"
+    },
+    "UNP_profiles": {
+      "h": "LENGTH:d",
+      "b": "LENGTH:b",
+      "tw": "LENGTH:Web Thickness",
+      "tf": "LENGTH:Flange Thickness",
+      "r1": "LENGTH:r1",
+      "r2": "LENGTH:r2",
+      "A": "AREA:A",
+      "Weight": "WEIGHT:Nominal Weight"
+    },
+    "CNP_profiles": {
+      "H": "LENGTH:Depth(mm)",
+      "B": "LENGTH:width(mm)",
+      "C": "LENGTH:Leg Depth(mm)",
+      "t": "LENGTH:Thickness(mm)",
+      "Section Area": "AREA:Section Area",
+      "Unit Weight": "WEIGHT:Weight (Kg./M)",
+      "Cy": "LENGTH:Centroid Vertical",
+      "Cx": "LENGTH:Centroid Horizontal"
+    }
+  }
+}

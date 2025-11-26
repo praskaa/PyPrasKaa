@@ -1,0 +1,14 @@
+title: "Dimension Stair Runs"
+tooltip: "Create dimension lines between first and last visible stair runs in active plan view"
+author: PrasKaa
+help_url: ""
+image: ""
+large_image: ""
+context: []
+min_revit_ver: 2018
+max_revit_ver: 2026
+
+extensions:
+  - pyRevitExtension
+
+rocket_mode_compatible: false
