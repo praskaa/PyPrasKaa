@@ -3,8 +3,8 @@
 Synchronize families with a template project.
 """
 
-__title__ = "Family\nRepository"
-__author__ = "PrasKaa"
+__title__ = "Family Repository"
+__author__ = "PrasKaa Team"
 __doc__ = """Synchronize families with template project.
 
 Key features:

@@ -4,8 +4,8 @@ Inspect Area Reinforcement Parameters
 Debug script to check available parameters on Area Reinforcement instances
 """
 
-__title__ = "Inspect AR\nParameters"
-__author__ = "PrasKaaPyKit"
+__title__ = "Inspect AR Parameters"
+__author__ = "PrasKaa Team"
 
 import sys
 import os

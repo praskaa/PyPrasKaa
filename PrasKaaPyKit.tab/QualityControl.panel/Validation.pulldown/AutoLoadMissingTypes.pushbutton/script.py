@@ -26,8 +26,8 @@ Notes:
     - All operations are performed within transactions for safety.
 """
 
-__title__ = 'Auto Load\nMissing Types'
-__author__ = 'Cline'
+__title__ = 'Auto Load Missing Types'
+__author__ = 'PrasKaa Team'
 __doc__ = "Automatically loads missing families and creates missing types from linked EXR model " \
           "to prepare for Matching Dimension tools."
 

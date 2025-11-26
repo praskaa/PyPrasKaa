@@ -12,8 +12,8 @@ It then extracts the mark value from the 'Type Name' parameter of linked beams
 of the corresponding host beams.
 """
 
-__title__ = 'Transfer Mark\nby Intersection (Fixed Coords)'
-__author__ = 'Cline'
+__title__ = 'Transfer Mark by Intersection'
+__author__ = 'PrasKaa Team'
 __doc__ = "Extracts mark value from Type Name of linked beams and copies to host beams " \
           "by finding the best geometric match (intersection volume) with coordinate transformation " \
           "to handle different internal origins and shared coordinates."

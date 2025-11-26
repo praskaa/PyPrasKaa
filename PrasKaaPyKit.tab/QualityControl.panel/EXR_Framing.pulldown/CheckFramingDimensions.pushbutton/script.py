@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 __title__ = 'Check Framing Dimensions by EXR Geometry'
-__author__ = 'PrasKaa+KiloCode'
+__author__ = 'PrasKaa Team'
 __doc__ = "Validates framing dimensions by geometry intersection and parameter comparison."
 
 import gc

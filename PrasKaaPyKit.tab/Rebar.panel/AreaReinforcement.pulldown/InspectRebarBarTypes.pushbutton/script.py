@@ -4,8 +4,8 @@ Inspect Rebar Bar Types and Parameters
 Memeriksa semua Rebar Bar Type yang tersedia beserta parameter-parameternya
 """
 
-__title__ = "Inspect Rebar\nBar Types"
-__author__ = "Your Name"
+__title__ = "Inspect Rebar Bar Types"
+__author__ = "PrasKaa Team"
 
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import *

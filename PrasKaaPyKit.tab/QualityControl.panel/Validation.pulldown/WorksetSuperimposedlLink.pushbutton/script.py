@@ -7,6 +7,7 @@ Handles 3 scenarios:
 3. File is a Central Model (linked directly)
 """
 __title__ = 'Create Superimposed Workset'
+__author__ = 'PrasKaa Team'
 __doc__ = 'Opens a linked Revit file, enables worksharing if needed, creates "Superimposed" workset, and moves all elements from "Workset1" to it.'
 
 import clr

@@ -4,8 +4,8 @@ List Area Reinforcement Types
 Menampilkan semua Area Reinforcement Type yang tersedia di project
 """
 
-__title__ = "List Area\nReinforcement Types"
-__author__ = "Your Name"
+__title__ = "List Area Reinforcement Types"
+__author__ = "PrasKaa Team"
 
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import *

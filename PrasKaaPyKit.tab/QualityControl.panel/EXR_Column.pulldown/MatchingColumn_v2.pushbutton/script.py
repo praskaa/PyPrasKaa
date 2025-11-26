@@ -3,8 +3,8 @@
 Matching Dimension Column v2 - Transfer Column Type based on Geometry Intersection
 """
 
-__title__ = 'Matching\nDimension\nColumn v2'
-__author__ = 'Kilo Code'
+__title__ = 'Matching Dimension Column v2'
+__author__ = 'PrasKaa Team'
 __doc__ = "Matches columns by geometry and transfers family types from a linked model."
 
 import gc

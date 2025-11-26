@@ -4,8 +4,8 @@ Inspect Area Reinforcement Type Parameters
 Memeriksa parameter-parameter yang tersedia pada Area Reinforcement Type
 """
 
-__title__ = "Inspect Area\nReinforcement Type"
-__author__ = "Your Name"
+__title__ = "Inspect Area Reinforcement Type"
+__author__ = "PrasKaa Team"
 
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import *

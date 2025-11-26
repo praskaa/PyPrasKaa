@@ -4,8 +4,8 @@ Multi-Layer Area Reinforcement by Settings
 Processor-based implementation menggunakan LOG-UTIL-REBAR-007
 """
 
-__title__ = "Multi-Layer\nArea Rebar"
-__author__ = "PrasKaaPyKit"
+__title__ = "Multi-Layer Area Rebar"
+__author__ = "PrasKaa Team"
 
 import sys
 import os

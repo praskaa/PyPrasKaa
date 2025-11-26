@@ -8,6 +8,7 @@ Enhanced to show Family Name and Type Name separately.
 """
 
 __title__ = 'Type Mark Checker - Enhanced'
+__author__ = 'PrasKaa Team'
 __doc__ = 'Analyzes Warnings with detailed ElementType classification, instance tracking, and Family/Type name extraction.'
 
 from pyrevit import revit, DB, coreutils, script, output, forms

@@ -4,8 +4,8 @@ Filled Region to Area Reinforcement
 Membuat Area Reinforcement dari boundary Filled Region yang dipilih
 """
 
-__title__ = "Filled Region\nto Area Rebar"
-__author__ = "Your Name"
+__title__ = "Filled Region to Area Rebar"
+__author__ = "PrasKaa Team"
 
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import *

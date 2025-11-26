@@ -3,8 +3,8 @@
 Clear Column Comments - Remove Dimension Validation Comments
 """
 
-__title__ = 'Clear\nColumn\nComments'
-__author__ = 'Kilo Code'
+__title__ = 'Clear Column Comments'
+__author__ = 'PrasKaa Team'
 __doc__ = "Removes dimension validation comments from column elements."
 
 from Autodesk.Revit.DB import (

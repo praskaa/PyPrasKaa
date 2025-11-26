@@ -3,8 +3,8 @@
 Synchronize view templates with a template project.
 """
 
-__title__ = "View Template\nRepository"
-__author__ = "PrasKaa"
+__title__ = "View Template Repository"
+__author__ = "PrasKaa Team"
 __doc__ = """Synchronize view templates with template project.
 
 Key features:

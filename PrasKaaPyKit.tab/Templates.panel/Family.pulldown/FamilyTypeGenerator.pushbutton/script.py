@@ -15,7 +15,7 @@ Features:
 """
 
 __title__ = "Family Type Generator"
-__author__ = "PrasKaa"
+__author__ = "PrasKaa Team"
 __doc__ = """Generate family types from CSV with flexible parameter matching"""
 
 import clr

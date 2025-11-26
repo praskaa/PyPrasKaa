@@ -5,7 +5,7 @@ Supports multiple profile types with sophisticated UI and console fallback
 """
 
 __title__ = "Update Family Profiles"
-__author__ = "PrasKaa"
+__author__ = "PrasKaa Team"
 __doc__ = """Batch create/update Revit family types from CSV data with enhanced UI"""
 
 import clr

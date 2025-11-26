@@ -3,8 +3,8 @@
 Clear Framing Comments - Remove Dimension Validation Comments
 """
 
-__title__ = 'Clear\nFraming\nComments'
-__author__ = 'Kilo Code'
+__title__ = 'Clear Framing Comments'
+__author__ = 'PrasKaa Team'
 __doc__ = "Removes dimension validation comments from framing elements."
 
 from Autodesk.Revit.DB import (
