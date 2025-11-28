@@ -15,7 +15,7 @@ tooltip:
     FEATURES:
     • Add Running Number - Automated sheet numbering
     • Align Viewports - Precise viewport alignment
-    • Get Sort Number - Sheet sorting utilities
+    • Set Sheet Number from Print Order - Assign sequential numbers based on print order
     • Shift Selected Sheet Numbers - Custom sheet number shifting
     • Multi-sheet Operations - Batch sheet processing
 
@@ -36,7 +36,7 @@ tooltip:
     FITUR:
     • Add Running Number - Penomoran lembar otomatis
     • Align Viewports - Perataan viewport presisi
-    • Get Sort Number - Utilitas pengurutan lembar
+    • Set Nomor Lembar dari Print Order - Tetapkan nomor berurutan berdasarkan urutan cetak
     • Shift Selected Sheet Numbers - Pergeseran nomor lembar kustom
     • Operasi Multi-lembar - Pemrosesan lembar batch
 
@@ -55,10 +55,10 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Sheet-Tools
 layout:
   - AddRunningNumberToSheetList
   - AlignViewports
-  - GetSortNumberToSheetParameter
+  - SetSheetNumberFromPrintOrder
   - ShiftSelectedSheetNumbers
   - -----
-  - XclTemplate
+  - CsvTemplate
   - SheetsCsv
 
 # Engine Configuration
