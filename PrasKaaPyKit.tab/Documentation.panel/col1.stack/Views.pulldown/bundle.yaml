@@ -16,6 +16,7 @@ tooltip:
     • Set Crop View Standard - Crop box line weight management
     • View Range - 3D visualization of view depths
     • Create Filter by Subcategory - Advanced filtering tools
+    • Set View Title on Sheet - Copy view name to title parameter
     • Multi-view Operations - Batch view modifications
 
     WORKFLOW SUPPORT:
@@ -36,6 +37,7 @@ tooltip:
     • Set Crop View Standard - Manajemen berat garis crop box
     • View Range - Visualisasi 3D kedalaman tampilan
     • Create Filter by Subcategory - Alat filter canggih
+    • Set View Title on Sheet - Salin nama tampilan ke parameter judul
     • Operasi Multi-tampilan - Modifikasi tampilan batch
 
     DUKUNGAN ALUR KERJA:
@@ -54,6 +56,7 @@ layout:
   - SetCropViewToSectionStandard
   - ViewRange
   - CreateFilterSectionBySubcategory
+  - SetViewTitleOnSheet
   - -----
   - VisibilityLinkRevit
 

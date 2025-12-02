@@ -145,3 +145,5 @@ config/secrets.py
 **/*token*
 **/*secret*
 **/*key*
+mass_message/mass_message.html
+mass_message/mass_message.html

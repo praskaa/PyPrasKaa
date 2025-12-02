@@ -63,7 +63,7 @@ layout:
   - Templates
   - QualityControl
   - Utilities
-  #- Rebar
+  - Rebar
 
 # Engine Configuration
 engine:
