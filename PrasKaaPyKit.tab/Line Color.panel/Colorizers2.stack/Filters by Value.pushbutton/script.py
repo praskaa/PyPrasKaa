@@ -1,9 +1,21 @@
 import sys
+import os
+
+# Add lib directory to Python path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+lib_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))), 'lib')
+if lib_dir not in sys.path:
+    sys.path.insert(0, lib_dir)
 
 from pyrevit import revit, DB, forms
 from pyrevit import script
-from database import *
-from colorize import *
+# Import required functions directly to avoid import issues
+from lib.database import (
+    p_storage_type, get_param_value_by_storage_type, get_builtin_label,
+    shared_param_id_from_guid, filter_from_rules, create_filter_by_name_bics,
+    check_filter_exists, get_name
+)
+from lib.colorize import get_categories_config, get_colours, set_colour_overrides_by_option
 from pyrevit.framework import List
 import filterbyvalueconfig
 from pyrevit.revit.db import query
