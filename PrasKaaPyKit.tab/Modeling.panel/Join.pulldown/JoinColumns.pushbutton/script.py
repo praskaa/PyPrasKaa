@@ -53,5 +53,5 @@ if not selected_columns:
 # Process columns if any were selected/provided
 if selected_columns:
     # Process with standardized silent transaction
-    with ef_Transaction(doc, "Join Columns", debug=False, exitscript=False):
+    with ef_Transaction(doc, "Join Columns", debug=True, exitscript=False):
         process_elements_with_join_logic(doc, selected_columns, join_column_with_nearby_elements)

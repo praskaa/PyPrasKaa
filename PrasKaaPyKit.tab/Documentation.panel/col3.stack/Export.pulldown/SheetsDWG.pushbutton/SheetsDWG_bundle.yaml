@@ -1,0 +1,11 @@
+context: doc-project
+
+title: Sheets > DWG
+
+tooltip: Exports selected sheets to DWG.
+
+author: PrasKaa
+
+references: v2.0.0
+
+engine: {clean: true}

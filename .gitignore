@@ -146,4 +146,3 @@ config/secrets.py
 **/*secret*
 **/*key*
 mass_message/mass_message.html
-mass_message/mass_message.html

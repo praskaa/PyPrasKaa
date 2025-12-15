@@ -61,3 +61,60 @@ def get_titleblocks_from_sheet(sheet, uidoc):
 
     return list(tb)
 
+def get_views_on_sheets(doc=None):
+    """Get all views that are placed on sheets."""
+    if doc is None:
+        doc = default_doc
+
+    views_on_sheets = []
+
+    # Get all sheets in the project
+    all_sheets = FilteredElementCollector(doc)\
+        .OfCategory(BuiltInCategory.OST_Sheets)\
+        .WhereElementIsNotElementType()\
+        .ToElements()
+
+    # Collect all unique views from all sheets
+    view_ids = set()
+    for sheet in all_sheets:
+        viewport_ids = sheet.GetAllViewports()
+        for viewport_id in viewport_ids:
+            view_id = doc.GetElement(viewport_id).ViewId
+            view_ids.add(view_id)
+
+    # Convert view IDs to view elements
+    for view_id in view_ids:
+        view = doc.GetElement(view_id)
+        if view:
+            views_on_sheets.append(view)
+
+    return views_on_sheets
+
+def get_sheets_with_view(view, doc=None):
+    """Get all sheets that contain a specific view."""
+    if doc is None:
+        doc = default_doc
+
+    sheets_with_view = []
+
+    # Get all sheets
+    sheets = FilteredElementCollector(doc)\
+        .OfCategory(BuiltInCategory.OST_Sheets)\
+        .WhereElementIsNotElementType()\
+        .ToElements()
+
+    for sheet in sheets:
+        viewport_ids = sheet.GetAllViewports()
+        for viewport_id in viewport_ids:
+            viewport = doc.GetElement(viewport_id)
+            if viewport and viewport.ViewId == view.Id:
+                sheets_with_view.append(sheet)
+                # Early exit if we only need one sheet (most common case)
+                # break
+
+    return sheets_with_view
+
+def get_sheet_number_and_name(sheet):
+    """Get formatted sheet number and name for display."""
+    return "{} - {}".format(sheet.SheetNumber, sheet.Name)
+
