@@ -80,10 +80,18 @@ for el in get_view_elements:
 n = len(types_dict)
 revit_colours = get_colours(n)
 
-with revit.Transaction("Isolate and Colorize Types"):
-    for type_id, colour in zip(types_dict.keys(), revit_colours):
-        type_instance = types_dict[type_id]
-        override = set_colour_overrides_by_option(overrides_option, colour, doc)
-        for inst in type_instance:
-            view.SetElementOverrides(inst, override)
+# Set view as active before colorize transaction
 revit.active_view = view
+
+logger.info("Before second transaction: view.IsValidObject = {}, current active view = {}, number of types = {}".format(view.IsValidObject, revit.active_view.Name if revit.active_view else None, len(types_dict)))
+
+try:
+    with revit.Transaction("Isolate and Colorize Types"):
+        for type_id, colour in zip(types_dict.keys(), revit_colours):
+            type_instance = types_dict[type_id]
+            override = set_colour_overrides_by_option(overrides_option, colour, doc)
+            for inst in type_instance:
+                view.SetElementOverrides(inst, override)
+except Exception as e:
+    logger.error("Error during colorize transaction: {}".format(str(e)))
+    raise

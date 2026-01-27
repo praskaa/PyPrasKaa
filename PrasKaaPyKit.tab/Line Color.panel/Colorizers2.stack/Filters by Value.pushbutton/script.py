@@ -9,13 +9,9 @@ if lib_dir not in sys.path:
 
 from pyrevit import revit, DB, forms
 from pyrevit import script
-# Import required functions directly to avoid import issues
-from lib.database import (
-    p_storage_type, get_param_value_by_storage_type, get_builtin_label,
-    shared_param_id_from_guid, filter_from_rules, create_filter_by_name_bics,
-    check_filter_exists, get_name
-)
-from lib.colorize import get_categories_config, get_colours, set_colour_overrides_by_option
+# Import required modules
+import database
+import colorize
 from pyrevit.framework import List
 import filterbyvalueconfig
 from pyrevit.revit.db import query
@@ -27,6 +23,17 @@ BIC = DB.BuiltInCategory
 BIP = DB.BuiltInParameter
 doc = revit.doc
 view = revit.active_view
+
+
+def get_element_id_value(element_id):
+    """Get the integer value of an ElementId, compatible with Revit 2025 and 2026+.
+    
+    Revit 2026 deprecated IntegerValue in favor of Value property.
+    """
+    if hasattr(element_id, 'Value'):
+        return element_id.Value
+    return element_id.IntegerValue
+
 
 overrides_option = filterbyvalueconfig.get_overrides_config()
 
@@ -137,7 +144,7 @@ forms.alert_ifnot(filterable_parameter_ids.Count != 0, "No parameters are common
 
 for id in filterable_parameter_ids:
     # the Id of BuiltInParameters is a negative one
-    if id.IntegerValue < 0:
+    if get_element_id_value(id) < 0:
         # iterate through all parameters of an element of category(ies)
         # until the Id of the parameter matches the id from the list of filterable parameters
         bip = match_bip_by_id(chosen_bics, id)

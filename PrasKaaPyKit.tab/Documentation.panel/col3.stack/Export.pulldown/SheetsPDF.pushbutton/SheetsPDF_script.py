@@ -76,8 +76,11 @@ if sheets:
             from System.Collections.Generic import List
             exportSheets = List[DB.ElementId]()
             
-            # Add all sheet IDs to collection
-            for s in sheets:
+            # Sort sheets by sheet number (ascending) before exporting
+            sorted_sheets = sorted(sheets, key=lambda s: s.SheetNumber)
+            
+            # Add all sheet IDs to collection in sorted order
+            for s in sorted_sheets:
                 exportSheets.Add(s.Id)
             
             # Export all sheets as single PDF
