@@ -103,7 +103,7 @@ def collect_columns(document, is_host=True):
     if is_host:
         selection_ids = uidoc.Selection.GetElementIds()
         if selection_ids:
-            columns = [doc.GetElement(id) for id in selection_ids if doc.GetElement(id).Category and doc.GetElement(id).Category.Id.IntegerValue == int(BuiltInCategory.OST_StructuralColumns)]
+            columns = [doc.GetElement(id) for id in selection_ids if doc.GetElement(id).Category and int(doc.GetElement(id).Category.Id) == int(BuiltInCategory.OST_StructuralColumns)]
             if columns:
                 return columns
 

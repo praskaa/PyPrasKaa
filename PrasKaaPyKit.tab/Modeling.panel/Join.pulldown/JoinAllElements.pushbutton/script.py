@@ -16,7 +16,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'lib'))
 
-from Snippets._selection import pick_by_category
+from Snippets._selection import pick_by_category, get_selected_elements
 from Snippets._context_manager import ef_Transaction
 from join_utils import get_intersecting_elements, perform_join_if_needed
 
@@ -33,14 +33,22 @@ STRUCTURAL_CATEGORIES = [
     BuiltInCategory.OST_Walls
 ]
 
-# Get all structural elements
-all_elements = []
-for category in STRUCTURAL_CATEGORIES:
-    elements = FilteredElementCollector(doc)\
-        .OfCategory(category)\
-        .WhereElementIsNotElementType()\
-        .ToElements()
-    all_elements.extend(elements)
+# Check for preselected elements
+selected_elements = get_selected_elements(uidoc, exitscript=False)
+
+if selected_elements:
+    # Filter selected elements to only structural categories
+    elements_to_process = [elem for elem in selected_elements if elem.Category and elem.Category.Id.IntegerValue in [int(cat) for cat in STRUCTURAL_CATEGORIES]]
+else:
+    # Get all structural elements
+    all_elements = []
+    for category in STRUCTURAL_CATEGORIES:
+        elements = FilteredElementCollector(doc)\
+            .OfCategory(category)\
+            .WhereElementIsNotElementType()\
+            .ToElements()
+        all_elements.extend(elements)
+    elements_to_process = all_elements
 
 # Define join logic function
 def join_element_with_nearby(element):
@@ -50,10 +58,10 @@ def join_element_with_nearby(element):
     for intersecting_elem in intersecting_elements:
         perform_join_if_needed(doc, element, intersecting_elem)
 
-# Process all elements silently
-if all_elements:
+# Process elements silently
+if elements_to_process:
     with ef_Transaction(doc, "Join All Elements", debug=False, exitscript=False):
-        for element in all_elements:
+        for element in elements_to_process:
             try:
                 join_element_with_nearby(element)
             except:

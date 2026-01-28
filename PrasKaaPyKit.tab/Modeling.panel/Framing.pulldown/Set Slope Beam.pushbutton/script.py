@@ -6,18 +6,42 @@ __title__ = "Beam Level\nOffset by Slope"
 __author__ = "Your Name"
 
 from Autodesk.Revit.DB import *
-from Autodesk.Revit.UI.Selection import ObjectType
+from Autodesk.Revit.UI.Selection import ObjectType, ISelectionFilter
 from pyrevit import revit, DB, UI, forms
 import math
+import sys
+import clr
 
 doc = revit.doc
 uidoc = revit.uidoc
 
+# Get Revit version
+revit_version = int(doc.Application.VersionNumber)
+
+class StructuralFramingFilter(ISelectionFilter):
+    """Filter to allow only Structural Framing selection"""
+    def __init__(self):
+        pass
+    
+    def AllowElement(self, elem):
+        try:
+            if elem.Category:
+                return elem.Category.Id.IntegerValue == int(BuiltInCategory.OST_StructuralFraming)
+        except:
+            pass
+        return False
+    
+    def AllowReference(self, reference, position):
+        return False
+
 def get_beam_curve(beam):
     """Get beam location curve"""
-    location = beam.Location
-    if isinstance(location, LocationCurve):
-        return location.Curve
+    try:
+        location = beam.Location
+        if isinstance(location, LocationCurve):
+            return location.Curve
+    except:
+        pass
     return None
 
 def project_point_to_face(point, face):
@@ -31,10 +55,26 @@ def project_point_to_face(point, face):
         return None
 
 def get_beam_width(beam):
-    """Get beam width from parameter 'b'"""
-    param = beam.LookupParameter("b")
-    if param and param.HasValue:
-        return param.AsDouble()
+    """Get beam width from parameter 'b' (from Type properties)"""
+    try:
+        # Get beam type
+        beam_type = doc.GetElement(beam.GetTypeId())
+        if not beam_type:
+            return None
+        
+        # Try to get 'b' parameter from type
+        param = beam_type.LookupParameter("b")
+        if param and param.HasValue:
+            return param.AsDouble()
+        
+        # Alternative: try built-in parameter for beam width
+        param = beam_type.get_Parameter(BuiltInParameter.STRUCTURAL_SECTION_COMMON_WIDTH)
+        if param and param.HasValue:
+            return param.AsDouble()
+            
+    except:
+        pass
+    
     return None
 
 def get_beam_corners(curve, width, beam):
@@ -67,12 +107,15 @@ def get_beam_corners(curve, width, beam):
 
 def get_base_level_elevation(beam):
     """Get base level elevation from beam Reference Level parameter"""
-    ref_level_param = beam.get_Parameter(BuiltInParameter.INSTANCE_REFERENCE_LEVEL_PARAM)
-    if ref_level_param and ref_level_param.HasValue:
-        level_id = ref_level_param.AsElementId()
-        level = doc.GetElement(level_id)
-        if level:
-            return level.Elevation
+    try:
+        ref_level_param = beam.get_Parameter(BuiltInParameter.INSTANCE_REFERENCE_LEVEL_PARAM)
+        if ref_level_param and ref_level_param.HasValue:
+            level_id = ref_level_param.AsElementId()
+            level = doc.GetElement(level_id)
+            if level:
+                return level.Elevation
+    except:
+        pass
     return None
 
 def classify_and_process_beams(beams, face):
@@ -102,6 +145,7 @@ def classify_and_process_beams(beams, face):
             if not curve:
                 skipped_beams.append(beam)
                 results['errors'].append("Beam ID {}: No location curve".format(beam.Id))
+                results['skipped'] += 1
                 continue
             
             start = curve.GetEndPoint(0)
@@ -114,6 +158,7 @@ def classify_and_process_beams(beams, face):
             if start_elev is None or end_elev is None:
                 skipped_beams.append(beam)
                 results['errors'].append("Beam ID {}: Projection failed".format(beam.Id))
+                results['skipped'] += 1
                 continue
             
             # Check elevation difference
@@ -127,6 +172,7 @@ def classify_and_process_beams(beams, face):
         except Exception as e:
             skipped_beams.append(beam)
             results['errors'].append("Beam ID {}: {}".format(beam.Id, str(e)))
+            results['skipped'] += 1
     
     print("Parallel to slope: {} beams".format(len(parallel_beams)))
     print("Perpendicular to slope: {} beams".format(len(perpendicular_beams)))
@@ -169,6 +215,8 @@ def classify_and_process_beams(beams, face):
                     end_param.Set(end_offset)
                 
                 results['parallel'] += 1
+                print("  Beam ID {}: Parallel processed (Start: {:.3f}, End: {:.3f})".format(
+                    beam.Id, start_offset * 304.8, end_offset * 304.8))
                 
             except Exception as e:
                 results['errors'].append("Beam ID {}: {}".format(beam.Id, str(e)))
@@ -218,45 +266,72 @@ def classify_and_process_beams(beams, face):
                     end_param.Set(offset)
                 
                 results['perpendicular'] += 1
+                print("  Beam ID {}: Perpendicular processed (Offset: {:.3f} mm, Width: {:.1f} mm)".format(
+                    beam.Id, offset * 304.8, width * 304.8))
                 
             except Exception as e:
                 results['errors'].append("Beam ID {}: {}".format(beam.Id, str(e)))
         
+        # Print results BEFORE commit
+        print("\n" + "="*50)
+        print("RESULTS")
+        print("="*50)
+        print("Processed parallel: {} beams".format(results['parallel']))
+        print("Processed perpendicular: {} beams".format(results['perpendicular']))
+        print("Skipped: {} beams".format(results['skipped']))
+        
+        if results['errors']:
+            print("\nWarnings/Errors:")
+            for error in results['errors']:
+                print("  - {}".format(error))
+        
         t.Commit()
+
         
     except Exception as e:
         t.RollBack()
         print("\nERROR: Transaction failed - {}".format(str(e)))
         return
-    
-    # Print results
-    print("\n" + "="*50)
-    print("RESULTS")
-    print("="*50)
-    print("Processed parallel: {} beams".format(results['parallel']))
-    print("Processed perpendicular: {} beams".format(results['perpendicular']))
-    print("Skipped: {} beams".format(results['skipped']))
-    
-    if results['errors']:
-        print("\nWarnings/Errors:")
-        for error in results['errors']:
-            print("  - {}".format(error))
 
 # Main execution
 if __name__ == '__main__':
     try:
-        # Select beams
-        beam_refs = uidoc.Selection.PickObjects(
-            ObjectType.Element,
-            "Select beams"
-        )
+        # Select beams with filter
+        print("Revit Version: {}".format(revit_version))
+        print("Select structural framing beams...")
+        
+        # Try using filter, fallback if fails
+        try:
+            beam_refs = uidoc.Selection.PickObjects(
+                ObjectType.Element,
+                StructuralFramingFilter(),
+                "Select structural framing beams (Filter active)"
+            )
+        except Exception as filter_error:
+            print("Filter failed ({}), using standard selection...".format(str(filter_error)))
+            beam_refs = uidoc.Selection.PickObjects(
+                ObjectType.Element,
+                "Select structural framing beams"
+            )
         
         if not beam_refs:
             print("No beams selected")
-            import sys
             sys.exit()
         
-        beams = [doc.GetElement(ref) for ref in beam_refs]
+        # Validate selected elements are structural framing
+        beams = []
+        for ref in beam_refs:
+            elem = doc.GetElement(ref)
+            if elem.Category and elem.Category.Id.IntegerValue == int(BuiltInCategory.OST_StructuralFraming):
+                beams.append(elem)
+            else:
+                print("Warning: Skipped non-structural framing element ID {}".format(elem.Id))
+        
+        if not beams:
+            print("No valid structural framing beams selected")
+            sys.exit()
+            
+        print("Selected {} valid beams".format(len(beams)))
         
         # Select slope face
         print("\nSelect slope/ramp face...")
@@ -278,5 +353,6 @@ if __name__ == '__main__':
         
     except Exception as e:
         print("\nERROR: {}".format(str(e)))
+        print("\nFull traceback:")
         import traceback
         traceback.print_exc()

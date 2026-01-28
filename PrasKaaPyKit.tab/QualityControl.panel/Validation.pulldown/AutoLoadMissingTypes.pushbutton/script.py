@@ -32,6 +32,8 @@ __doc__ = "Automatically loads missing families and creates missing types from l
           "to prepare for Matching Dimension tools."
 
 import re
+import os
+import tempfile
 from Autodesk.Revit.DB import (
     FilteredElementCollector,
     BuiltInCategory,
@@ -361,50 +363,85 @@ def load_family_from_linked_model(link_doc, family_name, category):
     Returns:
         dict: Result with 'success', 'message', and optionally 'loaded_family'
     """
+    temp_file_path = None
     try:
+        logger.debug("Starting load_family_from_linked_model for family: '{}'".format(family_name))
+
         # Find the family in the linked document
         linked_families = FilteredElementCollector(link_doc).OfClass(Family).ToElements()
+        logger.debug("Found {} families in linked document".format(len(linked_families)))
 
         target_family = None
         for family in linked_families:
+            logger.debug("Checking family: '{}' (type: {})".format(family.Name, type(family)))
             if family.Name == family_name:
                 target_family = family
+                logger.debug("Found matching family: '{}' (type: {})".format(family_name, type(target_family)))
                 break
 
         if not target_family:
+            logger.debug("Family '{}' not found in linked model".format(family_name))
             return {
                 'success': False,
                 'message': "Family '{}' not found in linked model".format(family_name)
             }
 
+        logger.debug("Target family object: {}, type: {}".format(target_family, type(target_family)))
+
         # Check if family is already loaded in host
         host_families = FilteredElementCollector(doc).OfClass(Family).ToElements()
         for host_family in host_families:
             if host_family.Name == family_name:
+                logger.debug("Family '{}' already exists in host model".format(family_name))
                 return {
                     'success': False,
                     'message': "Family '{}' already exists in host model".format(family_name)
                 }
 
-        # Load the family
-        with Transaction(doc, "Load Family: {}".format(family_name)) as t:
-            t.Start()
+        # Create a temporary file path for the family
+        temp_dir = tempfile.gettempdir()
+        temp_file_path = os.path.join(temp_dir, "{}.rfa".format(family_name.replace(' ', '_').replace('-', '_')))
 
-            # Load family - this will load all types within the family
-            success = doc.LoadFamily(target_family)
+        logger.debug("Attempting to save family to temp file: {}".format(temp_file_path))
 
-            if success:
-                t.Commit()
-                return {
-                    'success': True,
-                    'message': "Successfully loaded family '{}' with all types".format(family_name)
-                }
-            else:
-                t.RollBack()
-                return {
-                    'success': False,
-                    'message': "Failed to load family '{}'".format(family_name)
-                }
+        # Open the family in family editor and save it
+        family_doc = doc.EditFamily(target_family)
+        if family_doc:
+            # Save the family document
+            family_doc.SaveAs(temp_file_path)
+            family_doc.Close(False)  # Close without saving changes
+
+            logger.debug("Family saved to temp file successfully")
+
+            # Now load the family from the temp file
+            with Transaction(doc, "Load Family: {}".format(family_name)) as t:
+                t.Start()
+
+                logger.debug("Loading family from file: {}".format(temp_file_path))
+
+                # Load family from file path
+                success = doc.LoadFamily(temp_file_path)
+
+                if success:
+                    t.Commit()
+                    logger.debug("Successfully loaded family '{}'".format(family_name))
+                    return {
+                        'success': True,
+                        'message': "Successfully loaded family '{}' with all types".format(family_name)
+                    }
+                else:
+                    t.RollBack()
+                    logger.debug("Failed to load family '{}' - LoadFamily returned False".format(family_name))
+                    return {
+                        'success': False,
+                        'message': "Failed to load family '{}' from file".format(family_name)
+                    }
+        else:
+            logger.debug("Failed to open family in editor")
+            return {
+                'success': False,
+                'message': "Failed to open family '{}' in family editor".format(family_name)
+            }
 
     except Exception as e:
         logger.error("Error loading family '{}': {}".format(family_name, e))
@@ -412,6 +449,14 @@ def load_family_from_linked_model(link_doc, family_name, category):
             'success': False,
             'message': "Error loading family '{}': {}".format(family_name, str(e))
         }
+    finally:
+        # Clean up temp file
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.remove(temp_file_path)
+                logger.debug("Cleaned up temp file: {}".format(temp_file_path))
+            except Exception as cleanup_e:
+                logger.debug("Failed to clean up temp file: {}".format(cleanup_e))
 
 
 def duplicate_type_and_copy_parameters(family_name, type_name, link_doc, category):

@@ -151,24 +151,53 @@ def collect_host_beams():
     """
     selection_ids = uidoc.Selection.GetElementIds()
     host_beams = []
-
+    
     if selection_ids:
         # If user has pre-selected elements, use them
         for elem_id in selection_ids:
             elem = doc.GetElement(elem_id)
+            
             # Make sure the selected element is a Structural Framing element
-            if elem.Category and elem.Category.Id == BuiltInCategory.OST_StructuralFraming:
+            # Try multiple comparison methods for API compatibility across Revit versions
+            is_structural_framing = False
+            
+            if elem and elem.Category:
+                # Method 1: Direct ElementId comparison
+                if elem.Category.Id == BuiltInCategory.OST_StructuralFraming:
+                    is_structural_framing = True
+                
+                # Method 2: Try OST_StructuralFramingAll enum (newer Revit versions)
+                if not is_structural_framing:
+                    try:
+                        if elem.Category.Id == BuiltInCategory.OST_StructuralFramingAll:
+                            is_structural_framing = True
+                    except:
+                        pass
+                
+                # Method 3: Category Name comparison (fallback)
+                if not is_structural_framing:
+                    if elem.Category.Name == "Structural Framing":
+                        is_structural_framing = True
+                
+                # Method 4: Try Indonesian category name
+                if not is_structural_framing:
+                    if elem.Category.Name == "Balok Struktur":
+                        is_structural_framing = True
+            
+            if is_structural_framing:
                 host_beams.append(elem)
 
         if not host_beams:
             forms.alert("Tidak ada elemen balok (Structural Framing) yang ditemukan dalam seleksi Anda. "
                         "Silakan pilih beberapa balok dan coba lagi.", exitscript=True)
     else:
+        logger.info("No elements selected, collecting all structural framing elements from project")
         # If nothing is selected, get all structural framing in the project
         host_beams = FilteredElementCollector(doc)\
             .OfCategory(BuiltInCategory.OST_StructuralFraming)\
             .WhereElementIsNotElementType()\
             .ToElements()
+        logger.info("Found {} structural framing elements in project".format(len(host_beams)))
 
     return host_beams
 
@@ -623,6 +652,40 @@ def disable_all_joins_in_elements(elements, doc):
     return joins_disabled
 
 
+def mark_unmatched_beams(unmatched, doc):
+    """
+    Marks unmatched beams by setting their Comments parameter to "Unmatched".
+    
+    Args:
+        unmatched (list): List of beam elements that were not matched to any linked beam
+        doc (Document): The Revit document
+        
+    Returns:
+        int: Number of beams marked as unmatched
+    """
+    marked_count = 0
+    for beam in unmatched:
+        try:
+            comments_param = beam.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
+            if comments_param and not comments_param.IsReadOnly:
+                # Get existing comment and append "Unmatched"
+                existing_comment = comments_param.AsString() if comments_param.HasValue else ""
+                if existing_comment and existing_comment.strip():
+                    new_comment = "{} | Unmatched".format(existing_comment)
+                else:
+                    new_comment = "Unmatched"
+                comments_param.Set(new_comment)
+                marked_count += 1
+                logger.debug("Marked beam {} as 'Unmatched'".format(beam.Id))
+            else:
+                logger.warning("Could not set Comments parameter for beam {} (parameter not found or read-only)".format(beam.Id))
+        except Exception as e:
+            logger.warning("Failed to set Comments parameter for beam {}. Error: {}".format(beam.Id, e))
+    
+    logger.info("Marked {} unmatched beams with Comments parameter".format(marked_count))
+    return marked_count
+
+
 def cleanup_geometry_cache(linked_beams_dict):
     """
     Cleans up cached geometry data to free memory.
@@ -946,7 +1009,12 @@ def main():
     # Manual transaction management for full control over commit timing
     master_transaction = Transaction(doc, 'Transfer All Beam Types')
     master_transaction.Start()
-
+    
+    # Mark unmatched beams with Comments parameter
+    if unmatched:
+        marked_count = mark_unmatched_beams(unmatched, doc)
+        logger.info("Marked {} unmatched beams".format(marked_count))
+    
     try:
         # Progress bar only for batch processing (not including commit)
         with ProgressBar(title='Transferring Beam Types ({value} of {max_value})',

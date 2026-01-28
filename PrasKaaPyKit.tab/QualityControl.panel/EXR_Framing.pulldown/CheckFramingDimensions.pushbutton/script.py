@@ -1615,7 +1615,9 @@ def main():
     if selection_ids:
         for elem_id in selection_ids:
             elem = doc.GetElement(elem_id)
-            if elem and elem.Category and elem.Category.Id == BuiltInCategory.OST_StructuralFraming:
+            # API compatibility for Revit 2024+: use .Value if available, fallback to int()
+            category_id_value = elem.Category.Id.Value if hasattr(elem.Category.Id, 'Value') else int(elem.Category.Id)
+            if elem and elem.Category and category_id_value == int(BuiltInCategory.OST_StructuralFraming):
                 pre_selected_elements.append(elem)
 
     # Step 3: Extract and cache solid geometries for linked beams to optimize matching performance

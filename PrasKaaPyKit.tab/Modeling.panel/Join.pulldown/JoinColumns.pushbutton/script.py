@@ -24,12 +24,15 @@ from pyrevit import revit
 # Local lib imports
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'lib'))
+lib_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'lib')
+sys.path.append(lib_path)
+
+# Import join utilities
+import join_utils
+import join_columns
 
 from Snippets._selection import get_selected_elements, pick_by_category
 from Snippets._context_manager import ef_Transaction
-from join_utils import process_elements_with_join_logic
-from join_columns import join_column_with_nearby_elements
 
 # Setup
 doc = revit.doc
@@ -54,4 +57,4 @@ if not selected_columns:
 if selected_columns:
     # Process with standardized silent transaction
     with ef_Transaction(doc, "Join Columns", debug=True, exitscript=False):
-        process_elements_with_join_logic(doc, selected_columns, join_column_with_nearby_elements)
+        join_utils.process_elements_with_join_logic(doc, selected_columns, join_columns.join_column_with_nearby_elements)
