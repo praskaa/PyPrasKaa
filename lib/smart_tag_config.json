@@ -1,18 +1,18 @@
 {
     "structural_framing": {
+        "offset_mm": 150, 
         "tag_type_name": "M_Structural Framing Tag: Type Name", 
-        "enabled": false, 
-        "offset_mm": 150
+        "enabled": true
     }, 
     "structural_column": {
+        "offset_mm": 50, 
         "tag_type_name": "Structural Column Tag: Structural Column Tag", 
-        "enabled": true, 
-        "offset_mm": 50
+        "enabled": true
     }, 
     "walls": {
+        "offset_mm": 500, 
         "tag_type_name": "", 
-        "enabled": false, 
-        "offset_mm": 500
+        "enabled": false
     }, 
     "tag_mode": "untagged_only"
 }

@@ -59,6 +59,7 @@ layout:
   - -----
   - TransferMarkManual
   - TransferMarkWithOverride
+  - TransferMarkWithRevitModel
   - -----
   - TransferETABSGUIDManual
   - TransferMarkByGUID
