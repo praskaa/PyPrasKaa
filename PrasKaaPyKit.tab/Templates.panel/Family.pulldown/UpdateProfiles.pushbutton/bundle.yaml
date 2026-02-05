@@ -3,9 +3,9 @@
 
 title:
   en_us: "Update Family Types by CSV"
-  id: "Update Profil (Konsol)"  
+  id_ID: "Update Profil (Konsol)"  
 context: doc-family
 tooltip:
   en_us: "Update or create family types from a CSV file."
-  id: "Perbarui atau buat tipe family dari file CSV."
+  id_ID: "Perbarui atau buat tipe family dari file CSV."
 author: "Kilo Code"

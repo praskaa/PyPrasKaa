@@ -2,7 +2,7 @@
 
 title:
   en_us: Sheets
-  id: Lembar
+  id_ID: Lembar
 
 tooltip:
   en_us: |
@@ -26,7 +26,7 @@ tooltip:
     • Documentation set management
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Manajemen Lembar - Organisasi & Penomoran
 
     Alat komprehensif untuk mengelola lembar dan viewport Revit.

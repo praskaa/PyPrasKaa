@@ -2,7 +2,7 @@
 
 title:
   en_us: Utilities
-  id: Utilitas
+  id_ID: Utilitas
 
 tooltip:
   en_us: |
@@ -25,7 +25,7 @@ tooltip:
     • State preservation across sessions
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Utilitas - Manajemen Grid & Pembantu Seleksi
 
     Alat utilitas penting untuk alur kerja Revit sehari-hari. Tingkatkan

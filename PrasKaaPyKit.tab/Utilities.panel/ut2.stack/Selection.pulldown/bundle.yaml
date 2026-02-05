@@ -2,7 +2,7 @@
 
 title:
   en_us: Selection
-  id: Seleksi
+  id_ID: Seleksi
 
 tooltip:
   en_us: |
@@ -24,7 +24,7 @@ tooltip:
     • Selection state management
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Seleksi - Seleksi Elemen Canggih
 
     Utilitas seleksi powerful untuk manajemen elemen yang efisien di Revit.

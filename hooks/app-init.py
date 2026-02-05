@@ -15,7 +15,7 @@ from customOutput import ct_icon, mass_message_url
 from customOutput import def_hookLogs, def_revitBuildLogs, def_revitBuilds, def_massMessagePath
 from customOutput import def_syncLogPath, def_openingLogPath, def_dashboardsPath, def_language
 from customOutput import def_doorUnflipped, def_doorFlipped, def_windowUnflipped, def_windowFlipped
-from customOutput import def_wiki, def_standardWorksets
+from customOutput import def_wiki, def_standardWorksets, def_showStartupPopup
 from customOutput import company_conf
 
 
@@ -25,27 +25,21 @@ config_values = company_conf()
 
 # Force update user config with converted Documents paths
 try:
-    print("Updating user config with new Documents paths...")
     if 'hookLogs' in config_values:
         user_config.PrasKaaToolsSettings.hookLogs = config_values['hookLogs']
-        print("hookLogs updated: {}".format(config_values['hookLogs']))
     if 'syncLogPath' in config_values:
         user_config.PrasKaaToolsSettings.syncLogPath = config_values['syncLogPath']
-        print("syncLogPath updated: {}".format(config_values['syncLogPath']))
     if 'openingLogPath' in config_values:
         user_config.PrasKaaToolsSettings.openingLogPath = config_values['openingLogPath']
-        print("openingLogPath updated: {}".format(config_values['openingLogPath']))
     if 'familyloadLogPath' in config_values:
         user_config.PrasKaaToolsSettings.familyloadLogPath = config_values['familyloadLogPath']
-        print("familyloadLogPath updated: {}".format(config_values['familyloadLogPath']))
     if 'revitBuildLogs' in config_values:
         user_config.PrasKaaToolsSettings.revitBuildLogs = config_values['revitBuildLogs']
     if 'dashboardsPath' in config_values:
         user_config.PrasKaaToolsSettings.dashboardsPath = config_values['dashboardsPath']
     user_config.save_changes()
-    print("User config successfully updated with Documents paths!")
-except Exception as e:
-    print("Warning: Failed to update user config: {}".format(str(e)))
+except:
+    pass
 
 # creating sections in pyRevit_config.ini if it does not exist
 try:
@@ -194,6 +188,17 @@ try:
 except:
     user_config.PrasKaaToolsSettings.standardWorksets = def_standardWorksets
 
+# showStartupPopup - control whether to show mass message popup at startup
+try:
+    try:
+        # Convert string to boolean - accept 'true', 'True', '1', 'yes', etc.
+        show_popup_value = str(config_values['showStartupPopup']).lower()
+        user_config.PrasKaaToolsSettings.showStartupPopup = show_popup_value in ['true', '1', 'yes', 'on']
+    except:
+        user_config.PrasKaaToolsSettings.showStartupPopup
+except:
+    user_config.PrasKaaToolsSettings.showStartupPopup = def_showStartupPopup
+
 user_config.save_changes()
 
 # write log with revit build, username, CTversion and timestamp
@@ -215,12 +220,20 @@ except:
 
 """TEASER."""
 #prints heading and links offline version of mass message
-from pyrevit import script
-output = script.get_output()
-output.set_height(700)
-output.set_title("Mass Message")
-# changing icon
-ct_icon(output)
+# Check if popup should be shown based on configuration
+try:
+    show_popup = user_config.PrasKaaToolsSettings.showStartupPopup
+except:
+    show_popup = def_showStartupPopup
 
-# server version of massmessage
-output.open_page(mass_message_url(output))
+if show_popup:
+    from pyrevit import script
+    output = script.get_output()
+    output.set_height(700)
+    output.set_title("Mass Message")
+    # changing icon
+    ct_icon(output)
+
+    # server version of massmessage
+    output.open_page(mass_message_url(output))
+# No else needed - popup is simply not shown when disabled

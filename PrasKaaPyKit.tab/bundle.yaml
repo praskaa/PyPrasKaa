@@ -3,7 +3,7 @@
 
 title:
   en_us: PrasKaaPyKit v2
-  id: PrasKaaPyKit v2
+  id_ID: PrasKaaPyKit v2
 
 tooltip:
   en_us: |
@@ -28,7 +28,7 @@ tooltip:
     • Large-scale Revit projects
 
     Version: 2.0 | Author: PrasKaa Team | Compatible: Revit 2018-2026
-  id: |
+  id_ID: |
     PrasKaaPyKit v2 - Paket Produktivitas Revit Canggih
 
     Kumpulan alat komprehensif yang dirancang untuk meningkatkan produktivitas
@@ -80,4 +80,4 @@ max_revit_ver: 2026
 version: "2.0.0"
 description:
   en_us: "Advanced Revit productivity tools suite for structural engineering and BIM workflows"
-  id: "Paket alat produktivitas Revit canggih untuk rekayasa struktur dan alur kerja BIM"
+  id_ID: "Paket alat produktivitas Revit canggih untuk rekayasa struktur dan alur kerja BIM"

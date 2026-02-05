@@ -2,7 +2,7 @@
 
 title:
   en_us: Transfer Mark
-  id: Transfer Mark
+  id_ID: Transfer Mark
 
 tooltip:
   en_us: |
@@ -25,7 +25,7 @@ tooltip:
     • Batch transfer operations
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Transfer Mark - Operasi Transfer Mark Rangka
 
     Alat transfer mark canggih untuk elemen rangka struktur.

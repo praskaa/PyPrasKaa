@@ -2,7 +2,7 @@
 
 title:
   en_us: Dimension
-  id: Dimensi
+  id_ID: Dimensi
 
 tooltip:
   en_us: |
@@ -25,7 +25,7 @@ tooltip:
     • Transaction-safe operations
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Dimensi - Pendimensian Otomatis untuk Elemen Struktur
 
     Alat pendimensian cerdas untuk kolom dan dinding dengan penempatan

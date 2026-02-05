@@ -2,7 +2,7 @@
 
 title:
   en_us: Grid
-  id: Grid
+  id_ID: Grid
 
 tooltip:
   en_us: |
@@ -25,7 +25,7 @@ tooltip:
     • Consistent grid visualization
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Manajemen Grid - Kontrol & Visualisasi Grid
 
     Alat penting untuk mengelola grid Revit dan properti mereka.

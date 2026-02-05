@@ -98,6 +98,10 @@ def_familyloadLogPath = get_safe_log_path(
     r"F:\1_STUDI\_PrasKaa Python Kit\PrasKaaToolsLogs\FamilyLoad"
 )
 
+# Default setting for showing startup popup (Mass Message)
+# Set to False to hide popup by default
+def_showStartupPopup = False
+
 # read the company config file if it does exist
 def company_conf():
     import os
@@ -126,7 +130,6 @@ def company_conf():
                         relative_path = value[len(old_base_path):]
                         # Map to new Documents structure
                         value = os.path.join(documents_path, 'PrasKaaPyKit' + relative_path)
-                        print("Converted path: {} -> {}".format(keys[1], value))  # Debug logging
 
                     # Legacy path conversions (keep for backward compatibility)
                     elif 'customToolslogs' in value:

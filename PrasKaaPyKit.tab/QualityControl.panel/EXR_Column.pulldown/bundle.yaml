@@ -2,7 +2,7 @@
 
 title:
   en_us: EXR Column
-  id: Kolom EXR
+  id_ID: Kolom EXR
 
 tooltip:
   en_us: |
@@ -25,7 +25,7 @@ tooltip:
     • Quality assurance workflows
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Kolom EXR - Manajemen Kolom Model yang Di-link
 
     Alat khusus untuk mengelola kolom dalam model EXR yang di-link.

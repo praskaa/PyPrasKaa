@@ -2,7 +2,7 @@
 
 title:
   en_us: Join
-  id: Join
+  id_ID: Join
 
 tooltip:
   en_us: |
@@ -26,7 +26,7 @@ tooltip:
     • Wall attachment management
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Join - Manajemen Koneksi Elemen Struktur
 
     Alat canggih untuk mengelola join antar elemen struktur.

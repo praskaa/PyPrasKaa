@@ -146,3 +146,4 @@ config/secrets.py
 **/*secret*
 **/*key*
 mass_message/mass_message.html
+plans/PLAN_TransferMarkWithRevitModel.md

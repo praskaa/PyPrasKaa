@@ -2,7 +2,7 @@
 
 title:
   en_us: Views
-  id: Tampilan
+  id_ID: Tampilan
 
 tooltip:
   en_us: |
@@ -26,7 +26,7 @@ tooltip:
     • Documentation consistency
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Manajemen Tampilan - Konfigurasi & Visualisasi
 
     Alat canggih untuk mengelola tampilan Revit, crop box, dan view range.

@@ -2,7 +2,7 @@
 
 title:
   en_us: EXR Framing
-  id: Rangka EXR
+  id_ID: Rangka EXR
 
 tooltip:
   en_us: |
@@ -25,7 +25,7 @@ tooltip:
     • Quality control automation
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Alat Rangka EXR - Manajemen Rangka Model yang Di-link
 
     Alat komprehensif untuk mengelola rangka struktur dalam model EXR

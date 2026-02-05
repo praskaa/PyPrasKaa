@@ -2,7 +2,7 @@
 
 title:
   en_us: Quality Control
-  id: Kontrol Kualitas
+  id_ID: Kontrol Kualitas
 
 tooltip:
   en_us: |
@@ -27,7 +27,7 @@ tooltip:
     • Real-time validation feedback
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Suite Kontrol Kualitas - Validasi EXR & Manajemen Tipe
 
     Alat jaminan kualitas komprehensif untuk proyek Revit. Pastikan

@@ -2,7 +2,7 @@
 
 title:
   en_us: Templates
-  id: Template
+  id_ID: Template
 
 tooltip:
   en_us: |
@@ -24,7 +24,7 @@ tooltip:
     • Template validation and updates
 
     Version: 2.0 | Author: PrasKaa Team
-  id: |
+  id_ID: |
     Sistem Manajemen Template - Template Family & Tampilan
 
     Sistem manajemen template terpusat untuk family dan tampilan Revit.
