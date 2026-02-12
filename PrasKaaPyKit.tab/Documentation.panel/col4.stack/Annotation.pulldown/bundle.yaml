@@ -53,9 +53,6 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Annotation-Tools
 layout:
   - SmartTag
   - -----
-  - PlaceDetailAtPileCenter
-  - -----
-  - CollectViewTitle
 
 
 # Engine Configuration

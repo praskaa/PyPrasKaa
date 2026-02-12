@@ -1,0 +1,9 @@
+title:
+  en_us: "Fix UIDs"
+  id_ID: "Perbaiki UIDI"
+
+tooltip:
+  en_us: "Fix UID conflicts and duplicates"
+  id_ID: "Perbaiki konflik dan duplikat UID"
+
+author: "PrasKaa"

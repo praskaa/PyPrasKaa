@@ -54,8 +54,6 @@
 ### Parameters
 - [LOG-UTIL-PARAM-001-v1-parameter-finder](active/utilities/parameters/LOG-UTIL-PARAM-001-v1-parameter-finder.py) - Parameter finding and type detection utilities for shared/project parameters
 - [LOG-UTIL-PARAM-003-v1-configuration-management](active/utilities/parameters/LOG-UTIL-PARAM-003-v1-configuration-management.md) - Configuration management and persistence
-- [LOG-UTIL-PARAM-010-v1-flexible-csv-parameter-matching](active/utilities/parameters/LOG-UTIL-PARAM-010-v1-flexible-csv-parameter-matching.md) - Flexible CSV header-to-parameter mapping with fuzzy matching
-- [LOG-UTIL-PARAM-011-v1-family-type-parameter-access](active/utilities/parameters/LOG-UTIL-PARAM-011-v1-family-type-parameter-access.md) - Family type parameter access patterns using FamilyManager API
 
 ### Transactions
 *Placeholder for transaction handling patterns*
@@ -67,8 +65,6 @@
 ### UI
 - [LOG-UTIL-UI-005-v1-simple-option-selection](active/utilities/ui/LOG-UTIL-UI-005-v1-simple-option-selection.md) - Simple option selection dengan pyRevit CommandSwitchWindow
 - [LOG-UTIL-UI-006-v1-tag-type-access](active/utilities/ui/LOG-UTIL-UI-006-v1-tag-type-access.md) - Akses Family dan Type Tag dengan Format "Family: Type"
-- [LOG-UTIL-UI-007-v1-wpf-interactive-builder-framework](active/utilities/ui/LOG-UTIL-UI-007-v1-wpf-naming-convention-builder.md) - Crash-resistant WPF windows for IronPython with modal behavior and error handling
-- [LOG-UTIL-UI-008-v1-format-string-naming-generator](active/utilities/ui/LOG-UTIL-UI-008-v1-format-string-naming-generator.md) - Format string naming generation with placeholder replacement for structured names
 
 ### Modifier Keys
 - [LOG-UTIL-MODKEY-001-v1-modifier-keys-detection](active/utilities/LOG-UTIL-MODKEY-001.md) - Modifier keys detection for multi-mode pyRevit buttons
@@ -77,17 +73,15 @@
 
 ## Current Status
 
-**Active Entries: 19** (from Family Type Generator analysis + previous patterns)
+**Active Entries: 15** (from Check Column Dimensions script analysis + Console Behavior Research)
 - 1 Selection pattern
 - 3 Filtering patterns
-- 4 UI patterns (added WPF framework + naming generator)
+- 2 UI patterns
 - 2 Error Handling patterns
 - 1 Modifier Keys pattern
 - 2 Column patterns (level filtering + geometry intersection)
 - 2 Wall filtering/orientation patterns
 - 1 Configuration management pattern
-- 2 Parameter patterns (CSV matching + family type access)
-- 1 Console behavior pattern
 
 **Placeholder Categories**: Structural Elements, Documentation, Parameters, Transactions
 *These sections show planned organization structure. Actual entries will be added as patterns are identified and documented from working scripts.*

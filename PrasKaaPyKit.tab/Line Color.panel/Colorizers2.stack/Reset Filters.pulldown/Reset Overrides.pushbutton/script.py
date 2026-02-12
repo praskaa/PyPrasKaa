@@ -1,8 +1,4 @@
-import sys
-
-from pyrevit import revit, DB
-from pyrevit import forms
-from database import *
+from pyrevit import revit, DB, forms
 
 view = revit.active_view
 doc = revit.doc

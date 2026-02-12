@@ -1,12 +1,12 @@
-import sys
-
-from pyrevit import revit, DB, forms
-from pyrevit import script
-from database import *
-from colorize import *
-import colorizebyvalueconfig
-from collections import defaultdict
+from pyrevit import revit, DB, forms, script
 from pyrevit.revit.db import query
+from collections import defaultdict
+
+# Explicit imports from lib
+from database import get_param_value_as_string
+from colorize import get_categories_config, get_colours, set_colour_overrides_by_option
+
+import colorizebyvalueconfig
 
 logger = script.get_logger()
 BIC = DB.BuiltInCategory

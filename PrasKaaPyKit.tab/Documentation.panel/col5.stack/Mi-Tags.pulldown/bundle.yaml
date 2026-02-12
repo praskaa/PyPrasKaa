@@ -1,0 +1,7 @@
+layout:
+  - MissingBeamTags
+  - MissingColumnTags
+  - MissingWallsTags
+  - MissingFoundationTags
+  - MissingFloorTags
+  - MissingRebarsTags

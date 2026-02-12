@@ -558,58 +558,6 @@ if __name__ == '__main__':
     main()
 ```
 
-## 🔗 **Integration with Logic Library**
-
-### **LOG-UTIL-CONSOLE-001-v1-pyrevit-console-behavior.md**
-**Lokasi**: `logic-library/active/utilities/error-handling/`
-**Status**: ✅ **ACTIVE** - Dokumentasi lengkap console behavior
-
-**Key Integration Points:**
-- ✅ **Safe Logger Call Pattern**: `safe_logger_call(logger, 'info', message)`
-- ✅ **Timing Rules**: Print summary BEFORE commit, silent AFTER commit
-- ✅ **Progress Management**: ProgressBar untuk operasi panjang
-- ✅ **Anti-Patterns**: Output setelah Transaction.Commit() DILARANG
-
-**Usage in Scripts:**
-```python
-# Import dari logic library
-from logic_library.active.utilities.error_handling.console_behavior import safe_logger_call
-
-# Gunakan untuk logging yang aman
-safe_logger_call(logger, 'info', "## Processing Summary")
-safe_logger_call(logger, 'warning', "⚠️ Some items failed")
-```
-
-### **LOG-UTIL-TRANSACTION-001-v1-transaction-management.md**
-**Lokasi**: `logic-library/active/utilities/transactions/`
-**Status**: ✅ **ACTIVE** - Best practices transaction management
-
-**Key Integration Points:**
-- ✅ **Single Transaction Scope**: Satu transaksi per operasi logis
-- ✅ **Transaction-Agnostic Functions**: Fungsi tidak mengelola transaksi sendiri
-- ✅ **Error Handling**: Rollback pada exception
-- ✅ **Logging Strategy**: Detail sebelum commit, silent setelah commit
-
-### **LOG-UTIL-PARAM-001-v1-timing-override-parameter.md**
-**Lokasi**: `logic-library/active/utilities/parameters/`
-**Status**: ✅ **ACTIVE** - Timing override parameter
-
-**Key Integration Points:**
-- ✅ **Override Timing**: Create → Override → Commit sequence
-- ✅ **Fallback Strategies**: Instance → Type → ID-based override
-- ✅ **Parameter Validation**: Pre-override validation
-- ✅ **Unit Conversion**: Proper handling spacing, cover offset
-
-### **LOG-UTIL-IMPORT-001-v1-library-dependencies.md**
-**Lokasi**: `logic-library/active/utilities/error-handling/`
-**Status**: ✅ **ACTIVE** - Smart import system
-
-**Key Integration Points:**
-- ✅ **Graceful Degradation**: Fallback untuk library yang tidak tersedia
-- ✅ **Version Checking**: Validasi versi library
-- ✅ **Feature Detection**: Deteksi fitur yang tersedia
-- ✅ **Smart Importer**: Import dengan multiple strategies
-
 ---
 
 ## Debugging Tips

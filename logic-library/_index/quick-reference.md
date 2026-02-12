@@ -10,8 +10,6 @@
 ### Parameter Management
 - [LOG-UTIL-PARAM-001-v1-parameter-finder](utilities/parameters/LOG-UTIL-PARAM-001-v1-parameter-finder.py) - Parameter finding and type detection utilities for shared/project parameters
 - [LOG-UTIL-PARAM-003-v1-configuration-management](utilities/parameters/LOG-UTIL-PARAM-003-v1-configuration-management.md) - Configuration persistence and management
-- [LOG-UTIL-PARAM-010-v1-flexible-csv-parameter-matching](utilities/parameters/LOG-UTIL-PARAM-010-v1-flexible-csv-parameter-matching.md) - Flexible CSV header-to-parameter mapping with fuzzy matching
-- [LOG-UTIL-PARAM-011-v1-family-type-parameter-access](utilities/parameters/LOG-UTIL-PARAM-011-v1-family-type-parameter-access.md) - Family type parameter access patterns using FamilyManager API
 
 ### Output Management & Console Behavior
 - [pyrevit_console_behavior](pyrevit_console_behavior.md) - PyRevit console output behavior best practices and console splitting prevention
@@ -20,8 +18,6 @@
 - [LOG-UTIL-SELECTION-001-v1-smart-selection](utilities/selection/LOG-UTIL-SELECTION-001-v1-smart-selection.md) - Intelligent element selection with pre-selection support
 - [LOG-UTIL-UI-005-v1-simple-option-selection](utilities/ui/LOG-UTIL-UI-005-v1-simple-option-selection.md) - Simple option selection dengan pyRevit CommandSwitchWindow
 - [LOG-UTIL-UI-006-v1-tag-type-access](utilities/ui/LOG-UTIL-UI-006-v1-tag-type-access.md) - Akses Family dan Type Tag dengan Format "Family: Type"
-- [LOG-UTIL-UI-007-v1-wpf-interactive-builder-framework](utilities/ui/LOG-UTIL-UI-007-v1-wpf-naming-convention-builder.md) - Crash-resistant WPF windows for IronPython with modal behavior
-- [LOG-UTIL-UI-008-v1-format-string-naming-generator](utilities/ui/LOG-UTIL-UI-008-v1-format-string-naming-generator.md) - Format string naming generation with placeholder replacement
 - [LOG-UTIL-MODKEY-001-v1-modifier-keys-detection](utilities/LOG-UTIL-MODKEY-001.md) - Modifier keys detection for multi-mode buttons
 - [LOG-UTIL-ERROR-003-v1-modifier-key-handling](utilities/error-handling/LOG-UTIL-ERROR-003-v1-modifier-key-handling.md) - Shift/Ctrl+Click for different behaviors
 - [LOG-UTIL-ERROR-004-v1-statistics-display](utilities/error-handling/LOG-UTIL-ERROR-004-v1-statistics-display.md) - User feedback with statistics
@@ -47,10 +43,6 @@
 | Tag type access | < 0.1s | Minimal | 2024-2026 |
 | Geometry extraction | 1-2s per 100 elements | Medium | 2020+ |
 | Intersection matching | 0.5-1s per host column | Medium | 2020+ |
-| CSV parameter matching | < 0.1s | Low | 2020+ |
-| Family type parameter access | < 0.1s | Low | 2020+ |
-| WPF window creation | 0.5-2.0s | Medium | 2020+ |
-| Format string naming | Instant | Minimal | 2020+ |
 
 ## Common API Patterns
 
@@ -88,10 +80,6 @@ if param and not param.IsReadOnly:
 
 ## Recent Additions
 
-- [LOG-UTIL-PARAM-011-v1-family-type-parameter-access](utilities/parameters/LOG-UTIL-PARAM-011-v1-family-type-parameter-access.md) - Family type parameter access patterns using FamilyManager API
-- [LOG-UTIL-UI-008-v1-format-string-naming-generator](utilities/ui/LOG-UTIL-UI-008-v1-format-string-naming-generator.md) - Format string naming generation with placeholder replacement
-- [LOG-UTIL-UI-007-v1-wpf-interactive-builder-framework](utilities/ui/LOG-UTIL-UI-007-v1-wpf-naming-convention-builder.md) - Crash-resistant WPF windows for IronPython with modal behavior
-- [LOG-UTIL-PARAM-010-v1-flexible-csv-parameter-matching](utilities/parameters/LOG-UTIL-PARAM-010-v1-flexible-csv-parameter-matching.md) - Flexible CSV header-to-parameter mapping with fuzzy matching
 - [pyrevit_console_behavior](pyrevit_console_behavior.md) - PyRevit console output behavior best practices and console splitting prevention
 - [LOG-UTIL-UI-006-v1-tag-type-access](utilities/ui/LOG-UTIL-UI-006-v1-tag-type-access.md) - Akses Family dan Type Tag dengan Format "Family: Type"
 - [LOG-UTIL-SELECTION-001-v1-smart-selection](utilities/selection/LOG-UTIL-SELECTION-001-v1-smart-selection.md) - Intelligent element selection with pre-selection support
@@ -111,4 +99,4 @@ if param and not param.IsReadOnly:
 
 ---
 
-*Last updated: 2025-10-27*
+*Last updated: 2025-10-22*

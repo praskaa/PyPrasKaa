@@ -110,7 +110,27 @@ def get_parameter_type_info(parameter_element):
 doc = revit.doc
 uidoc = revit.uidoc
 
-# 1. Prompt user for Sub Category name
+# 1. Prompt user to select parameter type (Sub Category or Category)
+param_options = ["Sub Category", "Category"]
+selected_param = forms.SelectFromList.show(
+    param_options,
+    title="Select Parameter Type",
+    button_name="Select"
+)
+
+if not selected_param:
+    forms.toast("No parameter type selected. Aborting.",
+                title="Filter Creation Cancelled",
+                appid="FilterSection")
+    script.exit()
+
+# 2. Determine parameter name abbreviation for filter naming
+if selected_param == "Sub Category":
+    param_abbrev = "SubCat"
+else:
+    param_abbrev = "Cat"
+
+# 3. Prompt user for Sub Category name
 sub_category_input = forms.ask_for_string(
     default="xx.x_SubCategoryName",
     prompt="Enter Sub Category Name (Format:xx.x_TypeofSubCategory)",
@@ -122,20 +142,19 @@ if not sub_category_input:
                 title="Filter Creation Cancelled",
                 appid="FilterSection")
     script.exit()
-
-# 2. Process the input string
+# 4. Process the input string
 split_string = sub_category_input.split('_')
 if len(split_string) > 1:
     filter_name_part = '_'.join(split_string[1:]).replace('_', ' ').title()
 else:
     filter_name_part = sub_category_input.title()
 
-# 3. Define the filter name
-filter_name = "Selection - Potongan " + filter_name_part
+# 5. Define the filter name
+filter_name = "Section Filter - {} ".format(param_abbrev) + filter_name_part
 
-# 4. Create the filter rule (pakai Shared Parameter "Sub Category")
+# 6. Create the filter rule (pakai Shared/Project Parameter)
 try:
-    target_param_name = "Sub Category"
+    target_param_name = selected_param  # User-selected parameter
 
     # Cari ParameterElement menggunakan utility function
     pe = find_parameter_element(doc, target_param_name)
@@ -220,13 +239,13 @@ except Exception as param_error:
                 title="Parameter Error")
     script.exit()
 
-# 5. Identify target categories (Sections, Callouts, Elevations)
+# 7. Identify target categories (Sections, Callouts, Elevations)
 category_ids = List[DB.ElementId]()
 category_ids.Add(DB.ElementId(DB.BuiltInCategory.OST_Sections))
 category_ids.Add(DB.ElementId(DB.BuiltInCategory.OST_Callouts))
 category_ids.Add(DB.ElementId(DB.BuiltInCategory.OST_Elev))
 
-# 6. Create the ParameterFilterElement
+# 8. Create the ParameterFilterElement
 t = DB.Transaction(doc, "Create Filter Section")
 try:
     t.Start()

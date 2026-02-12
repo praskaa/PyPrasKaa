@@ -1,22 +1,27 @@
-import sys
-import os
-
-# Add lib directory to Python path
-script_dir = os.path.dirname(os.path.abspath(__file__))
-lib_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))), 'lib')
-if lib_dir not in sys.path:
-    sys.path.insert(0, lib_dir)
-
-from pyrevit import revit, DB, forms
-from pyrevit import script
-# Import required modules
-import database
-import colorize
+from pyrevit import revit, DB, forms, script
 from pyrevit.framework import List
-import filterbyvalueconfig
 from pyrevit.revit.db import query
-from pyrevit.forms import reactive, WPF_VISIBLE, WPF_COLLAPSED
-from Autodesk.Revit import Exceptions
+from pyrevit.forms import WPF_VISIBLE, WPF_COLLAPSED
+
+# Explicit imports from lib
+from database import (
+    p_storage_type,
+    get_param_value_by_storage_type,
+    get_builtin_label,
+    shared_param_id_from_guid,
+    get_name,
+    check_filter_exists,
+    filter_from_rules,
+    create_filter_by_name_bics
+)
+
+from colorize import (
+    get_categories_config,
+    get_colours,
+    set_colour_overrides_by_option
+)
+
+import filterbyvalueconfig
 
 logger = script.get_logger()
 BIC = DB.BuiltInCategory
@@ -83,14 +88,14 @@ def get_multicat_param_storage_type(categories_list, parameter):
         if any_element_of_cat:
             instance_parameter = any_element_of_cat.get_Parameter(parameter)
             if instance_parameter:
-                return database.p_storage_type(instance_parameter)
+                return p_storage_type(instance_parameter)
             type_parameter = query.get_type(any_element_of_cat).get_Parameter(parameter)
             if type_parameter:
-                return database.p_storage_type(type_parameter)
+                return p_storage_type(type_parameter)
 
 
 def add_param_value(param, param_storage_type, values):
-    el_parameter_value = database.get_param_value_by_storage_type(param)
+    el_parameter_value = get_param_value_by_storage_type(param)
     if el_parameter_value and param_storage_type == "Double":
         # special approach for values stored as a Double :
         # {pretty AsValueString name for the filter name : actual value as a double}
@@ -112,7 +117,7 @@ def add_param_value(param, param_storage_type, values):
 banned_symbol_parameters = [DB.BuiltInParameter.SYMBOL_NAME_PARAM,
                             DB.BuiltInParameter.SYMBOL_FAMILY_NAME_PARAM]
 
-categories_for_selection = colorize.get_categories_config(doc)
+categories_for_selection = get_categories_config(doc)
 sorted_cats = sorted(categories_for_selection.keys(), key=lambda x: x)
 
 # ask the user for category/categories from the list
@@ -149,7 +154,7 @@ for id in filterable_parameter_ids:
         # until the Id of the parameter matches the id from the list of filterable parameters
         bip = match_bip_by_id(chosen_bics, id)
         if bip:
-            param_dict[bip] = database.get_builtin_label(bip)
+            param_dict[bip] = get_builtin_label(bip)
     else:
         # Shared Parameter or (?) Project parameter
         shared_param = doc.GetElement(id)
@@ -187,7 +192,7 @@ for el in get_view_elements:
     el_param = el.get_Parameter(selected_parameter)
     # if the element is an instance parameter and not a symbol parameter, query its value
     if el_param \
-        and database.get_param_value_by_storage_type(el_param) is not None \
+        and get_param_value_by_storage_type(el_param) is not None \
         and selected_parameter not in banned_symbol_parameters:
         add_param_value(el_param, selected_param_storage_type, values)
     # if not - look for the parameter of the type of the element
@@ -200,7 +205,7 @@ for el in get_view_elements:
 # colour dictionary
 n = len(values)
 forms.alert_ifnot(n > 0, "There are no values found for the selected parameter.", exitscript=True)
-revit_colours = colorize.get_colours(n)
+revit_colours = get_colours(n)
 # keep record of the decision to override filters or not
 override_filters = 0
 # parameter id for filters
@@ -208,15 +213,15 @@ if isinstance(selected_parameter, DB.BuiltInParameter):
     parameter_id = DB.ElementId(selected_parameter)
 
 else:
-    parameter_id = database.shared_param_id_from_guid(chosen_bics, selected_parameter, doc)
+    parameter_id = shared_param_id_from_guid(chosen_bics, selected_parameter, doc)
     forms.alert_ifnot(parameter_id, "no id found for parameter {}".format(selected_parameter), exitscript=True)
 
 with revit.Transaction("Filters by Value", doc):
     for param_value, colour in zip(values, revit_colours):
-        override = colorize.set_colour_overrides_by_option(overrides_option, colour, doc)
+        override = set_colour_overrides_by_option(overrides_option, colour, doc)
         # create a filter for each param value
         if selected_param_storage_type == "ElementId":
-            value_name = database.get_name(doc.GetElement(param_value))
+            value_name = get_name(doc.GetElement(param_value))
         elif selected_param_storage_type == "Double":
             value_name = param_value[0]
             param_value = param_value[1]
@@ -227,7 +232,7 @@ with revit.Transaction("Filters by Value", doc):
         filter_name = filter_name.strip("{}[]:\|?/<>*")
         filter_id = None
         # check if the filter with the given name already exists
-        filter_exists = database.check_filter_exists(filter_name, doc)
+        filter_exists = check_filter_exists(filter_name, doc)
         # choose to override or not. Remember the choice and not ask again within the same run
         if filter_exists and override_filters == 0:
             use_existent = forms.alert(
@@ -256,8 +261,8 @@ with revit.Transaction("Filters by Value", doc):
                 except TypeError:  # different method in versions earlier than R2023
                     equals_rule = DB.ParameterFilterRuleFactory.CreateEqualsRule(parameter_id, param_value, True)
             f_rules = List[DB.FilterRule]([equals_rule])
-            parameter_filter = database.filter_from_rules(f_rules)
-            new_filter = database.create_filter_by_name_bics(filter_name, chosen_bics, doc)
+            parameter_filter = filter_from_rules(f_rules)
+            new_filter = create_filter_by_name_bics(filter_name, chosen_bics, doc)
             new_filter.SetElementFilter(parameter_filter)
             filter_id = new_filter.Id
             # add filter to view

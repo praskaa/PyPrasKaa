@@ -147,3 +147,4 @@ config/secrets.py
 **/*key*
 mass_message/mass_message.html
 plans/PLAN_TransferMarkWithRevitModel.md
+lib/smart_tag_config.json
