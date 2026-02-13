@@ -5,8 +5,8 @@ from pyrevit import revit, DB
 from pyrevit import script
 import random
 import threedconfig
-from database import *
-from colorize import *
+from database import get_solid_fill_pat, get_3Dviewtype_id, remove_viewtemplate
+from colorize import get_colours, set_colour_overrides_by_option, get_categories_config
 from pyrevit.framework import List
 
 
@@ -33,39 +33,19 @@ all_cats = doc.Settings.Categories
 chosen_category = [all_cats.get_Item(i) for i in chosen_bic]
 hide_categories_except = [c for c in all_cats if c.Id not in [i.Id for i in chosen_category]]
 
-with revit.Transaction("Create Colorized 3D"):
-    view_name = "Colorize {} by Type".format(selected_cat)
-    if delete_existing_view(view_name, doc=doc):
-        # create new 3D
-        viewtype_id = get_3Dviewtype_id(doc=doc)
-        remove_viewtemplate(viewtype_id, doc=doc)
-        view = DB.View3D.CreateIsometric(doc, viewtype_id)
-        view.Name = view_name
+# First, try to find any existing view with this name
+# We'll handle deletion inside the transaction
+existing_view_name = "Colorize {} by Type".format(selected_cat)
 
-    # hide other categories
-    for cat in hide_categories_except:
-        if view.CanCategoryBeHidden(cat.Id):
-            view.SetCategoryHidden(cat.Id, True)
+# Collect view elements BEFORE the transaction
+get_view_elements = DB.FilteredElementCollector(doc) \
+    .OfCategory(chosen_bic[0]) \
+    .WhereElementIsNotElementType() \
+    .ToElements()
 
-    get_view_elements = DB.FilteredElementCollector(doc) \
-        .OfCategory(chosen_bic[0]) \
-        .WhereElementIsNotElementType() \
-        .ToElements()
-
-    # for special cases with Curtain Wall Mullions or Curtain View Panel - hide walls that are not Panels
-    if selected_cat in ["Curtain Wall Panels", "Curtain Wall Mullions"]:
-        # get all walls that are not panels (their category will be == Walls)
-        get_wall_elements = DB.FilteredElementCollector(doc)\
-                            .OfCategory(BIC.OST_Walls) \
-                            .WhereElementIsNotElementType() \
-                                .ToElements()
-        # filter the walls that are not Curtain Walls and hide them
-        not_cw_elements = List[DB.ElementId]([w.Id for w in get_wall_elements if w.WallType.Kind != DB.WallKind.Curtain ])
-        view.HideElements(not_cw_elements)
-
+# Build the types dictionary before transaction
 types_dict = defaultdict(set)
 for el in get_view_elements:
-
     # discard nested shared - group under the parent family
     if selected_cat in ["Floors", "Walls", "Roofs", "Ceilings"]:
         type_id = el.GetTypeId()
@@ -80,18 +60,60 @@ for el in get_view_elements:
 n = len(types_dict)
 revit_colours = get_colours(n)
 
-# Set view as active before colorize transaction
-revit.active_view = view
+# Collect non-curtain wall elements BEFORE the transaction
+get_wall_elements = None
+if selected_cat in ["Curtain Wall Panels", "Curtain Wall Mullions"]:
+    get_wall_elements = DB.FilteredElementCollector(doc)\
+                        .OfCategory(BIC.OST_Walls) \
+                        .WhereElementIsNotElementType() \
+                        .ToElements()
 
-logger.info("Before second transaction: view.IsValidObject = {}, current active view = {}, number of types = {}".format(view.IsValidObject, revit.active_view.Name if revit.active_view else None, len(types_dict)))
-
+# ALL operations in ONE transaction
+view = None
 try:
-    with revit.Transaction("Isolate and Colorize Types"):
+    with revit.Transaction("Create and Colorize 3D View"):
+        # First, check and delete existing view with same name
+        for v in DB.FilteredElementCollector(doc).OfClass(DB.View).ToElements():
+            if v.Name == existing_view_name:
+                # Check if this is the active view
+                current_active = doc.ActiveView
+                if current_active and current_active.Id == v.Id:
+                    forms.alert('The view "{}" is currently active. Please close it and run the tool again.'.format(v.Name))
+                    script.exit()
+                # Delete the existing view
+                doc.Delete(v.Id)
+                break
+        
+        # Create new 3D view
+        viewtype_id = get_3Dviewtype_id(doc=doc)
+        remove_viewtemplate(viewtype_id, doc=doc)
+        view = DB.View3D.CreateIsometric(doc, viewtype_id)
+        view.Name = existing_view_name
+        
+        # Hide other categories
+        for cat in hide_categories_except:
+            if view.CanCategoryBeHidden(cat.Id):
+                view.SetCategoryHidden(cat.Id, True)
+        
+        # Hide non-curtain walls
+        if get_wall_elements:
+            not_cw_elements = List[DB.ElementId]([w.Id for w in get_wall_elements if w.WallType.Kind != DB.WallKind.Curtain ])
+            view.HideElements(not_cw_elements)
+        
+        # Apply color overrides
         for type_id, colour in zip(types_dict.keys(), revit_colours):
             type_instance = types_dict[type_id]
             override = set_colour_overrides_by_option(overrides_option, colour, doc)
             for inst in type_instance:
                 view.SetElementOverrides(inst, override)
 except Exception as e:
-    logger.error("Error during colorize transaction: {}".format(str(e)))
-    raise
+    logger.error("Error creating colorized 3D view: {}".format(str(e)))
+    forms.alert("Failed to create colorized 3D view: {}".format(str(e)))
+    script.exit()
+
+# Check if view was created successfully
+if not view:
+    forms.alert('Could not create the 3D view.')
+    script.exit()
+
+logger.info("Successfully created and colorized 3D view: {} with {} types".format(view.Name, len(types_dict)))

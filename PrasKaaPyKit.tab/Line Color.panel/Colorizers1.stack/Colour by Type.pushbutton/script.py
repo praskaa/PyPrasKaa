@@ -4,8 +4,8 @@ from pyrevit import forms
 from pyrevit import revit, DB
 from pyrevit import script
 import inviewconfig
-from database import *
-from colorize import *
+from database import get_solid_fill_pat
+from colorize import get_colours, set_colour_overrides_by_option, get_categories_config
 
 
 logger = script.get_logger()
@@ -46,7 +46,7 @@ for el in get_view_elements:
     else:
         try:
             type_id = el.SuperComponent.GetTypeId()
-        except:
+        except AttributeError:
             type_id = el.GetTypeId()
     types_dict[type_id].add(el.Id)
 
