@@ -37,7 +37,15 @@ from Autodesk.Revit.UI import TaskDialog, TaskDialogCommonButtons
 
 from pyrevit import revit, forms, script
 from pyrevit.forms import ProgressBar
-from matching_config import *
+
+# Import configuration from lib - explicit imports
+try:
+    from matching_config import CSV_BASE_DIR, CSV_CREATE_FOLDERS
+except ImportError:
+    # Fallback values if import fails
+    import os
+    CSV_BASE_DIR = os.path.expanduser("~/Desktop")
+    CSV_CREATE_FOLDERS = True
 
 # Script-specific configuration
 SCRIPT_SUBFOLDER = "Matching Framing"  # Subfolder for CSV outputs

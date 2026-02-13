@@ -9,14 +9,7 @@ import csv
 import os
 import io
 import clr
-import sys
 from datetime import datetime
-
-# Add extension root to Python path for library imports
-# This is the standard pattern for accessing the 'lib' folder
-extension_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
-if extension_root not in sys.path:
-    sys.path.insert(0, extension_root)
 
 # Import Windows Forms at module level
 clr.AddReference('System.Windows.Forms')
@@ -42,13 +35,8 @@ from Autodesk.Revit.DB import (
 
 from pyrevit import revit, forms, script
 
-# Import local library using imp for robustness in IronPython
-import imp
-lib_path = os.path.join(os.path.dirname(__file__), 'lib.py')
-lib = imp.load_source('lib', lib_path)
-TransferMarkConfig = lib.TransferMarkConfig
-show_configuration_dialog = lib.show_configuration_dialog
-FRAMEWORK_AVAILABLE = lib.FRAMEWORK_AVAILABLE
+# Import local library - pyRevit adds pushbutton folder to sys.path automatically
+from lib import TransferMarkConfig, show_configuration_dialog, FRAMEWORK_AVAILABLE
 
 # Setup
 doc = revit.doc

@@ -42,11 +42,34 @@ from System import Int64
 from pyrevit import revit, forms, script
 from pyrevit.forms import ProgressBar
 
+# Import shared utilities from lib
+try:
+    from geometry_matching import (
+        feet3_to_mm3,
+        create_geometry_options_with_view,
+        get_solid_with_debug,
+        find_best_match,
+        get_beam_dimensions,
+        DEBUG_LEVELS
+    )
+    from linked_model_utils import select_linked_model
+    from structural_utils import collect_structural_framing, get_linked_beams
+except ImportError:
+    # Fallback - functions will be defined locally if import fails
+    feet3_to_mm3 = None
+    create_geometry_options_with_view = None
+    get_solid_with_debug = None
+    find_best_match = None
+    get_beam_dimensions = None
+    DEBUG_LEVELS = None
+    select_linked_model = None
+    collect_structural_framing = None
+    get_linked_beams = None
+
 # Import parameter utilities from lib
 try:
     from parameters.framework import find_parameter_element, get_parameter_type_info
 except ImportError:
-    # Fallback if import fails
     find_parameter_element = None
     get_parameter_type_info = None
 
@@ -61,7 +84,6 @@ except ImportError:
 try:
     from Snippets.smart_selection import get_filtered_selection, create_single_category_filter
 except ImportError:
-    # Fallback if import fails
     get_filtered_selection = None
     create_single_category_filter = None
 
@@ -69,7 +91,6 @@ except ImportError:
 try:
     from graphicOverrides import get_solid_fill_pattern, get_revit_version
 except ImportError:
-    # Fallback if import fails
     get_solid_fill_pattern = None
     get_revit_version = None
 

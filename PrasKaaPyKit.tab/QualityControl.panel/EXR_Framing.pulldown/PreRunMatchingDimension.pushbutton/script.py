@@ -43,6 +43,14 @@ from Autodesk.Revit.DB import (
 
 from pyrevit import revit, forms, script
 
+# Import shared utilities from lib
+try:
+    from linked_model_utils import select_linked_model, get_linked_beams, get_linked_columns
+except ImportError:
+    select_linked_model = None
+    get_linked_beams = None
+    get_linked_columns = None
+
 # Setup
 doc = revit.doc
 uidoc = revit.uidoc
@@ -50,7 +58,15 @@ logger = script.get_logger()
 output = script.get_output()
 
 
-def select_linked_model():
+# Use shared function if available, otherwise use fallback
+def get_select_linked_model():
+    """Get select_linked_model from shared module or fallback."""
+    if select_linked_model:
+        return select_linked_model
+    return _select_linked_model_fallback
+
+
+def _select_linked_model_fallback():
     """
     Prompts the user to select a linked EXR model from available Revit links.
 

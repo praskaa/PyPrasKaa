@@ -6,18 +6,25 @@ Focus: Remove overhead, optimize only what matters.
 Usage:
     from lib.geometry_matching import match_beams
     results = match_beams(link_doc, vol_threshold=1e-6)
+
+Modules in this file:
+    - Geometry extraction (get_solid, get_column_dimensions)
+    - Matching algorithms (find_best_match)
+    - Dimension comparison (compare_dimensions)
+    - Main matching workflow (match_beams)
+    - Utilities (feet3_to_mm3, debug_log)
 """
 
 import gc
 import time
+import re
 from Autodesk.Revit.DB import (
     FilteredElementCollector, BuiltInCategory, BuiltInParameter,
     Solid, BooleanOperationsType, BooleanOperationsUtils,
-    Options, GeometryInstance, ElementId
+    Options, GeometryInstance, ElementId, View, ViewType
 )
-from pyrevit import revit
+from pyrevit import revit, script
 
-import re
 # Metric conversion
 FEET3_TO_MM3 = 28316846.592
 
@@ -291,4 +298,231 @@ def extract_type_mark_from_type_name(type_name):
     if match:
         return match.group(1)
     else:
+        return None
+
+
+# ==============================================================================
+# EXTENDED UTILITIES - For EXR Framing & Column Tools
+# ==============================================================================
+
+def feet3_to_mm3(volume_cu_ft):
+    """
+    Convert cubic feet to cubic millimeters for better readability.
+    
+    Args:
+        volume_cu_ft (float): Volume in cubic feet (Revit internal units)
+    
+    Returns:
+        float: Volume in cubic millimeters
+    """
+    return volume_cu_ft * FEET3_TO_MM3
+
+
+def create_geometry_options_with_view(doc):
+    """
+    Create geometry options with proper view context.
+    
+    Args:
+        doc: Revit Document
+    
+    Returns:
+        Options: Geometry options configured with active view or fallback 3D view
+    """
+    app = doc.Application
+    options = app.Create.NewGeometryOptions()
+    
+    active_view = doc.ActiveView
+    if active_view:
+        options.View = active_view
+    else:
+        # If no active view, find any 3D view to get geometry
+        view_collector = FilteredElementCollector(doc).OfClass(View)
+        for v in view_collector:
+            if not v.IsTemplates and v.ViewType == ViewType.ThreeD:
+                options.View = v
+                break
+    
+    return options
+
+
+# Debug logging configuration
+DEBUG_LEVELS = {
+    False: -1,        # No debug output
+    'MINIMAL': 0,     # Only essential progress info
+    'NORMAL': 1,      # Standard operation logs
+    'VERBOSE': 2,     # Detailed operation logs
+    'DIAGNOSTIC': 3   # Full diagnostic logs
+}
+
+
+def debug_log(message, level='NORMAL', force=False, debug_mode=False, logger=None):
+    """
+    Smart logging function with debug toggle support.
+    
+    Args:
+        message (str): Log message
+        level (str): Debug level ('MINIMAL', 'NORMAL', 'VERBOSE', 'DIAGNOSTIC')
+        force (bool): Force logging regardless of debug mode
+        debug_mode (bool or str): Current debug mode setting
+        logger: Logger instance (optional, will get from pyrevit if not provided)
+    """
+    if not force and not debug_mode:
+        return
+    
+    # Get logger if not provided
+    if logger is None:
+        try:
+            logger = script.get_logger()
+        except:
+            pass
+    
+    if logger is None:
+        return
+    
+    # Determine current debug level
+    if debug_mode is False:
+        current_level = -1
+    elif debug_mode is True:
+        current_level = DEBUG_LEVELS['DIAGNOSTIC']
+    else:
+        current_level = DEBUG_LEVELS.get(debug_mode, DEBUG_LEVELS['NORMAL'])
+    
+    required_level = DEBUG_LEVELS.get(level, DEBUG_LEVELS['NORMAL'])
+    
+    if current_level >= required_level or force:
+        if level in ('MINIMAL', 'NORMAL'):
+            logger.info(message)
+        elif level in ('VERBOSE', 'DIAGNOSTIC'):
+            logger.debug(message)
+
+
+def get_solid_with_debug(element, options, debug_mode=False, logger=None, element_id=None):
+    """
+    Extracts the solid geometry from a given element with optional debug logging.
+    
+    Args:
+        element: Revit element to extract geometry from
+        options: Geometry options
+        debug_mode (bool or str): Debug mode setting
+        logger: Logger instance
+        element_id: Element ID for debug messages
+    
+    Returns:
+        Solid or None: The extracted solid geometry
+    """
+    debug_log(
+        "=== GEOMETRY EXTRACTION DEBUG for Element {} ===".format(element_id or element.Id),
+        level='DIAGNOSTIC',
+        debug_mode=debug_mode,
+        logger=logger
+    )
+
+    try:
+        geom_element = element.get_Geometry(options)
+        debug_log(
+            "Geometry element retrieved: {}".format(geom_element is not None),
+            level='DIAGNOSTIC',
+            debug_mode=debug_mode,
+            logger=logger
+        )
+
+        if not geom_element:
+            debug_log(
+                "❌ FAILED: No geometry found for element {}".format(element_id or element.Id),
+                level='VERBOSE',
+                debug_mode=debug_mode,
+                logger=logger
+            )
+            return None
+
+        solids = []
+        geom_count = 0
+
+        for geom_obj in geom_element:
+            geom_count += 1
+
+            if isinstance(geom_obj, Solid) and geom_obj.Volume > 0:
+                solids.append(geom_obj)
+            elif isinstance(geom_obj, GeometryInstance):
+                instance_geom = geom_obj.GetInstanceGeometry()
+                if instance_geom:
+                    for inst_obj in instance_geom:
+                        if isinstance(inst_obj, Solid) and inst_obj.Volume > 0:
+                            solids.append(inst_obj)
+
+        if not solids:
+            return None
+
+        # If multiple solids exist, unite them into a single solid
+        if len(solids) > 1:
+            main_solid = solids[0]
+            for s in solids[1:]:
+                try:
+                    main_solid = BooleanOperationsUtils.ExecuteBooleanOperation(
+                        main_solid, s, BooleanOperationsType.Union
+                    )
+                except Exception as e:
+                    debug_log(
+                        "Could not unite solids for element {}: {}".format(
+                            element_id or element.Id, e
+                        ),
+                        level='VERBOSE',
+                        debug_mode=debug_mode,
+                        logger=logger
+                    )
+            return main_solid
+        else:
+            return solids[0]
+
+    except Exception as e:
+        debug_log(
+            "❌ CRITICAL ERROR in geometry extraction for element {}: {}".format(
+                element_id or element.Id, e
+            ),
+            level='NORMAL',
+            debug_mode=debug_mode,
+            logger=logger
+        )
+        return None
+
+
+def get_column_dimensions(column):
+    """
+    Extracts dimension parameters from a column element.
+    Returns dimensions in FEET (Revit internal units).
+    
+    Args:
+        column (Element): The column element to extract dimensions from.
+    
+    Returns:
+        dict or None: {'b': float, 'h': float, 'type': str} or None if not found.
+    """
+    try:
+        # Try to get 'b' parameter (width)
+        b_param = column.get_Parameter(BuiltInParameter.STRUCTURAL_SECTION_COMMON_WIDTH)
+        if not b_param or not b_param.HasValue:
+            b_param = column.LookupParameter("b") or column.LookupParameter("B") or column.LookupParameter("Width")
+            if not b_param and hasattr(column, 'Symbol'):
+                b_param = column.Symbol.LookupParameter("b") or column.Symbol.LookupParameter("B") or column.Symbol.LookupParameter("Width")
+        
+        # Try to get 'h' parameter (depth)
+        h_param = column.get_Parameter(BuiltInParameter.STRUCTURAL_SECTION_COMMON_DEPTH)
+        if not h_param or not h_param.HasValue:
+            h_param = column.LookupParameter("h") or column.LookupParameter("H") or column.LookupParameter("Depth")
+            if not h_param and hasattr(column, 'Symbol'):
+                h_param = column.Symbol.LookupParameter("h") or column.Symbol.LookupParameter("H") or column.Symbol.LookupParameter("Depth")
+        
+        b_value = b_param.AsDouble() if b_param and b_param.HasValue else None
+        h_value = h_param.AsDouble() if h_param and h_param.HasValue else None
+        
+        if b_value is not None and h_value is not None:
+            if abs(b_value - h_value) < 1e-6:  # Square if b ≈ h
+                return {'b': b_value, 'h': b_value, 'type': 'square'}
+            else:
+                return {'b': b_value, 'h': h_value, 'type': 'rectangular'}
+        elif b_value is not None:
+            return {'b': b_value, 'h': b_value, 'type': 'square'}
+        
+        return None
+    except Exception:
         return None

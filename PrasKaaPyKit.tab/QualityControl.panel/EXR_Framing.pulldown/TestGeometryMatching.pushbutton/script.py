@@ -2,16 +2,10 @@
 __title__ = 'Test Geometry Matching'
 __doc__ = 'Test lib/geometry_matching.py'
 
-import sys
-import os
 from Autodesk.Revit.DB import FilteredElementCollector, RevitLinkInstance
 from pyrevit import revit, forms, script
 
-# Add lib to path
-lib_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'lib'))
-if lib_path not in sys.path:
-    sys.path.insert(0, lib_path)
-
+# Direct import from lib - pyRevit automatically adds root extension to sys.path
 from geometry_matching import match_beams, FEET3_TO_MM3
 
 doc = revit.doc
