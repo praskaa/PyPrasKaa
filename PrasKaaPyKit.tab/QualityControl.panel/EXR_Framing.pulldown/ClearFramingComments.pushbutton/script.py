@@ -17,6 +17,12 @@ from Autodesk.Revit.DB import (
 
 from pyrevit import revit, forms, script
 
+# Import shared utilities from lib
+try:
+    from structural_utils import collect_structural_framing
+except ImportError:
+    collect_structural_framing = None
+
 # Setup
 doc = revit.doc
 output = script.get_output()
@@ -27,6 +33,10 @@ COMMENTS_TO_CLEAR = ["Approved", "Dimension to be checked", "Unmatched", "Family
 
 def collect_host_beams():
     """Collects structural framing elements from the host Revit model."""
+    if collect_structural_framing:
+        return collect_structural_framing(doc)
+    
+    # Fallback implementation
     host_beams = FilteredElementCollector(doc)\
         .OfCategory(BuiltInCategory.OST_StructuralFraming)\
         .WhereElementIsNotElementType()\

@@ -35,6 +35,14 @@ from Autodesk.Revit.UI.Selection import ObjectType
 
 from pyrevit import revit, forms, script
 
+# Import shared utilities from lib
+try:
+    from geometry_matching import get_solid_with_debug
+    from linked_model_utils import select_linked_model as _select_linked_model
+except ImportError:
+    get_solid_with_debug = None
+    _select_linked_model = None
+
 # Setup
 doc = revit.doc
 uidoc = revit.uidoc
@@ -55,8 +63,13 @@ else:
             options.View = v
             break
 
+
 def get_solid(element):
     """Extracts the solid geometry from a given element."""
+    if get_solid_with_debug:
+        return get_solid_with_debug(element, options)
+    
+    # Fallback implementation
     geom_element = element.get_Geometry(options)
     if not geom_element:
         return None
@@ -131,6 +144,10 @@ def get_beam_info(beam, is_linked=False):
 
 def select_linked_model():
     """Select the linked model for mark transfer."""
+    if _select_linked_model:
+        return _select_linked_model()
+    
+    # Fallback implementation
     link_instances = FilteredElementCollector(doc).OfClass(RevitLinkInstance).ToElements()
     if not link_instances:
         forms.alert("No Revit links found in the current project.", exitscript=True)
