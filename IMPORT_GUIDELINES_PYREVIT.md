@@ -11,6 +11,8 @@
 3. [Anti-Patterns yang Harus Dihindari](#anti-patterns-yang-harus-dihindari)
 4. [Contoh Nyata: Benar vs Salah](#contoh-nyata-benar-vs-salah)
 5. [Import Order yang Benar](#import-order-yang-benar)
+   - [Scenario A: Tanpa .NET](#scenario-a-script-tanpa-netwindows-forms)
+   - [Scenario B: Dengan .NET/UI Tools](#scenario-b-script-dengan-netwindows-forms-ui-tools)
 6. [Checklist Refactoring](#checklist-refactoring)
 7. [Tool Auto-Check](#tool-auto-check)
 
@@ -532,7 +534,11 @@ from expUtils import (
 
 ## Import Order yang Benar
 
-Ikuti **PEP 8 import order**:
+Ikuti **PEP 8 import order** dengan penyesuaian untuk pyRevit:
+
+---
+
+### Scenario A: Script tanpa .NET/Windows Forms
 
 ```python
 """
@@ -563,12 +569,6 @@ from database import (
     get_builtin_label
 )
 
-from colorize import (
-    get_colours,
-    set_colour_overrides_by_option,
-    get_categories_config
-)
-
 import colorizebyvalueconfig
 
 # Blank line sebelum code
@@ -576,13 +576,61 @@ def main():
     pass
 ```
 
+---
+
+### Scenario B: Script dengan .NET/Windows Forms (UI Tools)
+
+**CATATAN PENTING:** .NET imports memerlukan urutan khusus karena dependency chain:
+1. `clr` harus di-import pertama
+2. `clr.AddReference()` harus dipanggil sebelum .NET type imports
+3. .NET imports hanya bisa dilakukan setelah AddReference berhasil
+
+```python
+"""
+Module docstring here.
+"""
+
+# 1. CLR imports - WAJIB Pertama (dependency requirement)
+import clr
+clr.AddReference('System.Windows.Forms')
+clr.AddReference('System.Drawing')
+
+# 2. .NET type imports (setelah AddReference)
+from System.Windows.Forms import Form, TextBox, Button, Label
+from System.Drawing import Font, Point, Size
+from System.Collections.Generic import List
+
+# 3. Standard library imports
+from collections import defaultdict
+import json
+
+# 4. Third-party imports (pyRevit)
+from pyrevit import revit, DB, forms, script
+from pyrevit.framework import List
+from pyrevit.revit.db import query
+
+# 5. Revit API imports
+from Autodesk.Revit import Exceptions
+from Autodesk.Revit.DB import FilteredElementCollector, View3D, ElementId
+
+# 6. Local application imports
+from parameters.gis_categories import GIS_CATEGORIES, PARAM_NAME
+from elements.element_names import get_family_name, get_type_name
+
+# Blank line sebelum code
+def main():
+    pass
+```
+
 **Aturan:**
-1. Standard library dulu
-2. Kemudian third-party (pyRevit)
-3. Kemudian Revit API
-4. Terakhir local imports
-5. Pisahkan setiap grup dengan blank line
-6. Dalam grup, sort alphabetically (optional tapi recommended)
+1. CLR/AddReference WAJIB pertama (tidak bisa dipindahkan)
+2. .NET type imports setelah AddReference
+3. Standard library
+4. pyRevit
+5. Revit API
+6. Local imports
+7. Pisahkan setiap grup dengan blank line
+8. Dalam grup, sort alphabetically (optional tapi recommended)
 
 ---
 
@@ -1149,6 +1197,11 @@ Print dan tempel di meja developer:
 
 ## 📝 Changelog
 
+### 2026-02-13
+- ✅ Tambahkan import guidelines untuk .NET/Windows Forms (UI Tools)
+- ✅ Tambahkan dua scenario: dengan dan tanpa .NET
+- ✅ Update Table of Contents
+
 ### 2026-02-12
 - ✅ Revisi total dokumentasi untuk pyRevit-only context
 - ✅ Tambahkan contoh nyata dari project
@@ -1213,6 +1266,6 @@ sys.path.insert(0, lib_path)  # ❌ Redundant!
 
 *Dokumentasi ini dibuat untuk membantu team developer maintain code quality yang konsisten. Untuk pertanyaan atau saran improvement, hubungi team lead.*
 
-**Last Updated:** 2026-02-12  
-**Version:** 2.0 (Revised for PyRevit-only context)  
+**Last Updated:** 2026-02-13  
+**Version:** 2.1 (Added .NET/UI Tools Import Guidelines)  
 **Status:** ✅ Production Ready

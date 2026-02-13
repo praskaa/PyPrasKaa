@@ -1,0 +1,41 @@
+title:
+  en_us: 3D view by ElementID
+  id_ID: 3D view by ElementID
+
+tooltip:
+  en_us: |
+    Create a 3D view and isolate specific elements by Element ID.
+
+    Paste Element IDs (one per line or comma/space separated) to create
+    an isolated 3D view showing only those elements.
+
+    Useful for:
+    • Inspecting specific elements
+    • Finding elements from error/warning lists
+    • Isolating problematic elements for review
+
+    INPUT EXAMPLES:
+    2687043
+    2687049
+    2687057
+
+    Or: 2687043, 2687049, 2687057
+  id_ID: |
+    Buat 3D view dan isolasi element tertentu berdasarkan Element ID.
+
+    Paste Element ID (satu per baris ataupisahkan dengan koma/spasi) untuk
+    membuat 3D view terisolasi yang menampilkan hanya element tersebut.
+
+    Berguna untuk:
+    • Menginspect element tertentu
+    • Mencari element dari daftar error/warning
+    • Mengisolasi element bermasalah untuk ditinjau
+
+    CONTOH INPUT:
+    2687043
+    2687049
+    2687057
+
+    Atau: 2687043, 2687049, 2687057
+
+author: PrasKaa Team
