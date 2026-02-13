@@ -1,0 +1,11 @@
+context: doc-project
+
+title: Sheets > PDF + DWG
+
+tooltip: Exports selected sheets to both PDF and DWG simultaneously. Configuration is shared with individual PDF and DWG exports.
+
+author: PrasKaa
+
+references: v2.0.0
+
+engine: {clean: true}
