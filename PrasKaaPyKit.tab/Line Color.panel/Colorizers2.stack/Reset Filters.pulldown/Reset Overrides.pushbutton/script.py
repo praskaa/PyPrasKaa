@@ -7,10 +7,6 @@ view_filter_ids = view.GetFilters()
 
 
 
-def overrides_reset():
-    # returns Override Graphic Settings object with all overrides set to initial values
-    overrides = DB.OverrideGraphicSettings()
-    return overrides
 
 if view_filter_ids:
     filter_ids_dict = {}
@@ -27,11 +23,7 @@ if view_filter_ids:
         with revit.Transaction ("Remove Filter Overrides"):
             for filter_name in selected_filter_names:
                 filter=filter_ids_dict[filter_name]
-                overrides = overrides_reset()
+                overrides = DB.OverrideGraphicSettings()
                 view.SetFilterOverrides(filter, overrides)
-
-
-
-
 
 
