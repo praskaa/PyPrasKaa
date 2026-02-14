@@ -57,8 +57,6 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Quality-Control
 
 # Panel Layout Configuration
 layout:
-  - EXR_Column
-  - EXR_Framing
   - ElementID
   - Validation
 

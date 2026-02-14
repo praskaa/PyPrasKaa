@@ -1,0 +1,19 @@
+title: Geometry Matching Test
+tooltip: Test modular geometry matching system between linked model and host model
+tooltip_ext: |
+  Tests the modular filter pipeline for matching elements between linked model and host model.
+  
+  Features:
+  - Level-based filtering
+  - Type Mark matching (ETABS & Revit)
+  - Family Name matching
+  - Bounding Box proximity
+  - Concrete Beam dimensions
+  - Geometry intersection
+
+  Shift+Click: Open WPF configuration dialog
+
+author: PrasKaa
+context: zero-doc
+highlight: new
+min_revit_version: 2020

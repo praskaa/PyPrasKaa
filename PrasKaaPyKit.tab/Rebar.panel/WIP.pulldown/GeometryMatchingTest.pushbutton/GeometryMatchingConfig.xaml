@@ -1,0 +1,211 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResizeWithGrip" SizeToContent="Height" Width="700" MinHeight="550"
+        Title="Geometry Matching Filter Configuration" Closing="cancelled">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        
+        <Style x:Key="FilterToggle" TargetType="{x:Type CheckBox}">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Margin" Value="0,5,0,0" />
+            <Setter Property="Padding" Value="5,3,0,0" />
+        </Style>
+        
+        <Style x:Key="FilterItemBorder" TargetType="{x:Type Border}">
+            <Setter Property="BorderBrush" Value="LightGray" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="Margin" Value="0,3,0,0" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="Geometry Matching Filter Configuration" 
+                       FontSize="18" FontWeight="Bold"/>
+            <TextBlock Text="Configure filters, adjust parameters, and reorder priority with Up/Down buttons"
+                       Foreground="Gray" Margin="0,5,0,0"/>
+        </StackPanel>
+        
+        <!-- Preset Section -->
+        <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 
+                Padding="10" Margin="0,0,0,15" Background="#F5F5F5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="Preset:" VerticalAlignment="Center" 
+                           FontWeight="SemiBold" Margin="0,0,10,0"/>
+                
+                <ComboBox Grid.Column="1" x:Name="PresetComboBox" Height="28" 
+                          VerticalContentAlignment="Center"
+                          SelectionChanged="PresetComboBox_SelectionChanged"/>
+                
+                <Button Grid.Column="2" Content="Save" Width="55" Height="28" Margin="10,0,0,0"
+                        Click="SavePreset_Click" ToolTip="Update current preset with current settings"
+                        x:Name="SavePresetButton"/>
+                
+                <Button Grid.Column="3" Content="Save As" Width="60" Height="28" Margin="5,0,0,0"
+                        Click="SaveAsPreset_Click" ToolTip="Save current settings as a new preset"
+                        x:Name="SaveAsPresetButton"/>
+                
+                <Button Grid.Column="4" Content="Delete" Width="55" Height="28" Margin="5,0,0,0"
+                        Click="DeletePreset_Click" ToolTip="Delete selected custom preset"
+                        x:Name="DeletePresetButton" IsEnabled="False"/>
+                
+                <TextBlock Grid.Column="5" x:Name="PresetStatusText" VerticalAlignment="Center"
+                           Margin="10,0,0,0" Foreground="Gray" FontStyle="Italic"/>
+            </Grid>
+        </Border>
+        
+        <!-- Main Content: Filter List + Reorder Buttons -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Filter List -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                <ListBox x:Name="FilterList" BorderThickness="0" Background="Transparent"
+                         SelectionChanged="FilterList_SelectionChanged">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="{x:Type ListBoxItem}">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    
+                    <!-- Level Filter -->
+                    <ListBoxItem>
+                        <Border Style="{StaticResource FilterItemBorder}">
+                            <StackPanel>
+                                <CheckBox x:Name="LevelFilter_Enabled" Content="Level Filter" 
+                                          IsChecked="True" Style="{StaticResource FilterToggle}"/>
+                                <TextBlock Text="Match elements on the same level" 
+                                           Foreground="Gray" Margin="25,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </ListBoxItem>
+                    
+                    <!-- ETABS Type Mark Filter -->
+                    <ListBoxItem>
+                        <Border Style="{StaticResource FilterItemBorder}">
+                            <StackPanel>
+                                <CheckBox x:Name="ETABSTypeMarkFilter_Enabled" Content="ETABS Type Mark Filter" 
+                                          IsChecked="True" Style="{StaticResource FilterToggle}"/>
+                                <TextBlock Text="Match Type Mark for ETABS comparison" 
+                                           Foreground="Gray" Margin="25,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </ListBoxItem>
+                    
+                    <!-- Revit Type Mark Filter -->
+                    <ListBoxItem>
+                        <Border Style="{StaticResource FilterItemBorder}">
+                            <StackPanel>
+                                <CheckBox x:Name="RevitTypeMarkFilter_Enabled" Content="Revit Type Mark Filter" 
+                                          IsChecked="True" Style="{StaticResource FilterToggle}"/>
+                                <TextBlock Text="Match Type Mark between Revit elements" 
+                                           Foreground="Gray" Margin="25,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </ListBoxItem>
+                    
+                    <!-- Family Name Filter -->
+                    <ListBoxItem>
+                        <Border Style="{StaticResource FilterItemBorder}">
+                            <StackPanel>
+                                <CheckBox x:Name="FamilyNameFilter_Enabled" Content="Family Name Filter" 
+                                          IsChecked="True" Style="{StaticResource FilterToggle}"/>
+                                <TextBlock Text="Match Family Name" 
+                                           Foreground="Gray" Margin="25,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </ListBoxItem>
+                    
+                    <!-- Bounding Box Filter -->
+                    <ListBoxItem>
+                        <Border Style="{StaticResource FilterItemBorder}">
+                            <StackPanel>
+                                <CheckBox x:Name="BoundingBoxFilter_Enabled" Content="Bounding Box Filter" 
+                                          IsChecked="True" Style="{StaticResource FilterToggle}"/>
+                                <StackPanel Orientation="Horizontal" Margin="25,5,0,0">
+                                    <TextBlock Text="Buffer (m):" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="BoundingBoxFilter_Buffer" Text="1.5" 
+                                             Width="80" Height="25" Margin="10,0,0,0"
+                                             VerticalContentAlignment="Center" Padding="5,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </ListBoxItem>
+                    
+                    <!-- Concrete Beam Dimension Filter -->
+                    <ListBoxItem>
+                        <Border Style="{StaticResource FilterItemBorder}">
+                            <StackPanel>
+                                <CheckBox x:Name="ConcreteBeamDimensionFilter_Enabled" Content="Concrete Beam Dimension Filter" 
+                                          IsChecked="True" Style="{StaticResource FilterToggle}"/>
+                                <StackPanel Orientation="Horizontal" Margin="25,5,0,0">
+                                    <TextBlock Text="Tolerance (mm):" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="ConcreteBeamDimensionFilter_Tolerance" Text="1.0" 
+                                             Width="80" Height="25" Margin="10,0,0,0"
+                                             VerticalContentAlignment="Center" Padding="5,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </ListBoxItem>
+                    
+                    <!-- Geometry Intersection Filter -->
+                    <ListBoxItem>
+                        <Border Style="{StaticResource FilterItemBorder}">
+                            <StackPanel>
+                                <CheckBox x:Name="GeometryIntersectionFilter_Enabled" Content="Geometry Intersection Filter" 
+                                          IsChecked="True" Style="{StaticResource FilterToggle}"/>
+                                <TextBlock Text="Final validation using Boolean intersection (expensive)" 
+                                           Foreground="Gray" Margin="25,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </ListBoxItem>
+                    
+                </ListBox>
+            </ScrollViewer>
+            
+            <!-- Reorder Buttons -->
+            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                <Button x:Name="MoveUpButton" Content="▲ Up" Width="60" Height="30" 
+                        Margin="0,0,0,5" Click="MoveUp_Click" IsEnabled="False"
+                        ToolTip="Move filter up in priority"/>
+                <Button x:Name="MoveDownButton" Content="▼ Down" Width="60" Height="30" 
+                        Click="MoveDown_Click" IsEnabled="False"
+                        ToolTip="Move filter down in priority"/>
+            </StackPanel>
+        </Grid>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Cancel" Width="100" Height="30" Margin="0,0,10,0" Click="cancel_click"/>
+            <Button Content="OK" Width="100" Height="30" Click="ok_click" 
+                    Background="#4CAF50" Foreground="White"/>
+        </StackPanel>
+    </Grid>
+</Window>
