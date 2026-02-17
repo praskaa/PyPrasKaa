@@ -4,7 +4,11 @@ from collections import defaultdict
 
 # Explicit imports from lib
 from database import get_param_value_as_string
-from colorize import get_categories_config, get_colours, set_colour_overrides_by_option
+from colorize import (
+    get_colorize_only_categories_config,
+    get_colours,
+    set_colour_overrides_by_option
+)
 
 import colorizebyvalueconfig
 
@@ -14,7 +18,7 @@ doc = revit.doc
 view = revit.active_view
 
 overrides_option = colorizebyvalueconfig.get_overrides_config()
-categories_for_selection = get_categories_config(doc)
+categories_for_selection = get_colorize_only_categories_config(doc)
 
 
 class ParameterOption(forms.TemplateListItem):
@@ -34,6 +38,9 @@ sorted_cats = sorted(categories_for_selection.keys(), key=lambda x: x)
 if forms.check_modelview(revit.active_view):
     selected_cat = forms.CommandSwitchWindow.show(sorted_cats, message="Select Category to Colorize",
                                                   width=400)
+else:
+    selected_cat = None
+
 if selected_cat == None:
     script.exit()
 # format the category dictionary
@@ -68,10 +75,10 @@ for e in get_view_elements:
         # if the param is BIP - store as BIP
         elif param_is_bip(ip) and ip.Definition.Name not in inst_param_dict:
             inst_param_dict[ip.Definition.BuiltInParameter] = str(ip.Definition.Name)
-        # another case - Project Parameters - NOT SUPPORTED due to possible duplicates with Family Parameters
-        # elif not (ip.IsShared) and not(param_is_bip(ip)) and ip.Definition.Id not in inst_param_dict:
-        #     pretty_param_name = "".join([str(ip.Definition.Name), " [Project Parameter]"])
-        #     inst_param_dict[ip.Definition.Id] = pretty_param_name
+        # Family Parameters - not Shared and not BIP, store by NAME for LookupParameter
+        elif not (ip.IsShared) and not(param_is_bip(ip)) and ip.Definition.Name not in inst_param_dict:
+            pretty_param_name = "".join([str(ip.Definition.Name), " [Family Parameter]"])
+            inst_param_dict[ip.Definition.Name] = pretty_param_name  # Use name as key for LookupParameter
 
     type_parameter_set = doc.GetElement(e.GetTypeId()).Parameters
     for tp in type_parameter_set:
@@ -80,9 +87,10 @@ for e in get_view_elements:
             type_param_dict[tp.Definition.Id] = pretty_param_name
         elif param_is_bip(tp) and tp.Definition.Name not in type_param_dict:
             type_param_dict[tp.Definition.BuiltInParameter] = str(tp.Definition.Name)
-        # elif not (tp.IsShared) and not(param_is_bip(tp)) and tp.Definition.Id not in inst_param_dict:
-        #     pretty_param_name = "".join([str(tp.Definition.Name), " [Project Parameter]"])
-        #     inst_param_dict[tp.Definition.Id] = pretty_param_name
+        # Family Parameters - not Shared and not BIP, store by NAME for LookupParameter
+        elif not (tp.IsShared) and not(param_is_bip(tp)) and tp.Definition.Name not in type_param_dict:
+            pretty_param_name = "".join([str(tp.Definition.Name), " [Family Parameter]"])
+            type_param_dict[tp.Definition.Name] = pretty_param_name  # Use name as key for LookupParameter
 
 # show UI form to pick parameters
 # todo: clean this
@@ -99,6 +107,31 @@ selected_parameter = forms.SelectFromList.show(ops,
 
 forms.alert_ifnot(selected_parameter, "No Parameters Selected", exitscript=True)
 
+# Define override options
+override_style_options = [
+    "Pattern Only",
+    "Lines Only",
+    "Lines & Pattern"
+]
+
+# Ask user to select override style
+selected_override_style = forms.CommandSwitchWindow.show(
+    override_style_options,
+    message="Select Override Style",
+    width=400
+)
+
+if selected_override_style is None:
+    script.exit()
+
+# Map selection to override options
+if selected_override_style == "Pattern Only":
+    override_option = ["Projection Surface Colour", "Cut Pattern Colour"]
+elif selected_override_style == "Lines Only":
+    override_option = ["Projection Line Colour", "Cut Line Colour"]
+else:  # Lines & Pattern
+    override_option = ["Projection Line Colour", "Projection Surface Colour", "Cut Line Colour", "Cut Pattern Colour"]
+
 # get elements in current view
 first_el = get_view_elements[0]
 
@@ -106,13 +139,22 @@ first_el = get_view_elements[0]
 values_dict = defaultdict(list)  # {value of parameter : element id}
 
 for el in get_view_elements:
-    if selected_parameter in inst_param_dict.keys():
+    # Check if selected_parameter is a BuiltInParameter (negative integer in dict key)
+    if hasattr(selected_parameter, 'IntegerValue') and selected_parameter.IntegerValue < 0:
+        # It's a BuiltInParameter
         el_parameter = el.get_Parameter(selected_parameter)
         if el_parameter:
             param_value = get_param_value_as_string(el_parameter)
-            # values_dict[param_value] = []
+            values_dict[param_value].append(el.Id)
+    elif isinstance(selected_parameter, str):
+        # It's a Family Parameter (stored as string key) - use LookupParameter
+        el_parameter = el.LookupParameter(selected_parameter)
+        if el_parameter:
+            param_value = get_param_value_as_string(el_parameter)
             values_dict[param_value].append(el.Id)
     else:
+        # It's an ElementId (Shared Parameter or other) - use get_Parameter with ElementId
+        # But get_Parameter(ElementId) might not work for all cases, try both methods
         el_type = query.get_type(el)
         element_type_parameter = el_type.get_Parameter(selected_parameter)
         if element_type_parameter:
@@ -127,6 +169,6 @@ override_filters = 0
 
 with revit.Transaction("Colorize by Value", doc):
     for param_value, colour in zip(values_dict.keys(), revit_colours):
-        override = set_colour_overrides_by_option(overrides_option, colour, doc)
+        override = set_colour_overrides_by_option(override_option, colour, doc)
         for el_id in values_dict[param_value]:
             view.SetElementOverrides(el_id, override)
