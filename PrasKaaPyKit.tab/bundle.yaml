@@ -65,6 +65,7 @@ layout:
   - QualityControl
   - Utilities
   - Rebar
+  - Automation
 
 # Engine Configuration
 engine:

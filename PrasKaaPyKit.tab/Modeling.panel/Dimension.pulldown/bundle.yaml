@@ -53,7 +53,8 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Dimension-Tools
 layout:
   - AutoDimensionColumn
   - AutoDimensionWall
-
+  - -----
+  - DimensionTextReplace
 # Engine Configuration
 engine:
   clean: true

@@ -51,14 +51,16 @@ with db.Transaction(doc, "Paste Tags by Location") as t:
             if not linked_element:
                 # Gunakan filter bounding box kecil di titik koordinat tersebut
                 tolerance = 0.01 
-                outline = db.Outline(pos.Add(db.XYZ(-tolerance, -tolerance, -tolerance)), 
-                                    pos.Add(db.XYZ(tolerance, tolerance, tolerance)))
+                outline = db.Outline(
+                    pos.Add(db.XYZ(-tolerance, -tolerance, -tolerance)), 
+                    pos.Add(db.XYZ(tolerance, tolerance, tolerance))
+                )
                  
                 # Cari elemen di link doc yang bersentuhan dengan titik ini
-                potential_hosts = db.FilteredElementCollector(link_doc)
-                                    .WhereElementIsNotElementType()
-                                    .WherePasses(db.BoundingBoxIntersectsFilter(outline))
-                                    .ToElements()
+                potential_hosts = db.FilteredElementCollector(link_doc)\
+                    .WhereElementIsNotElementType()\
+                    .WherePasses(db.BoundingBoxIntersectsFilter(outline))\
+                    .ToElements()
                  
                 if potential_hosts:
                     linked_element = potential_hosts[0]
