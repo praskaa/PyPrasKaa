@@ -130,10 +130,10 @@ def main():
                 type_name = get_type_name(el)
                 family_name = get_family_name(el)
                 mark = get_mark(el)
+                cat_name = next(k for k, v in GIS_CATEGORIES.items() if v[0] == cat_enum)
 
                 if elem_id in to_fix:
                     # Generate new UID
-                    cat_name = next(k for k, v in GIS_CATEGORIES.items() if v[0] == cat_enum)
                     _, prefix = GIS_CATEGORIES[cat_name]
                     new_uid = generate_uid(prefix, used_uids)
                     p.Set(new_uid)
