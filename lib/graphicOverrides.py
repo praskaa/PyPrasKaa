@@ -270,6 +270,72 @@ def setProjLines(r, g, b, strong=False):
         except:
             print(error_msg)
 
+# overrides patterns ONLY (no line colors) - for Shift+Click
+def setProjPatternOnly(r, g, b):
+    """
+    Override ONLY pattern colors without modifying line colors.
+    This is useful when you want to apply pattern/color fill without changing
+    the element's line appearance in the view.
+    
+    Args:
+        r (int): Red value (0-255)
+        g (int): Green value (0-255)
+        b (int): Blue value (0-255)
+    """
+    from pyrevit import revit, DB, forms
+    try:
+        selection = revit.get_selection()
+        if len(selection) > 0:
+            with revit.Transaction('Line Pattern'):
+                src_style = DB.OverrideGraphicSettings()
+                
+                # Constructing RGB value
+                color = DB.Color(r, g, b)
+                
+                # Get appropriate pattern ID based on Revit version
+                revit_version = get_revit_version()
+                pattern_id = get_safe_pattern_id(revit.doc, revit_version)
+                
+                # Only set pattern-related overrides, NOT line colors
+                if pattern_id:
+                    # Set foreground patterns (Surface and Cut)
+                    src_style.SetSurfaceForegroundPatternColor(color)
+                    src_style.SetSurfaceForegroundPatternId(pattern_id)
+                    src_style.SetCutForegroundPatternColor(color)
+                    src_style.SetCutForegroundPatternId(pattern_id)
+                    
+                    # Set background patterns
+                    src_style.SetSurfaceBackgroundPatternColor(color)
+                    src_style.SetSurfaceBackgroundPatternId(pattern_id)
+                    src_style.SetCutBackgroundPatternColor(color)
+                    src_style.SetCutBackgroundPatternId(pattern_id)
+                else:
+                    # If no pattern available, just set colors without patterns
+                    src_style.SetSurfaceForegroundPatternColor(color)
+                    src_style.SetCutForegroundPatternColor(color)
+                    src_style.SetSurfaceBackgroundPatternColor(color)
+                    src_style.SetCutBackgroundPatternColor(color)
+                
+                # Apply overrides to selected elements
+                for element in selection:
+                    revit.active_view.SetElementOverrides(element.Id, src_style)
+                
+                # Show success toast notification
+                summary = "Applied pattern to {} elements".format(len(selection))
+                forms.toast(summary, title="Line Pattern", appid="PrasKaaPyKit")
+        else:
+            forms.alert('You must select at least one element.', exitscript=True)
+    except Exception as e:
+        error_msg = 'Error applying pattern:\n{}\n\nRevit Version: {}'.format(
+            str(e), 
+            get_revit_version()
+        )
+        try:
+            forms.alert(error_msg, exitscript=True)
+        except:
+            print(error_msg)
+
+
 # overrides lines and patterns in view with diagonal crosshatch foreground and solid background
 def setProjLinesDiagonalCrossHatch(r1, g1, b1, r2, g2, b2, strong=True):
     from pyrevit import revit, DB, forms
