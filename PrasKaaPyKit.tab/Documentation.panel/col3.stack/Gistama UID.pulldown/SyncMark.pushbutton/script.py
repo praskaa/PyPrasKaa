@@ -2,11 +2,11 @@
 __title__ = 'Sync Mark by UID'
 __author__ = 'PrasKaa'
 
-from Autodesk.Revit.DB import FilteredElementCollector, Transaction
+from Autodesk.Revit.DB import FilteredElementCollector, Transaction, RevitLinkInstance
 from pyrevit import revit, forms
 
 # Import centralized config
-from lib.parameters.gis_categories import GIS_CATEGORIES, PARAM_NAME
+from parameters.gis_categories import GIS_CATEGORIES, PARAM_NAME
 
 doc = revit.doc
 TARGET_PARAM = "Mark"
@@ -14,9 +14,15 @@ TARGET_PARAM = "Mark"
 
 def main():
     # Select link
-    selected_link = forms.select_revitlinks(title='Select Source Link (File A)', multiselect=False)
-    if not selected_link: return
+    links = {l.Name: l for l in FilteredElementCollector(doc).OfClass(RevitLinkInstance)}
+    selected_link_name = forms.SelectFromList.show(
+        sorted(links.keys()),
+        title='Select Source Link (File A)',
+        multiselect=False
+    )
+    if not selected_link_name: return
     
+    selected_link = links[selected_link_name]
     link_doc = selected_link.GetLinkDocument()
     if not link_doc:
         forms.alert("Cannot access link document."); return
