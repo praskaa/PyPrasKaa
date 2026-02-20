@@ -283,32 +283,66 @@ def main():
         forms.alert("No mode selected. Script will exit.", exitscript=True)
     
     overwrite = (transfer_mode == "Overwrite All")
-    
+
     # =========================================================================
-    # STEP 3: Collect Host Elements by Categories
+    # STEP 3: Check for Preselected Elements or Collect All
     # =========================================================================
-    host_elements = []
+    # Auto-detect: if user has elements selected, use only those; otherwise use all
+    selected_ids = uidoc.Selection.GetElementIds()
+    use_selection_only = len(selected_ids) > 0
     
-    for cat_enum in get_all_category_enums():
-        for el in FilteredElementCollector(doc).OfCategory(cat_enum).WhereElementIsNotElementType():
-            # Check if we should include this element based on mode
-            param = el.LookupParameter(PARAM_NAME)
-            has_uid = param and param.AsString()
-            
-            if not overwrite and has_uid:
-                # Transfer Missing mode: skip elements that already have UID
-                continue
-            
-            host_elements.append(el)
-    
-    if not host_elements:
-        if overwrite:
-            forms.alert("No elements found in the host model.", exitscript=True)
-        else:
-            forms.alert("No elements without GIS_Element_UID found in the host model.", exitscript=True)
-    
-    logger.info("Found {} host elements to process (mode: {})".format(
-        len(host_elements), transfer_mode))
+    if use_selection_only:
+        # Get preselected elements and filter by GIS categories
+        selected_elements = [doc.GetElement(eid) for eid in selected_ids]
+        host_elements = []
+        
+        for el in selected_elements:
+            if el.Category and el.Category.BuiltInCategory in get_all_category_enums():
+                # Check if we should include this element based on mode
+                param = el.LookupParameter(PARAM_NAME)
+                has_uid = param and param.AsString()
+                
+                if not overwrite and has_uid:
+                    # Transfer Missing mode: skip elements that already have UID
+                    continue
+                
+                host_elements.append(el)
+        
+        if not host_elements:
+            forms.alert(
+                "No valid elements found in selection.\n\n"
+                "Selected elements are not in supported GIS categories "
+                "or have GIS_Element_UID already (in Transfer Missing mode).",
+                exitscript=True
+            )
+        
+        logger.info("Using {} preselected elements".format(len(host_elements)))
+        source_mode = "Preselected Elements"
+    else:
+        # Collect all elements by categories (existing behavior)
+        host_elements = []
+        
+        for cat_enum in get_all_category_enums():
+            for el in FilteredElementCollector(doc).OfCategory(cat_enum).WhereElementIsNotElementType():
+                # Check if we should include this element based on mode
+                param = el.LookupParameter(PARAM_NAME)
+                has_uid = param and param.AsString()
+                
+                if not overwrite and has_uid:
+                    # Transfer Missing mode: skip elements that already have UID
+                    continue
+                
+                host_elements.append(el)
+        
+        if not host_elements:
+            if overwrite:
+                forms.alert("No elements found in the host model.", exitscript=True)
+            else:
+                forms.alert("No elements without GIS_Element_UID found in the host model.", exitscript=True)
+        
+        logger.info("Found {} host elements to process (mode: {})".format(
+            len(host_elements), transfer_mode))
+        source_mode = "All Model Elements"
     
     # =========================================================================
     # STEP 4: Collect Linked Elements by Categories
@@ -475,6 +509,7 @@ def main():
     print("=" * 60)
     print("Source Linked Model: {}".format(selected_link_name))
     print("Transfer Mode: {}".format(transfer_mode))
+    print("Element Source: {}".format(source_mode))
     print("Log File: {}".format(log_path))
     print("-" * 60)
     print("Summary:")
@@ -488,8 +523,10 @@ def main():
     
     # Final alert
     forms.alert(
-        "Successfully updated {} of {} elements ({} mode).\n\nLog saved to:\n{}".format(
-            updated_count, len(host_elements), transfer_mode, log_path),
+        "Successfully updated {} of {} elements ({} mode).\n\n"
+        "Element Source: {}\n\n"
+        "Log saved to:\n{}".format(
+            updated_count, len(host_elements), transfer_mode, source_mode, log_path),
         title="Transfer Complete"
     )
 
