@@ -45,7 +45,10 @@ if fileExtension == "rvt":
             f = open(syncLogPath + "\\" +  file_name + "_Sync.tmp", "w")
             # f = open("L:\\customToolslogs\\syncTimeLogs\\"+ file_name + "_Sync.tmp", "w")
         except:
-            fallback_path = "F:\\1_STUDI\\_PrasKaa Python Kit\\PrasKaaToolsLogs\\syncTimeLogs"
+            # Use Documents\PrasKaaPyKit\syncTimeLogs as fallback
+            import System
+            docs_folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+            fallback_path = System.IO.Path.Combine(docs_folder, "PrasKaaPyKit", "syncTimeLogs")
             if not os.path.exists(fallback_path):
                 os.makedirs(fallback_path, exist_ok=True)
             f = open(fallback_path + "\\"+ file_name + "_Sync.tmp", "w")

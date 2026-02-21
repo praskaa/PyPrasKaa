@@ -41,7 +41,10 @@ try:
                 f = open(openingLogPath + "\\"+ file_name + "_Open.tmp", "w")
                 # f = open("L:\\customToolslogs\\openingTimeLogs\\"+ file_name + "_Open.tmp", "w")
             except:
-                fallback_path = "F:\\1_STUDI\\_PrasKaa Python Kit\\PrasKaaToolsLogs\\openingTimeLogs"
+                # Use Documents\PrasKaaPyKit\openingTimeLogs as fallback
+                import System
+                docs_folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+                fallback_path = System.IO.Path.Combine(docs_folder, "PrasKaaPyKit", "openingTimeLogs")
                 if not os.path.exists(fallback_path):
                     os.makedirs(fallback_path, exist_ok=True)
                 f = open(fallback_path + "\\"+ file_name + "_Open.tmp", "w")

@@ -166,8 +166,11 @@ try:
     user_config.telemetry.telemetry_file_dir = config_values['pyrevitTelemetry']
 except:
     # if there is no telemetry path present in the config file
-    # cmd_command = 'cmd /c PowerShell pyrevit configs telemetry file "F:\\1_STUDI\\_PrasKaa Python Kit\\PrasKaaToolsLogs\\toolsLogs"'
-    user_config.telemetry.telemetry_file_dir = "F:\\1_STUDI\\_PrasKaa Python Kit\\PrasKaaToolsLogs\\toolsLogs"
+    # Use Documents\PrasKaaPyKit\telemetryLogs as fallback
+    import System
+    docs_folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+    telemetry_path = System.IO.Path.Combine(docs_folder, "PrasKaaPyKit", "telemetryLogs")
+    user_config.telemetry.telemetry_file_dir = telemetry_path
 # os.system(cmd_command)
 
 # wiki

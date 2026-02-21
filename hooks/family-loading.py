@@ -1,4 +1,12 @@
 # -*- coding: UTF-8 -*-
+"""
+Family Loading Hook for pyRevit
+Logs all family loading events to track which families are loaded into projects.
+
+Author: PrasKaa Team
+Version: 1.0.0
+"""
+
 from pyrevit import EXEC_PARAMS
 from pyrevit import forms, script
 from pyrevit.userconfig import user_config
@@ -35,7 +43,16 @@ SESSION_ID = str(uuid.uuid4())
 # JSON Serialization Functions
 def safe_json_dumps(data):
     """
-    Safe JSON serialization compatible with IronPython
+    Safe JSON serialization compatible with IronPython.
+    
+    Uses standard json module first, falls back to manual serialization
+    if json module is unavailable.
+    
+    Args:
+        data: Python object to serialize
+    
+    Returns:
+        str: JSON string or None if serialization fails
     """
     try:
         import json
@@ -48,7 +65,15 @@ def safe_json_dumps(data):
 
 def manual_json_serialize(data):
     """
-    Manual JSON serialization as fallback
+    Manual JSON serialization as fallback for IronPython.
+    
+    Handles basic Python types: dict, list, tuple, str, bool, None.
+    
+    Args:
+        data: Python object to serialize
+    
+    Returns:
+        str: JSON string representation
     """
     if isinstance(data, dict):
         items = []
@@ -74,7 +99,13 @@ def manual_json_serialize(data):
 # Log Rotation Functions
 def get_log_file_size_mb(file_path):
     """
-    Get log file size in MB
+    Get log file size in megabytes.
+    
+    Args:
+        file_path: Path to the log file
+    
+    Returns:
+        float: File size in MB, or 0 if file doesn't exist
     """
     try:
         if op.exists(file_path):
@@ -86,7 +117,16 @@ def get_log_file_size_mb(file_path):
 
 def rotate_log_files(log_file_path):
     """
-    Rotate log files when size limit exceeded
+    Rotate log files when size limit exceeded.
+    
+    Creates numbered backups (log.txt.1, log.txt.2, etc.) and
+    removes oldest backups when MAX_BACKUP_FILES is exceeded.
+    
+    Args:
+        log_file_path: Path to the current log file
+    
+    Returns:
+        bool: True if rotation succeeded
     """
     try:
         if not op.exists(log_file_path):
@@ -125,7 +165,13 @@ def rotate_log_files(log_file_path):
 
 def check_and_rotate_log(log_file_path):
     """
-    Check if log rotation is needed and perform it
+    Check if log rotation is needed and perform it.
+    
+    Args:
+        log_file_path: Path to the log file
+    
+    Returns:
+        bool: True if rotation not needed or succeeded
     """
     try:
         current_size_mb = get_log_file_size_mb(log_file_path)
@@ -139,7 +185,14 @@ def check_and_rotate_log(log_file_path):
 def get_project_log_directory(document):
     """
     Get the directory where project logs should be saved.
+    
     Returns project directory if document is saved, otherwise Documents folder.
+    
+    Args:
+        document: The Revit document
+    
+    Returns:
+        str: Path to log directory
     """
     try:
         if document and document.PathName:
@@ -157,10 +210,18 @@ def get_project_log_directory(document):
         return System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
 
 
-# Enhanced Log Entry Creation
 def create_json_log_entry(family_path, family_name, document, load_context=None):
     """
-    Create structured JSON log entry
+    Create structured JSON log entry for family loading.
+    
+    Args:
+        family_path: Directory path where family file is located
+        family_name: Name of the family
+        document: The Revit document
+        load_context: Optional dict with additional context
+    
+    Returns:
+        dict: Structured log entry with timestamp, user, family, document info
     """
     try:
         timestamp = datetime.datetime.now()
@@ -233,7 +294,16 @@ def create_json_log_entry(family_path, family_name, document, load_context=None)
 # Enhanced Logging Function
 def log_family_load_enhanced(family_path, family_name, document, load_context=None):
     """
-    Enhanced family loading logger with JSON support and rotation
+    Enhanced family loading logger with JSON support and log rotation.
+    
+    Logs family loading details to both JSON and text files with automatic
+    rotation when file size exceeds limit.
+    
+    Args:
+        family_path: Directory path where family file is located
+        family_name: Name of the family (without .rfa extension)
+        document: The Revit document
+        load_context: Optional dict with additional context (trigger, size_warning, etc.)
     """
     try:
         # Get log file paths - using configured family load log path
@@ -299,7 +369,15 @@ def log_family_load_enhanced(family_path, family_name, document, load_context=No
 # Function to log family loading details
 def log_family_load(family_path, family_name, document):
     """
-    Log family loading details to a log file
+    Legacy logging function for family loading events.
+    
+    Note: This function is kept for backward compatibility.
+    Consider using log_family_load_new() for new code.
+    
+    Args:
+        family_path: Directory path where family file is located
+        family_name: Name of the family (without .rfa extension)
+        document: The Revit document
     """
     try:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -335,7 +413,13 @@ def log_family_load(family_path, family_name, document):
 
 def get_central_file_name(document):
     """
-    Get central file name from document, similar to doc-opened.py
+    Extract central file name from document path for log naming.
+    
+    Args:
+        document: The Revit document
+    
+    Returns:
+        str: Central file name without extension, or "Unknown" if unavailable
     """
     try:
         debug_log("=== START get_central_file_name ===")
@@ -414,7 +498,18 @@ def get_central_file_name(document):
 
 def get_familyload_log_path(document):
     """
-    Get family load log path from configuration, similar to doc-opened.py
+    Get family load log path from configuration.
+    
+    Tries multiple sources in order:
+    1. User config setting
+    2. Default constant
+    3. Documents\PrasKaaPyKit\FamilyLoad (fallback)
+    
+    Args:
+        document: The Revit document (unused but kept for API consistency)
+    
+    Returns:
+        str: Absolute path to log directory
     """
     try:
         debug_log("=== START get_familyload_log_path ===")
@@ -426,38 +521,57 @@ def get_familyload_log_path(document):
             debug_log("Got path from user config: {}".format(str(familyloadLogPath)))
         except Exception as e:
             debug_log("Error getting from user config: {}".format(str(e)))
-            # Fallback to default path
+            # Fallback to default path in Documents folder
             try:
                 from customOutput import def_familyloadLogPath
                 familyloadLogPath = def_familyloadLogPath
                 debug_log("Using default path: {}".format(str(familyloadLogPath)))
             except Exception as e2:
                 debug_log("Error getting default path: {}".format(str(e2)))
-                familyloadLogPath = r"F:\1_STUDI\_PrasKaa Python Kit\PrasKaaToolsLogs\FamilyLoad"
+                # Use Documents\PrasKaaPyKit\FamilyLoad
+                import System
+                docs_folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+                familyloadLogPath = System.IO.Path.Combine(docs_folder, "PrasKaaPyKit", "FamilyLoad")
         
-        # Ensure path is absolute and valid
+        # Ensure path is absolute
         if not familyloadLogPath or not os.path.isabs(familyloadLogPath):
-            familyloadLogPath = r"F:\1_STUDI\_PrasKaa Python Kit\PrasKaaToolsLogs\FamilyLoad"
-            debug_log("Using absolute fallback path: {}".format(str(familyloadLogPath)))
+            import System
+            docs_folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+            familyloadLogPath = System.IO.Path.Combine(docs_folder, "PrasKaaPyKit", "FamilyLoad")
+            debug_log("Using Documents fallback: {}".format(str(familyloadLogPath)))
             
         return familyloadLogPath
         
     except Exception as e:
         debug_log("ERROR in get_familyload_log_path: {}".format(str(e)))
         # Ultimate fallback
-        return r"F:\1_STUDI\_PrasKaa Python Kit\PrasKaaToolsLogs\FamilyLoad"
+        import System
+        docs_folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+        return System.IO.Path.Combine(docs_folder, "PrasKaaPyKit", "FamilyLoad")
 
 def debug_log(message):
     """
-    Debug logging function to track issues
+    Debug logging function for development troubleshooting.
+    
+    Args:
+        message: Debug message to write
     """
     DEBUG_MODE = False  # Set to False to disable debug logging
     if not DEBUG_MODE:
         return
         
     try:
-        debug_log_path = r"F:\1_STUDI\_PrasKaa Python Kit\PrasKaaToolsLogs\FamilyLoad\debug.log"
+        # Use Documents\PrasKaaPyKit\FamilyLoad for debug log
+        import System
+        docs_folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+        debug_log_path = System.IO.Path.Combine(docs_folder, "PrasKaaPyKit", "FamilyLoad", "debug.log")
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Ensure directory exists
+        debug_dir = System.IO.Path.GetDirectoryName(debug_log_path)
+        if not os.path.exists(debug_dir):
+            os.makedirs(debug_dir)
+            
         with open(debug_log_path, "a") as debug_file:
             debug_file.write("[{}] {}\n".format(timestamp, str(message)))
     except:
@@ -465,7 +579,16 @@ def debug_log(message):
 
 def log_family_load_new(family_path, family_name, document, load_context=None):
     """
-    New family loading logger similar to doc-opened.py pattern
+    New family loading logger - creates per-project log files.
+    
+    Similar pattern to doc-opened.py - creates log file named after
+    the central model file.
+    
+    Args:
+        family_path: Directory path where family file is located
+        family_name: Name of the family (without .rfa extension)
+        document: The Revit document
+        load_context: Optional dict with additional context
     """
     try:
         debug_log("=== START log_family_load_new ===")
@@ -551,6 +674,13 @@ def log_family_load_new(family_path, family_name, document, load_context=None):
 
 # showing of dialog box with warning
 def dialogBox():
+    """
+    Warning dialog for family loading events.
+    
+    Shows alert when loading family files larger than 1 MB.
+    Logs all family loads regardless of size.
+    Called automatically by pyRevit hook system.
+    """
     doc = __eventargs__.Document
 
     # if family is saved
@@ -567,41 +697,15 @@ def dialogBox():
             # the language value is read from pyrevit config file
             current_lang = lang()
 
-            # WARNING WINDOW
-            res = forms.alert(hook_texts[current_lang][title]["text"],
-                             options = hook_texts[current_lang][title]["buttons"],
-                             title = title,
-                             footer = "PrasKaa PyKit Hooks")
-            # BUTTONS
-            # Load
-            if res  == hook_texts[current_lang][title]["buttons"][1]:
-                # Log family loading details with new logging system
-                load_context = {
-                    "trigger": "user_dialog",
-                    "size_warning": True,
-                    "load_approved": True,
-                    "file_size_mb": round(famSize / (1024.0 * 1024.0), 2)
-                }
-                log_family_load_new(fam_path, fam_name, doc, load_context)
-                
-                # logging to server - cannot access active document
-                from hooksScripts import hooksLogger
-                hooksLogger("Family loading over 1 MB", doc)
-            # Cancel
-            elif res  == hook_texts[current_lang][title]["buttons"][0]:
-                EXEC_PARAMS.event_args.Cancel()
-            # More info
-            elif res  == hook_texts[current_lang][title]["buttons"][2]:
-                wiki_url = user_config.PrasKaaToolsSettings.wiki
-                # if lang == "SK":
-                if len(wiki_url) > 0:
-                    url = wiki_url + '/wiki/Chyby_vo_families_Revitu#Ve.C4.BEkos.C5.A5_Family'
-                else:
-                    url = 'https://customtools.notion.site/Procedures-to-be-avoided-e6e4ce335d544040acee210943afa237'
-                script.open_url(url)
-                EXEC_PARAMS.event_args.Cancel()
-            else:
-                EXEC_PARAMS.event_args.Cancel()
+            # WARNING DISABLED - Silent logging only
+            # Log family loading details with new logging system
+            load_context = {
+                "trigger": "user_dialog",
+                "size_warning": True,
+                "load_approved": True,
+                "file_size_mb": round(famSize / (1024.0 * 1024.0), 2)
+            }
+            log_family_load_new(fam_path, fam_name, doc, load_context)
         else:
             # Log family loading details for small families too
             load_context = {

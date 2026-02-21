@@ -55,7 +55,13 @@ if fileExtension == "rvt":
             tmp_file_path = syncLogPath + "\\"+ local_file_name + "_Sync.tmp"
             # tmp_file_path = "L:\\customToolslogs\\syncTimeLogs\\"+ local_file_name + "_Sync.tmp"
         except:
-            tmp_file_path = "F:\\1_STUDI\\_PrasKaa Python Kit\\PrasKaaToolsLogs\\syncTimeLogs\\"+ local_file_name + "_Sync.tmp"
+            # Use Documents\PrasKaaPyKit\syncTimeLogs as fallback
+            import System
+            docs_folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+            fallback_path = System.IO.Path.Combine(docs_folder, "PrasKaaPyKit", "syncTimeLogs")
+            if not os.path.exists(fallback_path):
+                os.makedirs(fallback_path, exist_ok=True)
+            tmp_file_path = fallback_path + "\\"+ local_file_name + "_Sync.tmp"
         tmp_file = open(tmp_file_path, "r")
         start_time_string = tmp_file.read()
         # converting string to datetime
@@ -81,9 +87,15 @@ if fileExtension == "rvt":
         try:
             log_file = open(syncLogPath + "\\"+ central_file_name + "_Sync.log", "a")
             # log_file = open("L:\\customToolslogs\\syncTimeLogs\\"+ central_file_name + "_Sync.log", "a")
-        # unc file path
+        # UNC file path
         except:
-            log_file = open("F:\\1_STUDI\\_PrasKaa Python Kit\\PrasKaaToolsLogs\\syncTimeLogs\\"+ central_file_name + "_Sync.log", "a")
+            # Use Documents\PrasKaaPyKit\syncTimeLogs as fallback
+            import System
+            docs_folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments)
+            fallback_path = System.IO.Path.Combine(docs_folder, "PrasKaaPyKit", "syncTimeLogs")
+            if not os.path.exists(fallback_path):
+                os.makedirs(fallback_path, exist_ok=True)
+            log_file = open(fallback_path + "\\"+ central_file_name + "_Sync.log", "a")
         log_file.write(end_time_string_seconds + separator + str(timeDelta) + separator + user_name + "\n")
         log_file.close()
     except:
