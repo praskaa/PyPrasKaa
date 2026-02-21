@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__title__ = "Hidden Link Revit in Views/Templates"
-__doc__ = "Pilih Link, lalu pilih View/Template mana saja secara manual untuk di-hide."
+__title__ = "Hide Link Revit in Views/Templates (VG Level)"
+__doc__ = "Pilih Link Type (bisa multiple), lalu pilih View/Template mana saja untuk disembunyikan. Semua instance dari link type tersebut akan terpengaruh."
 
 from Autodesk.Revit.DB import *
 from pyrevit import revit, forms, script
@@ -16,25 +16,19 @@ from Snippets._worksharing import (
 
 doc = revit.doc
 
-# Pilih Link
-links = {l.Name: l for l in FilteredElementCollector(doc).OfClass(RevitLinkInstance)}
-sel_link = forms.SelectFromList.show(sorted(links.keys()), title='Pilih Link')
-if not sel_link: script.exit()
+# Kumpulkan Link Types (bukan Instance) - agar semua instance terpengaruh
+link_types = {lt.Name: lt for lt in FilteredElementCollector(doc).OfClass(RevitLinkType)}
 
-# WORKSHARING CHECK - Verify link is not owned by another user
-if is_workshared(doc):
-    link_element = links[sel_link]
-    if is_element_owned_by_other_user(link_element, doc):
-        status = get_checkout_status_name(get_checkout_status(link_element, doc))
-        forms.alert(
-            "Link '{}' is currently owned by another user.\n\n"
-            "Status: {}\n\n"
-            "Please wait until they release the element or coordinate with them directly.".format(
-                sel_link, status
-            ),
-            title="Worksharing Alert"
-        )
-        script.exit()
+if not link_types:
+    forms.alert("Tidak ada Revit Link Type ditemukan.", exitscript=True)
+
+# Pilih Link Types (MULTI-SELECT)
+sel_link_types = forms.SelectFromList.show(
+    sorted(link_types.keys()), 
+    title='Pilih Link Type (bisa multiple)',
+    multiselect=True
+)
+if not sel_link_types: script.exit()
 
 # Pilih Views
 views = {}
@@ -46,71 +40,137 @@ sel_views = forms.SelectFromList.show(sorted(views.keys()), multiselect=True)
 if not sel_views: script.exit()
 
 # Hide dengan chunking dan progress bar (cancellable)
-link_ids = List.List[ElementId]([links[sel_link].Id])
+total_links = len(sel_link_types)
 total_views = len(sel_views)
-
-# Use output-based progress as primary (more reliable)
-# with optional UI progress bar fallback
 output = script.get_output()
 
+# Check Revit version for SetLinkOverrides support
+# SetLinkOverrides is available in Revit 2023+
+revit_version = int(doc.Application.VersionNumber)
+use_vg_method = revit_version >= 2023
+
+if not use_vg_method:
+    output.log_warning(
+        "Revit {} terdeteksi. SetLinkOverrides() hanya tersedia di Revit 2023+.\n"
+        "Akan menggunakan metode HideElements() sebagai fallback.".format(revit_version)
+    )
+
 try:
-    tg = TransactionGroup(doc, "Hide Link")
+    tg = TransactionGroup(doc, "Hide Link di Views")
     tg.Start()
     
     try:
-        # Try UI progress bar first
+        # Progress bar
+        total_ops = total_links * total_views
         with forms.ProgressBar(
-            title='Hiding Link in Views ({value} of {max_value})',
+            title='Hiding Links in Views ({value} of {max_value})',
             cancellable=True,
             steps=10
         ) as pb:
-            use_ui_progress = True
-            for i in range(0, total_views, 10):
-                # Check cancel SETIAP iterasi
-                if pb.cancelled:
-                    tg.RollBack()
-                    forms.alert("Operation cancelled by user.")
-                    script.exit()
-                
-                # Calculate progress
-                current_count = min(i + 10, total_views)
-                pb.update_progress(current_count, total_views)
-                
-                t = Transaction(doc, "Hide")
-                t.Start()
-                for name in sel_views[i:i+10]:
-                    try: 
-                        views[name].HideElements(link_ids)
-                    except Exception:
-                        pass
-                t.Commit()
-    except Exception as e:
-        # Fallback: Use output-based progress if UI progress bar fails
-        use_ui_progress = False
-        output.print_md("## Processing {} views...".format(total_views))
-        
-        for i in range(0, total_views, 10):
-            current_count = min(i + 10, total_views)
-            output.update_progress(i, total_views)
+            op_count = 0
             
-            t = Transaction(doc, "Hide")
-            t.Start()
-            for name in sel_views[i:i+10]:
-                try: 
-                    views[name].HideElements(link_ids)
+            for link_type_name in sel_link_types:
+                link_type = link_types[link_type_name]
+                link_type_id = link_type.Id
+                
+                for view_name in sel_views:
+                    # Check cancel
+                    if pb.cancelled:
+                        tg.RollBack()
+                        forms.alert("Operation cancelled by user.")
+                        script.exit()
+                    
+                    view = views[view_name]
+                    
+                    try:
+                        if use_vg_method:
+                            # Method VG/Graphics - checkbox akan unchecked
+                            link_settings = RevitLinkGraphicsSettings()
+                            link_settings.LinkVisibilityType = LinkVisibility.Hidden
+                            
+                            t = Transaction(doc, "Hide Link (VG)")
+                            t.Start()
+                            view.SetLinkOverrides(link_type_id, link_settings)
+                            t.Commit()
+                        else:
+                            # Fallback: HideElements - checkbox tetap checked
+                            # Get semua instance dari link type ini
+                            link_instances = [
+                                inst for inst in 
+                                FilteredElementCollector(doc).OfClass(RevitLinkInstance)
+                                if inst.GetTypeId() == link_type_id
+                            ]
+                            
+                            if link_instances:
+                                link_ids = List.List[ElementId]([inst.Id for inst in link_instances])
+                                
+                                t = Transaction(doc, "Hide")
+                                t.Start()
+                                view.HideElements(link_ids)
+                                t.Commit()
+                        
+                        op_count += 1
+                        pb.update_progress(op_count, total_ops)
+                        
+                    except Exception as e:
+                        # Skip errors untuk view tertentu
+                        pass
+    
+    except Exception as e:
+        # Fallback: Use output-based progress
+        use_ui_progress = False
+        output.print_md("## Processing {} links x {} views...".format(total_links, total_views))
+        
+        op_count = 0
+        for link_type_name in sel_link_types:
+            link_type = link_types[link_type_name]
+            link_type_id = link_type.Id
+            
+            for view_name in sel_views:
+                view = views[view_name]
+                current_count = op_count + 1
+                output.update_progress(current_count, total_ops)
+                
+                try:
+                    if use_vg_method:
+                        link_settings = RevitLinkGraphicsSettings()
+                        link_settings.LinkVisibilityType = LinkVisibility.Hidden
+                        
+                        t = Transaction(doc, "Hide Link (VG)")
+                        t.Start()
+                        view.SetLinkOverrides(link_type_id, link_settings)
+                        t.Commit()
+                    else:
+                        link_instances = [
+                            inst for inst in 
+                            FilteredElementCollector(doc).OfClass(RevitLinkInstance)
+                            if inst.GetTypeId() == link_type_id
+                        ]
+                        
+                        if link_instances:
+                            link_ids = List.List[ElementId]([inst.Id for inst in link_instances])
+                            
+                            t = Transaction(doc, "Hide")
+                            t.Start()
+                            view.HideElements(link_ids)
+                            t.Commit()
+                    
+                    op_count += 1
+                    
                 except Exception:
                     pass
-            t.Commit()
     
     tg.Assimilate()
     
-    if use_ui_progress:
-        forms.alert("Done. Link hidden in {} views.".format(total_views))
-    else:
-        output.log_success("Done. Link hidden in {} views.".format(total_views))
+    method_used = "VG/Graphics" if use_vg_method else "Hide Elements"
+    forms.alert(
+        "Selesai!\n\n"
+        "{} link type disembunyikan di {} view.\n"
+        "Method: {}"
+        .format(total_links, total_views, method_used)
+    )
 
 except Exception as e:
-    # Ensure transaction is rolled back on any error
     try:
         tg.RollBack()
     except:
