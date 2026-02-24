@@ -8,3 +8,4 @@ layout:
  - DetailItemParameterLister
  - CountDetailItemReinforcement
  - CountDetailComponents
+ - RecapLastModifiedBy

@@ -51,4 +51,4 @@ def dialogBox():
         EXEC_PARAMS.event_args.Cancel = True
 
 # try to find config file for people who dont want to see the hook
-hookTurnOff(dialogBox,9)
+hookTurnOff(dialogBox,5)
