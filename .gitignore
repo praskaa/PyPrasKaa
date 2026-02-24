@@ -148,6 +148,3 @@ config/secrets.py
 mass_message/mass_message.html
 plans/PLAN_TransferMarkWithRevitModel.md
 lib/smart_tag_config.json
-
-# Force include macro module (workflow framework)
-!lib/macro/
