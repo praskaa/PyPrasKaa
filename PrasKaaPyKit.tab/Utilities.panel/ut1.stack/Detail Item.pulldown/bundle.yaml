@@ -7,3 +7,5 @@ layout:
  - DetailItemInspector
  - DetailItemParameterLister
  - CountDetailItemReinforcement
+ - CountDetailComponents
+ - RecapLastModifiedBy

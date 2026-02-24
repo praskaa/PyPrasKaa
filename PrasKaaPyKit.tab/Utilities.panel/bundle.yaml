@@ -64,3 +64,4 @@ engine:
 context: ["Project"]
 min_revit_ver: 2018
 max_revit_ver: 2026
+collapsed: true

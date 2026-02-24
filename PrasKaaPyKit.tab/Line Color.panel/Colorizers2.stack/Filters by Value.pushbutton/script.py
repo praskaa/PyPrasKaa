@@ -1,3 +1,14 @@
+"""
+Filters by Value
+Description: Create color filters based on parameter values
+Author: PrasKaa
+Version: 1.0.0
+Last Updated: 2026-02-22
+
+Changelog:
+    v1.0.0 (2026-02-22): Initial release
+"""
+
 from pyrevit import revit, DB, forms, script
 from pyrevit.framework import List
 from pyrevit.revit.db import query

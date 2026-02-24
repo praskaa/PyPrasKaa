@@ -6,6 +6,8 @@ from pyrevit import script
 import random
 import colorsys
 
+from database import frequent_category_labels, model_categories_dict, category_labels_to_bic, get_solid_fill_pat
+
 
 # colour gradients solution by https://bsouthga.dev/posts/color-gradients-with-python
 
