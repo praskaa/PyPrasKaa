@@ -2,7 +2,6 @@
 
 title:
   en_us: Selection
-  id_ID: Seleksi
 
 tooltip:
   en_us: |
@@ -24,25 +23,6 @@ tooltip:
     • Selection state management
 
     Version: 2.0 | Author: PrasKaa Team
-  id_ID: |
-    Alat Seleksi - Seleksi Elemen Canggih
-
-    Utilitas seleksi powerful untuk manajemen elemen yang efisien di Revit.
-    Operasi filter dan seleksi canggih untuk peningkatan produktivitas.
-
-    FITUR:
-    • Select All Hatch - Seleksi elemen hatch
-    • Filter seleksi canggih
-    • Operasi seleksi batch
-    • Filter tipe elemen
-
-    DUKUNGAN ALUR KERJA:
-    • Identifikasi elemen cepat
-    • Alur kerja seleksi terfilter
-    • Persiapan pemrosesan batch
-    • Manajemen state seleksi
-
-    Versi: 2.0 | Penulis: Tim PrasKaa
 
 author: PrasKaa Team
 help_url: https://github.com/praskaa/pyrevit-tools/wiki/Selection-Tools

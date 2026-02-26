@@ -2,7 +2,6 @@
 
 title:
   en_us: ElementID
-  id_ID: ElementID
 
 tooltip:
   en_us: |
@@ -24,25 +23,6 @@ tooltip:
     • Mixed formats
 
     Version: 1.0 | Author: PrasKaa Team
-  id_ID: |
-    Alat ElementID - Buat 3D view dari ID Element
-
-    Alat untuk membuat 3D view terisolasi berdasarkan Element ID.
-    Berguna untuk inspect element tertentu, mirip fungsi
-    isolate warning di Revit.
-
-    FITUR:
-    • Buat 3D view dari ElementIDs
-    • Isolasi element tertentu di view
-    • Support berbagai format input
-
-    FORMAT INPUT:
-    • Baris baru (2687043\n2687049)
-    • Koma (2687043, 2687049)
-    • Spasi (2687043 2687049)
-    • Format campuran
-
-    Versi: 1.0 | Penulis: Tim PrasKaa
 
 author: PrasKaa Team
 

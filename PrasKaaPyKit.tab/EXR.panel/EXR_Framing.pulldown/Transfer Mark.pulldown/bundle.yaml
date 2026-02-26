@@ -2,7 +2,6 @@
 
 title:
   en_us: Transfer Mark
-  id_ID: Transfer Mark
 
 tooltip:
   en_us: |
@@ -25,26 +24,6 @@ tooltip:
     • Batch transfer operations
 
     Version: 2.0 | Author: PrasKaa Team
-  id_ID: |
-    Alat Transfer Mark - Operasi Transfer Mark Rangka
-
-    Alat transfer mark canggih untuk elemen rangka struktur.
-    Transfer mark antar model yang di-link dengan opsi override dan
-    kontrol manual untuk manajemen mark yang presisi.
-
-    FITUR:
-    • Transfer Mark - Transfer mark standar
-    • Transfer Mark Manual - Kontrol transfer manual
-    • Transfer Mark with Override - Transfer dengan opsi override
-    • Transfer berbasis konfigurasi
-
-    DUKUNGAN ALUR KERJA:
-    • Sinkronisasi mark model yang di-link
-    • Kemampuan override untuk konflik
-    • Opsi kontrol manual
-    • Operasi transfer batch
-
-    Versi: 2.0 | Penulis: Tim PrasKaa
 
 author: PrasKaa Team
 help_url: https://github.com/praskaa/pyrevit-tools/wiki/Transfer-Mark-Tools
