@@ -148,3 +148,6 @@ config/secrets.py
 mass_message/mass_message.html
 plans/PLAN_TransferMarkWithRevitModel.md
 lib/smart_tag_config.json
+
+# Development
+PrasKaaPyKit.tab/Rebar.panel/WIP.pulldown/Dev Diary.pushbutton/
