@@ -67,6 +67,8 @@ if sheets:
         # open the directory
         expUtils_openDir(dirPath)
 
+        _original_printer = expUtils_applyPrinter(doc)
+
         with forms.ProgressBar(title='Exporting multi-sheet PDF...', cancellable=True) as pb1:
             # Make print options
             opts = expUtils_pdfOpts()
@@ -85,6 +87,8 @@ if sheets:
             
             # Export all sheets as single PDF
             doc.Export(dirPath, exportSheets, opts)
+
+        expUtils_restorePrinter(doc, _original_printer)
             
         # Cancel check
         if pb1.cancelled:
@@ -101,6 +105,7 @@ if sheets:
             pbTotal1 = len(sheets)
             pbCount1 = 1
             # Make print options
+            _original_printer = expUtils_applyPrinter(doc)
             opts = expUtils_pdfOpts()
             # Export each sheet selected by user
             for s in sheets:
@@ -112,6 +117,7 @@ if sheets:
                     # Update progress bar
                     pb1.update_progress(pbCount1, pbTotal1)
                     pbCount1 += 1
+        expUtils_restorePrinter(doc, _original_printer)
         # Cancel check
         if pb1.cancelled:
             forms.alert("Export process cancelled.", title= "Script cancelled")
