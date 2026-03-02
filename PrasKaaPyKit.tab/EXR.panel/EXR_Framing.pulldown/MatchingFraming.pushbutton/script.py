@@ -1,1119 +1,491 @@
 # -*- coding: utf-8 -*-
 __title__ = 'Matching Dimension from EXR Geometry'
 __author__ = 'PrasKaa'
-__doc__ = "Matches beams by geometry intersection and transfers family types from linked EXR model " \
-          "to synchronize beam dimensions between analytical and documentation models."
+__doc__ = "Matches beams by geometry intersection and transfers family types from linked EXR model."
 
-import re
 import gc
 import csv
 import os
 import io
-import logging
 from datetime import datetime
+
 from Autodesk.Revit.DB import (
-    FilteredElementCollector,
-    BuiltInCategory,
-    RevitLinkInstance,
-    ElementId,
-    Solid,
-    BooleanOperationsUtils,
-    BooleanOperationsType,
-    Transaction,
-    TransactionStatus,
-    View,
-    ViewType,
-    Element,
-    Transform,
-    GeometryInstance,
-    FamilySymbol,
-    Family,
-    BuiltInParameter,
-    JoinGeometryUtils,
-    Options,
-    SubTransaction
+    FilteredElementCollector, BuiltInCategory, RevitLinkInstance, ElementId,
+    Solid, BooleanOperationsUtils, BooleanOperationsType, Transaction,
+    TransactionStatus, ViewType, View, GeometryInstance, FamilySymbol,
+    BuiltInParameter, JoinGeometryUtils, SolidUtils, XYZ
 )
 from Autodesk.Revit.UI import TaskDialog, TaskDialogCommonButtons
-
 from pyrevit import revit, forms, script
 from pyrevit.forms import ProgressBar
 
-# Import configuration from lib - explicit imports
-try:
-    from matching_config import CSV_BASE_DIR, CSV_CREATE_FOLDERS
-except ImportError:
-    # Fallback values if import fails
-    import os
-    CSV_BASE_DIR = os.path.expanduser("~/Desktop")
-    CSV_CREATE_FOLDERS = True
+# --- Config ---
+SCRIPT_SUBFOLDER = "Matching Framing"
+BATCH_SIZE = 50
+EXPORT_CSV = True
 
-# Script-specific configuration
-SCRIPT_SUBFOLDER = "Matching Framing"  # Subfolder for CSV outputs
-BATCH_SIZE = 50  # Number of elements to process per batch for progress updates
-DISABLE_JOINS = True  # Whether to disable joins during geometry processing
-CLEANUP_GEOMETRY_CACHE = True  # Whether to clean up geometry cache after processing
-EXPORT_RESULTS_TO_CSV = True  # Whether to export results to CSV
-VERBOSE_LOGGING = False  # Enable verbose logging output
-DEBUG_MODE = False  # Enable debug mode
+# CSV output: ~/Documents/PrasKaaPyKit/Matching Framing/
+CSV_BASE_DIR = os.path.join(os.path.expanduser("~"), "Documents", "PrasKaaPyKit")
 
-# Setup
 doc = revit.doc
 uidoc = revit.uidoc
-logger = script.get_logger()
-# Reduce logging verbosity for cleaner output
-logger.setLevel(logging.WARNING)  # Only show warnings and errors
 output = script.get_output()
 
-# Revit API Options for geometry extraction
+# Geometry options — prefer active view, fallback to any 3D view
 app = doc.Application
-options = app.Create.NewGeometryOptions()
-active_view = doc.ActiveView
-if active_view:
-    options.View = active_view
+geo_opts = app.Create.NewGeometryOptions()
+if doc.ActiveView:
+    geo_opts.View = doc.ActiveView
 else:
-    # If no active view, find any 3D view to get geometry
-    view_collector = FilteredElementCollector(doc).OfClass(View)
-    for v in view_collector:
+    for v in FilteredElementCollector(doc).OfClass(View):
         if not v.IsTemplate and v.ViewType == ViewType.ThreeD:
-            options.View = v
+            geo_opts.View = v
             break
 
+
+# ─── Geometry ──────────────────────────────────────────────────────────────────
+
 def get_solid(element):
-    """Extracts the solid geometry from a given element."""
-    geom_element = element.get_Geometry(options)
-    if not geom_element:
+    geom = element.get_Geometry(geo_opts)
+    if not geom:
         return None
-
     solids = []
-    for geom_obj in geom_element:
-        if isinstance(geom_obj, Solid) and geom_obj.Volume > 0:
-            solids.append(geom_obj)
-        elif isinstance(geom_obj, GeometryInstance):
-            # Handle geometry instances (common for families)
-            instance_geom = geom_obj.GetInstanceGeometry()
-            if instance_geom:
-                for inst_obj in instance_geom:
-                    if isinstance(inst_obj, Solid) and inst_obj.Volume > 0:
-                        solids.append(inst_obj)
-
+    for obj in geom:
+        if isinstance(obj, Solid) and obj.Volume > 0:
+            solids.append(obj)
+        elif isinstance(obj, GeometryInstance):
+            for inst_obj in obj.GetInstanceGeometry() or []:
+                if isinstance(inst_obj, Solid) and inst_obj.Volume > 0:
+                    solids.append(inst_obj)
     if not solids:
         return None
+    result = solids[0]
+    for s in solids[1:]:
+        try:
+            result = BooleanOperationsUtils.ExecuteBooleanOperation(
+                result, s, BooleanOperationsType.Union)
+        except Exception:
+            pass
+    return result
 
-    # If multiple solids exist, unite them into a single solid for accurate volume calculations
-    if len(solids) > 1:
-        main_solid = solids[0]
-        for s in solids[1:]:
+
+# Tolerance in feet — tweak jika masih ada unmatched
+# 0.05 ~ 1.5cm | 0.1 ~ 3cm | 0.2 ~ 6cm
+INTERSECTION_TOLERANCE = 0.2
+
+
+def _expand_solid(solid, tolerance):
+    """Expand solid by moving each face outward by tolerance amount.
+    Used as fallback when direct intersection returns no volume.
+    """
+    try:
+        # SolidUtils.CreateTransformed with scale — simple approximation via BoundingBox inflation
+        # Revit does not have native inflate, so we use the solid as-is with a small offset check
+        # Instead: try Boolean with a slightly scaled copy via transform
+        from Autodesk.Revit.DB import Transform
+        center = solid.ComputeCentroid()
+        # Scale transform slightly outward from centroid
+        scale = 1.0 + tolerance  # e.g. 1.05 = 5% larger
+        t = Transform.Identity
+        t.Origin = center.Multiply(1 - scale)
+        t.BasisX = XYZ(scale, 0, 0)
+        t.BasisY = XYZ(0, scale, 0)
+        t.BasisZ = XYZ(0, 0, scale)
+        return SolidUtils.CreateTransformed(solid, t)
+    except Exception:
+        return solid
+
+
+def find_best_match(host_solid, linked_beams_dict):
+    """Find linked beam with largest intersection volume.
+    Falls back to tolerance-expanded solid if direct intersection fails.
+    """
+    best, max_vol = None, 0.0
+
+    # Pass 1: direct intersection
+    no_intersect = []
+    for beam_id, data in linked_beams_dict.items():
+        if not data['solid']:
+            continue
+        try:
+            inter = BooleanOperationsUtils.ExecuteBooleanOperation(
+                host_solid, data['solid'], BooleanOperationsType.Intersect)
+            if inter and inter.Volume > max_vol:
+                max_vol = inter.Volume
+                best = data['element']
+            elif not inter or inter.Volume == 0:
+                no_intersect.append(data)
+        except Exception:
+            no_intersect.append(data)
+
+    if best:
+        return best
+
+    # Pass 2: expand host solid and retry
+    try:
+        expanded_host = _expand_solid(host_solid, INTERSECTION_TOLERANCE)
+        for data in no_intersect:
             try:
-                # Perform Boolean union to combine solids
-                main_solid = BooleanOperationsUtils.ExecuteBooleanOperation(main_solid, s, BooleanOperationsType.Union)
-            except Exception as e:
-                logger.warning("Could not unite solids for element {}. Error: {}".format(element.Id, e))
-        return main_solid
-    return solids[0]
+                inter = BooleanOperationsUtils.ExecuteBooleanOperation(
+                    expanded_host, data['solid'], BooleanOperationsType.Intersect)
+                if inter and inter.Volume > max_vol:
+                    max_vol = inter.Volume
+                    best = data['element']
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    if best:
+        return best
+
+    # Pass 3: expand BOTH host and linked solids
+    try:
+        expanded_host = _expand_solid(host_solid, INTERSECTION_TOLERANCE)
+        for data in no_intersect:
+            try:
+                expanded_linked = _expand_solid(data['solid'], INTERSECTION_TOLERANCE)
+                inter = BooleanOperationsUtils.ExecuteBooleanOperation(
+                    expanded_host, expanded_linked, BooleanOperationsType.Intersect)
+                if inter and inter.Volume > max_vol:
+                    max_vol = inter.Volume
+                    best = data['element']
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    return best
 
 
-def select_linked_model():
-    """
-    Prompts the user to select a linked EXR model from available Revit links.
+# ─── Type Info (cross-document safe) ───────────────────────────────────────────
 
-    Returns:
-        tuple: (link_doc, selected_link)
-            - link_doc: The Document object of the selected linked model.
-            - selected_link: The RevitLinkInstance object of the selected link.
+def _safe_name(elem):
+    """Get element name via parameters — avoids AttributeError on linked-doc FamilySymbol (Revit 2024+)."""
+    for bip in [BuiltInParameter.SYMBOL_NAME_PARAM, BuiltInParameter.ALL_MODEL_TYPE_NAME]:
+        try:
+            p = elem.get_Parameter(bip)
+            if p and p.HasValue:
+                val = p.AsString()
+                if val:
+                    return val
+        except Exception:
+            pass
+    try:
+        return elem.Name
+    except Exception:
+        return None
 
-    Raises:
-        SystemExit: If no links are found or no link is selected.
-    """
-    link_instances = FilteredElementCollector(doc).OfClass(RevitLinkInstance).ToElements()
-    if not link_instances:
-        forms.alert("No Revit links found in the current project.", exitscript=True)
 
-    # Create a dictionary of link instances for selection
-    link_dict = {link.Name: link for link in link_instances}
+def _safe_family_name(beam, btype):
+    """Get family name via FamilySymbol.Family then instance parameters."""
+    try:
+        if hasattr(btype, 'Family') and btype.Family:
+            return btype.Family.Name
+    except Exception:
+        pass
+    for bip in [BuiltInParameter.ELEM_FAMILY_PARAM, BuiltInParameter.ALL_MODEL_FAMILY_NAME]:
+        try:
+            p = beam.get_Parameter(bip)
+            if p and p.HasValue:
+                val = p.AsString()
+                if val:
+                    return val
+        except Exception:
+            pass
+    return "Unknown"
 
-    selected_link_name = forms.SelectFromList.show(
-        sorted(link_dict.keys()),
-        title='Select Source Linked EXR Model (from ETABS)',
-        button_name='Select Link',
-        multiselect=False
-    )
 
-    selected_link = link_dict.get(selected_link_name) if selected_link_name else None
+def get_type_info(beam):
+    """Returns {'type_name', 'family_name'} or None. Works for both host and linked beams."""
+    try:
+        type_id = beam.GetTypeId()
+        btype = beam.Document.GetElement(type_id)
+        if not btype:
+            return None
+        type_name = _safe_name(btype)
+        if not type_name:
+            return None
+        family_name = _safe_family_name(beam, btype)
+        return {'type_name': type_name, 'family_name': family_name}
+    except Exception:
+        return None
 
-    if not selected_link:
-        forms.alert("No link selected. Script will exit.", exitscript=True)
 
-    link_doc = selected_link.GetLinkDocument()
-    if not link_doc:
-        forms.alert("Could not access the document of the selected link. Ensure it is loaded.", exitscript=True)
+def find_family_symbol(host_doc, family_name, type_name):
+    """Returns matching FamilySymbol. Pass 1: exact family+type. Pass 2: type name only."""
+    symbols = FilteredElementCollector(host_doc).OfClass(FamilySymbol).ToElements()
+    # Pass 1: exact family name + type name
+    for sym in symbols:
+        try:
+            sym_type = _safe_name(sym)
+            sym_family = sym.Family.Name if (hasattr(sym, 'Family') and sym.Family) else None
+            if sym_family == family_name and sym_type == type_name:
+                return sym
+        except Exception:
+            pass
+    # Pass 2: type name only (handles different family names between host and linked)
+    for sym in symbols:
+        try:
+            sym_type = _safe_name(sym)
+            if sym_type == type_name:
+                return sym
+        except Exception:
+            pass
+    return None
 
-    return link_doc, selected_link
 
+# ─── Collection ────────────────────────────────────────────────────────────────
 
 def collect_host_beams():
-    """
-    Collects structural framing elements (beams) from the host Revit model.
-
-    If elements are pre-selected by the user, uses those; otherwise, collects all
-    structural framing elements in the project.
-
-    Returns:
-        list: List of Element objects representing beams in the host model.
-
-    Raises:
-        SystemExit: If no beams are found in the selection or project.
-    """
-    selection_ids = uidoc.Selection.GetElementIds()
-    host_beams = []
-    
-    if selection_ids:
-        # If user has pre-selected elements, use them
-        for elem_id in selection_ids:
-            elem = doc.GetElement(elem_id)
-            
-            # Make sure the selected element is a Structural Framing element
-            # Try multiple comparison methods for API compatibility across Revit versions
-            is_structural_framing = False
-            
+    sel_ids = uidoc.Selection.GetElementIds()
+    if sel_ids:
+        beams = []
+        for i in sel_ids:
+            elem = doc.GetElement(i)
             if elem and elem.Category:
-                # Method 1: Direct ElementId comparison
-                if elem.Category.Id == BuiltInCategory.OST_StructuralFraming:
-                    is_structural_framing = True
-                
-                # Method 2: Try OST_StructuralFramingAll enum (newer Revit versions)
-                if not is_structural_framing:
-                    try:
-                        if elem.Category.Id == BuiltInCategory.OST_StructuralFramingAll:
-                            is_structural_framing = True
-                    except:
-                        pass
-                
-                # Method 3: Category Name comparison (fallback)
-                if not is_structural_framing:
-                    if elem.Category.Name == "Structural Framing":
-                        is_structural_framing = True
-                
-                # Method 4: Try Indonesian category name
-                if not is_structural_framing:
-                    if elem.Category.Name == "Balok Struktur":
-                        is_structural_framing = True
-            
-            if is_structural_framing:
-                host_beams.append(elem)
-
-        if not host_beams:
-            forms.alert("Tidak ada elemen balok (Structural Framing) yang ditemukan dalam seleksi Anda. "
-                        "Silakan pilih beberapa balok dan coba lagi.", exitscript=True)
-    else:
-        logger.info("No elements selected, collecting all structural framing elements from project")
-        # If nothing is selected, get all structural framing in the project
-        host_beams = FilteredElementCollector(doc)\
-            .OfCategory(BuiltInCategory.OST_StructuralFraming)\
-            .WhereElementIsNotElementType()\
-            .ToElements()
-        logger.info("Found {} structural framing elements in project".format(len(host_beams)))
-
-    return host_beams
+                beams.append(elem)
+        if not beams:
+            forms.alert("Pilih elemen Structural Framing terlebih dahulu.", exitscript=True)
+        return beams
+    return list(FilteredElementCollector(doc)
+                .OfCategory(BuiltInCategory.OST_StructuralFraming)
+                .WhereElementIsNotElementType().ToElements())
 
 
 def collect_linked_beams(link_doc):
-    """
-    Collects structural framing elements (beams) from the linked EXR model.
-
-    Args:
-        link_doc (Document): The document object of the linked Revit model.
-
-    Returns:
-        list: List of Element objects representing beams in the linked model.
-    """
-    linked_beams = FilteredElementCollector(link_doc)\
-        .OfCategory(BuiltInCategory.OST_StructuralFraming)\
-        .WhereElementIsNotElementType()\
-        .ToElements()
-
-    return linked_beams
+    return list(FilteredElementCollector(link_doc)
+                .OfCategory(BuiltInCategory.OST_StructuralFraming)
+                .WhereElementIsNotElementType().ToElements())
 
 
-def find_best_match(host_beam, linked_beams_dict):
-    """
-    Finds the best matching linked beam for a host beam based on geometric intersection volume.
+def select_linked_model():
+    links = FilteredElementCollector(doc).OfClass(RevitLinkInstance).ToElements()
+    if not links:
+        forms.alert("Tidak ada Revit link.", exitscript=True)
+    link_dict = {l.Name: l for l in links}
+    name = forms.SelectFromList.show(sorted(link_dict), title='Pilih Linked EXR Model',
+                                     button_name='Select', multiselect=False)
+    link = link_dict.get(name) if name else None
+    if not link:
+        forms.alert("Tidak ada link yang dipilih.", exitscript=True)
+    link_doc = link.GetLinkDocument()
+    if not link_doc:
+        forms.alert("Tidak dapat mengakses dokumen link.", exitscript=True)
+    return link_doc
 
-    This function calculates the solid geometry of the host beam and compares it against
-    all linked beams by computing Boolean intersection volumes. The linked beam with the
-    largest intersection volume is considered the best match.
 
-    Args:
-        host_beam (Element): The structural framing element in the host model to match.
-        linked_beams_dict (dict): Dictionary mapping ElementId to {'element': Element, 'solid': Solid}
-            for beams in the linked model.
+# ─── Transfer ──────────────────────────────────────────────────────────────────
 
-    Returns:
-        Element or None: The best matching beam from the linked model, or None if no valid
-            intersection is found or if geometry extraction fails.
-    """
-    host_solid = get_solid(host_beam)
-    if not host_solid:
-        logger.debug("Could not get solid for host beam {}".format(host_beam.Id))
-        return None
-
-    best_match = None
-    max_intersection_volume = 0.0
-
-    for linked_beam_id, linked_beam_data in linked_beams_dict.items():
-        linked_solid = linked_beam_data['solid']
-        if not linked_solid:
-            continue
-
+def unjoin_beam(beam):
+    for jid in JoinGeometryUtils.GetJoinedElements(doc, beam):
         try:
-            # Calculate intersection
-            intersection_solid = BooleanOperationsUtils.ExecuteBooleanOperation(
-                host_solid, linked_solid, BooleanOperationsType.Intersect
-            )
-
-            # Compare volume
-            if intersection_solid and intersection_solid.Volume > max_intersection_volume:
-                max_intersection_volume = intersection_solid.Volume
-                best_match = linked_beam_data['element']
-
-        except Exception as e:
-            # This can fail if solids are disjoint or have issues
-            logger.debug("Boolean operation failed between host {} and linked {}. Error: {}".format(
-                host_beam.Id, linked_beam_id, e))
-            continue
-
-    return best_match
+            j = doc.GetElement(jid)
+            if j and JoinGeometryUtils.AreElementsJoined(doc, beam, j):
+                JoinGeometryUtils.UnjoinGeometry(doc, beam, j)
+        except Exception:
+            pass
 
 
-def get_family_type(beam):
-    """
-    Retrieves the FamilySymbol (family type) of a given beam element.
-
-    Args:
-        beam (Element): The structural framing element to get the type for.
-
-    Returns:
-        FamilySymbol or None: The family symbol of the beam, or None if not found.
-    """
-    try:
-        beam_type_id = beam.GetTypeId()
-        if beam_type_id:
-            beam_type = beam.Document.GetElement(beam_type_id)
-            if beam_type and hasattr(beam_type, 'Family') and beam_type.Family and hasattr(beam_type.Family, 'Name'):
-                return beam_type
-    except Exception as e:
-        logger.debug("Failed to get family type for beam {}. Error: {}".format(beam.Id, e))
-    return None
+def set_comment(beam, text):
+    p = beam.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
+    if p and not p.IsReadOnly:
+        p.Set(text)
 
 
-def get_type_info_from_parameters(beam):
-    """
-    Extracts type information from beam parameters as a fallback method.
+def transfer_type(host_beam, linked_info):
+    """Returns (success, old_info, new_info, reason)."""
+    if not linked_info:
+        return False, None, None, "No type info from linked beam"
 
-    Attempts to retrieve type and family names using built-in parameters when
-    direct FamilySymbol access fails.
+    old_info = get_type_info(host_beam)
+    type_name = linked_info['type_name']
 
-    Args:
-        beam (Element): The beam element to extract type info from.
+    # Already correct — no change needed
+    if old_info and old_info['type_name'] == type_name:
+        set_comment(host_beam, "Dimension Matched (Already Correct)")
+        return True, old_info, linked_info, ""
 
-    Returns:
-        dict or None: Dictionary with 'type_name' and 'family_name' keys, or None
-            if parameters are not available or invalid.
-    """
-    try:
-        type_param = beam.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM)
-        logger.debug("Beam {} ELEM_TYPE_PARAM: {} (has value: {})".format(
-            beam.Id, type_param, type_param and type_param.AsString()))
+    # Find target symbol in host doc (by host family first, then type name only)
+    host_family = old_info['family_name'] if old_info else linked_info['family_name']
+    sym = find_family_symbol(doc, host_family, type_name)
 
-        if type_param and type_param.AsString():
-            type_name = type_param.AsString()
-            logger.debug("Type name from parameter: '{}'".format(type_name))
+    if sym:
+        unjoin_beam(host_beam)
+        host_beam.ChangeTypeId(sym.Id)
+        set_comment(host_beam, "Change Dimension Type")
+        return True, old_info, linked_info, ""
 
-            # Try to get family name from other parameters or parse from type name
-            family_param = beam.get_Parameter(BuiltInParameter.ELEM_FAMILY_PARAM)
-            logger.debug("Beam {} ELEM_FAMILY_PARAM: {} (has value: {})".format(
-                beam.Id, family_param, family_param and family_param.AsString()))
-
-            if family_param and family_param.AsString():
-                family_name = family_param.AsString()
-                logger.debug("Family name from parameter: '{}'".format(family_name))
-            else:
-                # For structural framing, family name might be embedded in type name
-                # or we can assume it's a standard family
-                family_name = "Concrete-Rectangular Beam"  # Default assumption
-                logger.debug("Using default family name: '{}'".format(family_name))
-
-            return {
-                'type_name': type_name,
-                'family_name': family_name
-            }
-        else:
-            logger.debug("No valid type parameter found for beam {}".format(beam.Id))
-    except Exception as e:
-        logger.debug("Failed to get type info from parameters for beam {}. Error: {}".format(beam.Id, e))
-    return None
+    reason = "Type '{}' not found in family '{}'".format(type_name, host_family)
+    return False, old_info, linked_info, reason
 
 
-def get_linked_beam_type_info(beam):
-    """
-    Retrieves comprehensive type information from a linked beam using multiple fallback approaches.
-
-    Attempts to get type info through FamilySymbol access first, then parameter-based methods,
-    and finally uses the beam's Name property as a last resort.
-
-    Args:
-        beam (Element): The beam element from the linked model.
-
-    Returns:
-        dict or None: Dictionary with 'type_name', 'family_name', and 'family_symbol' keys,
-            or None if no type information can be extracted.
-    """
-    logger.debug("Getting type info for linked beam {}".format(beam.Id))
-
-    # First try the standard approach
-    family_symbol = get_family_type(beam)
-    logger.debug("Family symbol result: {}".format(family_symbol))
-
-    if family_symbol and hasattr(family_symbol, 'Name') and hasattr(family_symbol, 'Family') and family_symbol.Family and hasattr(family_symbol.Family, 'Name'):
-        logger.debug("Using FamilySymbol approach for beam {}".format(beam.Id))
-        return {
-            'type_name': family_symbol.Name,
-            'family_name': family_symbol.Family.Name,
-            'family_symbol': family_symbol
-        }
-
-    # Fallback to parameter-based approach
-    logger.debug("Trying parameter-based approach for beam {}".format(beam.Id))
-    param_info = get_type_info_from_parameters(beam)
-    logger.debug("Parameter info result: {}".format(param_info))
-
-    if param_info:
-        logger.debug("Using parameter-based approach for beam {}".format(beam.Id))
-        return {
-            'type_name': param_info['type_name'],
-            'family_name': param_info['family_name'],
-            'family_symbol': None  # No actual FamilySymbol object
-        }
-
-    # Last resort: try to use beam.Name as type name
-    logger.debug("Trying beam.Name approach for beam {}".format(beam.Id))
-    if hasattr(beam, 'Name') and beam.Name:
-        logger.debug("Using beam.Name '{}' as type name for beam {}".format(beam.Name, beam.Id))
-        return {
-            'type_name': beam.Name,
-            'family_name': "Concrete-Rectangular Beam",  # Default assumption
-            'family_symbol': None
-        }
-
-    logger.debug("No type info found for linked beam {}".format(beam.Id))
-    return None
-
-
-def get_host_beam_type_info(beam):
-    """
-    Retrieves comprehensive type information from a host beam using multiple fallback approaches.
-
-    Similar to get_linked_beam_type_info but for beams in the host document.
-
-    Args:
-        beam (Element): The beam element from the host model.
-
-    Returns:
-        dict or None: Dictionary with 'type_name', 'family_name', and 'family_symbol' keys,
-            or None if no type information can be extracted.
-    """
-    logger.debug("Getting type info for host beam {}".format(beam.Id))
-
-    # First try the standard approach
-    family_symbol = get_family_type(beam)
-    logger.debug("Host beam family symbol result: {}".format(family_symbol))
-
-    if family_symbol and hasattr(family_symbol, 'Name') and hasattr(family_symbol, 'Family') and family_symbol.Family and hasattr(family_symbol.Family, 'Name'):
-        logger.debug("Using FamilySymbol approach for host beam {}".format(beam.Id))
-        return {
-            'type_name': family_symbol.Name,
-            'family_name': family_symbol.Family.Name,
-            'family_symbol': family_symbol
-        }
-
-    # Fallback to parameter-based approach
-    logger.debug("Trying parameter-based approach for host beam {}".format(beam.Id))
-    param_info = get_type_info_from_parameters(beam)
-    logger.debug("Host beam parameter info result: {}".format(param_info))
-
-    if param_info:
-        logger.debug("Using parameter-based approach for host beam {}".format(beam.Id))
-        return {
-            'type_name': param_info['type_name'],
-            'family_name': param_info['family_name'],
-            'family_symbol': None  # No actual FamilySymbol object
-        }
-
-    # Last resort: try to use beam.Name as type name
-    logger.debug("Trying beam.Name approach for host beam {}".format(beam.Id))
-    if hasattr(beam, 'Name') and beam.Name:
-        logger.debug("Using beam.Name '{}' as type name for host beam {}".format(beam.Name, beam.Id))
-        return {
-            'type_name': beam.Name,
-            'family_name': "Concrete-Rectangular Beam",  # Default assumption
-            'family_symbol': None
-        }
-
-    logger.debug("No type info found for host beam {}".format(beam.Id))
-    return None
-
-
-def check_family_type_exists(host_doc, family_name, type_name):
-    """
-    Checks if a specific family and type exist in the host Revit document.
-
-    Searches through all FamilySymbol elements to find a match for the given
-    family name and type name combination.
-
-    Args:
-        host_doc (Document): The host Revit document to search in.
-        family_name (str): The name of the family to look for.
-        type_name (str): The name of the type within the family.
-
-    Returns:
-        FamilySymbol or None: The matching FamilySymbol if found, None otherwise.
-    """
-    if not family_name or not type_name:
-        return None
-
-    # Method 1: Direct approach using FilteredElementCollector for FamilySymbol
-    all_symbols = FilteredElementCollector(host_doc).OfClass(FamilySymbol).WhereElementIsElementType().ToElements()
-
-    found_families = set()
-    found_types = []
-
-    for symbol in all_symbols:
+def process_batch(matches_batch):
+    successful, failed = [], []
+    for host_beam, linked_beam in matches_batch:
         try:
-            # Get family info
-            if not (symbol and hasattr(symbol, 'Family') and symbol.Family):
-                continue
-            
-            family = symbol.Family
-            if not hasattr(family, 'Name'):
-                continue
-                
-            current_family_name = family.Name
-            found_families.add(current_family_name)
-            
-            # Check if this is the family we're looking for
-            if current_family_name == family_name:
-                # Attempt to retrieve the symbol name using multiple methods due to API inconsistencies
-                symbol_name = None
-
-                # First attempt: Direct property access (most reliable)
-                if hasattr(symbol, 'Name'):
-                    try:
-                        symbol_name = symbol.Name
-                    except:
-                        pass
-
-                # Second attempt: Use SYMBOL_NAME_PARAM built-in parameter
-                if not symbol_name:
-                    try:
-                        name_param = symbol.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM)
-                        if name_param and name_param.HasValue:
-                            symbol_name = name_param.AsString()
-                    except:
-                        pass
-
-                # Third attempt: Use ALL_MODEL_TYPE_NAME parameter as final fallback
-                if not symbol_name:
-                    try:
-                        name_param = symbol.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_NAME)
-                        if name_param and name_param.HasValue:
-                            symbol_name = name_param.AsString()
-                    except:
-                        pass
-                
-                if symbol_name:
-                    found_types.append(symbol_name)
-                    
-                    # Check if this matches our target type
-                    if symbol_name == type_name:
-                        return symbol
-        
+            linked_info = get_type_info(linked_beam)
+            ok, old_info, new_info, reason = transfer_type(host_beam, linked_info)
+            (successful if ok else failed).append((host_beam, linked_beam, old_info, new_info, reason))
         except Exception as e:
-            continue
-
-    # Only log if type not found (for debugging failed transfers)
-    if family_name in found_families and found_types:
-        logger.debug("Type '{}' not found in family '{}'. Available: {}".format(
-            type_name, family_name, found_types[:10]))
-    elif family_name not in found_families:
-        logger.debug("Family '{}' not found in host document.".format(family_name))
-
-    return None
-
-def transfer_family_type(host_beam, linked_type_info, host_doc):
-    """
-    Transfers the family type from a linked beam to a host beam.
-
-    Changes the type of the host beam to match the linked beam's type, provided
-    the target type exists in the host document. Also sets a comments parameter
-    to track the change.
-
-    Args:
-        host_beam (Element): The beam element in the host model to modify.
-        linked_type_info (dict): Type information from the linked beam containing
-            'type_name', 'family_name', and optionally 'family_symbol'.
-        host_doc (Document): The host Revit document.
-
-    Returns:
-        tuple: (success, old_type_info, new_type_info)
-            - success (bool): True if the type transfer succeeded.
-            - old_type_info (dict): Type information before the change.
-            - new_type_info (dict): Type information after the change (or target info if failed).
-    """
-    try:
-        if not linked_type_info:
-            logger.warning("No type info available for beam {}".format(host_beam.Id))
-            return False, None, None
-
-        type_name = linked_type_info.get('type_name')
-        family_name = linked_type_info.get('family_name')
-        family_symbol = linked_type_info.get('family_symbol')
-
-        if not type_name or not family_name:
-            logger.warning("Missing type name or family name for beam {}".format(host_beam.Id))
-            return False, None, None
-
-        # CAPTURE OLD TYPE INFO BEFORE ANY CHANGES
-        old_type_info = get_host_beam_type_info(host_beam)
-        if old_type_info:
-            logger.debug("Old type for host beam {}: '{}' from family '{}'".format(
-                host_beam.Id, old_type_info.get('type_name', 'Unknown'), old_type_info.get('family_name', 'Unknown')))
-        else:
-            logger.warning("Could not capture old type info for host beam {}".format(host_beam.Id))
-
-        # Check if the family and type exist in host document
-        existing_type = check_family_type_exists(host_doc, family_name, type_name)
-
-        if existing_type:
-            # Check if type actually needs to change
-            type_changed = False
-            if old_type_info and old_type_info.get('type_name') != type_name:
-                # Type exists and is different, change the beam type
-                host_beam.ChangeTypeId(existing_type.Id)
-                type_changed = True
-                logger.debug("Successfully changed type for host beam {} from '{}' to '{}'".format(
-                    host_beam.Id,
-                    old_type_info.get('type_name', 'Unknown') if old_type_info else 'Unknown',
-                    type_name))
-            elif not old_type_info:
-                # No old type info available, assume change is needed
-                host_beam.ChangeTypeId(existing_type.Id)
-                type_changed = True
-                logger.debug("Changed type for host beam {} to '{}' (no old type info available)".format(
-                    host_beam.Id, type_name))
-            else:
-                logger.debug("Beam {} already has correct type '{}', no change needed".format(
-                    host_beam.Id, type_name))
-
-            # SET COMMENTS PARAMETER ONLY IF TYPE ACTUALLY CHANGED
-            if type_changed:
-                try:
-                    comments_param = host_beam.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
-                    if comments_param and not comments_param.IsReadOnly:
-                        comments_param.Set("Change Dimension Type")
-                        logger.debug("Set Comments parameter to 'Change Dimension Type' for beam {}".format(host_beam.Id))
-                    else:
-                        logger.warning("Could not set Comments parameter for beam {} (parameter not found or read-only)".format(host_beam.Id))
-                except Exception as e:
-                    logger.warning("Failed to set Comments parameter for beam {}. Error: {}".format(host_beam.Id, e))
-
-            return True, old_type_info, linked_type_info
-        else:
-            # Type doesn't exist - for now, we'll skip (could add family loading later)
-            return False, old_type_info, linked_type_info
-
-    except Exception as e:
-        logger.error("Failed to transfer type to beam {}. Error: {}".format(host_beam.Id, e))
-        return False, None, None
-
-
-def disable_all_joins_in_elements(elements, doc):
-    """
-    Disables all automatic joins for the given elements to prevent cascading join/unjoin operations.
-    
-    Args:
-        elements (list): List of elements to disable joins for
-        doc (Document): The Revit document
-        
-    Returns:
-        int: Number of joins disabled
-    """
-    joins_disabled = 0
-    for elem in elements:
-        try:
-            # Get all elements joined to this element
-            joined_elements = JoinGeometryUtils.GetJoinedElements(doc, elem)
-            for joined_elem_id in joined_elements:
-                try:
-                    joined_elem = doc.GetElement(joined_elem_id)
-                    if joined_elem and JoinGeometryUtils.AreElementsJoined(doc, elem, joined_elem):
-                        JoinGeometryUtils.UnjoinGeometry(doc, elem, joined_elem)
-                        joins_disabled += 1
-                except Exception as e:
-                    logger.debug("Could not unjoin element {} from {}. Error: {}".format(
-                        elem.Id, joined_elem_id, e))
-        except Exception as e:
-            logger.debug("Could not process joins for element {}. Error: {}".format(elem.Id, e))
-    
-    return joins_disabled
-
-
-def mark_unmatched_beams(unmatched, doc):
-    """
-    Marks unmatched beams by setting their Comments parameter to "Unmatched".
-    
-    Args:
-        unmatched (list): List of beam elements that were not matched to any linked beam
-        doc (Document): The Revit document
-        
-    Returns:
-        int: Number of beams marked as unmatched
-    """
-    marked_count = 0
-    for beam in unmatched:
-        try:
-            comments_param = beam.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
-            if comments_param and not comments_param.IsReadOnly:
-                # Get existing comment and append "Unmatched"
-                existing_comment = comments_param.AsString() if comments_param.HasValue else ""
-                if existing_comment and existing_comment.strip():
-                    new_comment = "{} | Unmatched".format(existing_comment)
-                else:
-                    new_comment = "Unmatched"
-                comments_param.Set(new_comment)
-                marked_count += 1
-                logger.debug("Marked beam {} as 'Unmatched'".format(beam.Id))
-            else:
-                logger.warning("Could not set Comments parameter for beam {} (parameter not found or read-only)".format(beam.Id))
-        except Exception as e:
-            logger.warning("Failed to set Comments parameter for beam {}. Error: {}".format(beam.Id, e))
-    
-    logger.info("Marked {} unmatched beams with Comments parameter".format(marked_count))
-    return marked_count
-
-
-def cleanup_geometry_cache(linked_beams_dict):
-    """
-    Cleans up cached geometry data to free memory.
-    
-    Args:
-        linked_beams_dict (dict): Dictionary containing cached solid geometries
-    """
-    if CLEANUP_GEOMETRY_CACHE:
-        # Clear solid references
-        for beam_data in linked_beams_dict.values():
-            beam_data['solid'] = None
-        
-        # Clear the dictionary
-        linked_beams_dict.clear()
-        
-        # Force garbage collection
-        gc.collect()
-        logger.info("Geometry cache cleared, memory freed")
-
-
-def get_csv_output_path():
-    """
-    Gets the organized output path for CSV files.
-    Now uses the same Documents path detection as hooks for consistency.
-
-    Returns:
-        str: Path to the script-specific output directory
-    """
-    # CSV_BASE_DIR now contains full path from config
-    base_path = CSV_BASE_DIR
-    script_path = os.path.join(base_path, SCRIPT_SUBFOLDER)
-
-    # Auto-create folders if they don't exist
-    if CSV_CREATE_FOLDERS:
-        if not os.path.exists(base_path):
-            os.makedirs(base_path)
-        if not os.path.exists(script_path):
-            os.makedirs(script_path)
-
-    return script_path
-
-
-def export_results_to_csv(successful_transfers, failed_transfers, unmatched, doc_title):
-    """
-    Exports transfer results to a CSV file to avoid overloading output window.
-
-    Args:
-        successful_transfers (list): List of successful transfer tuples
-        failed_transfers (list): List of failed transfer tuples
-        unmatched (list): List of unmatched beams
-        doc_title (str): Document title for filename
-
-    Returns:
-        str: Path to the exported CSV file, or None if export failed
-    """
-    try:
-        # Create filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_doc_title = "".join(c for c in doc_title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-        filename = "MatchingDimension_{}_{}.csv".format(safe_doc_title, timestamp)
-
-        # Get organized output path
-        output_dir = get_csv_output_path()
-        filepath = os.path.join(output_dir, filename)
-        
-        # Write CSV
-        with io.open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.writer(csvfile)
-            
-            # Write header
-            writer.writerow(['Category', 'Host Beam ID', 'Old Type', 'New Type', 'Linked Beam ID', 'Family Name', 'Status'])
-            
-            # Write successful transfers
-            for host_beam, linked_beam, old_type_info, new_type_info in successful_transfers:
-                old_type_name = old_type_info.get('type_name', 'N/A') if old_type_info else 'N/A'
-                new_type_name = new_type_info.get('type_name', 'N/A') if new_type_info else 'N/A'
-                family_name = new_type_info.get('family_name', 'N/A') if new_type_info else 'N/A'
-
-                writer.writerow([
-                    'Successful',
-                    str(host_beam.Id),
-                    old_type_name,
-                    new_type_name,
-                    str(linked_beam.Id),
-                    family_name,
-                    'SUCCESS'
-                ])
-            
-            # Write failed transfers
-            for host_beam, linked_beam, old_type_info, new_type_info in failed_transfers:
-                old_type_name = old_type_info.get('type_name', 'N/A') if old_type_info else 'N/A'
-                target_type_name = new_type_info.get('type_name', 'No Type') if new_type_info else 'No Type'
-                family_name = new_type_info.get('family_name', 'N/A') if new_type_info else 'N/A'
-
-                writer.writerow([
-                    'Failed',
-                    str(host_beam.Id),
-                    old_type_name,
-                    target_type_name,
-                    str(linked_beam.Id) if linked_beam else 'N/A',
-                    family_name,
-                    'FAILED'
-                ])
-            
-            # Write unmatched beams
-            for beam in unmatched:
-                writer.writerow([
-                    'Unmatched',
-                    str(beam.Id),
-                    beam.Name,
-                    'N/A',
-                    'N/A',
-                    'N/A',
-                    'UNMATCHED'
-                ])
-        
-        logger.info("Results exported to: {}".format(filepath))
-        return filepath
-        
-    except Exception as e:
-        logger.error("Failed to export results to CSV: {}".format(e))
-        return None
-
-
-def process_batch_transfers(doc, matches_batch, batch_number, total_batches):
-    """
-    Processes a batch of beam type transfers within a single transaction.
-
-    Args:
-        doc (Document): The host Revit document
-        matches_batch (list): List of (host_beam, linked_beam) tuples for this batch
-        batch_number (int): Current batch number
-        total_batches (int): Total number of batches
-
-    Returns:
-        tuple: (successful_transfers, failed_transfers) lists
-    """
-    successful = []
-    failed = []
-
-    transaction_name = 'Transfer Beam Types - Batch {}/{}'.format(batch_number, total_batches)
-
-    try:
-        with Transaction(doc, transaction_name) as t:
-            t.Start()
-
-            # Disable joins for all elements in this batch first (CRITICAL OPTIMIZATION)
-            host_beams_in_batch = [host_beam for host_beam, _ in matches_batch]
-            if DISABLE_JOINS:
-                joins_disabled = disable_all_joins_in_elements(host_beams_in_batch, doc)
-
-            # Process each match in the batch
-            for i, (host_beam, linked_beam) in enumerate(matches_batch):
-                try:
-                    linked_type_info = get_linked_beam_type_info(linked_beam)
-
-                    if linked_type_info:
-                        success, old_type_info, new_type_info = transfer_family_type(
-                            host_beam, linked_type_info, doc
-                        )
-
-                        if success:
-                            successful.append((host_beam, linked_beam, old_type_info, new_type_info))
-                        else:
-                            failed.append((host_beam, linked_beam, old_type_info, new_type_info))
-                    else:
-                        failed.append((host_beam, linked_beam, None, None))
-
-                except Exception as e:
-                    failed.append((host_beam, linked_beam, None, None))
-
-            # Commit the transaction
-            status = t.Commit()
-
-            if status != TransactionStatus.Committed:
-                logger.warning("Batch {} transaction was not committed successfully".format(batch_number))
-                # Move all successful to failed
-                failed.extend(successful)
-                successful = []
-
-    except Exception as e:
-        logger.error("Critical error in batch {}: {}".format(batch_number, e))
-        # All items in this batch failed
-        failed.extend([(hb, lb, None, None) for hb, lb in matches_batch])
-        successful = []
-
-    # Force garbage collection after each batch
-    gc.collect()
-
+            failed.append((host_beam, linked_beam, None, None, str(e)))
     return successful, failed
 
 
-def process_batch_transfers_no_transaction(doc, matches_batch, batch_number, total_batches):
-    """
-    Processes a batch of beam type transfers WITHOUT creating its own transaction.
-    Used when all batches are processed within a single master transaction.
+# ─── CSV Export ────────────────────────────────────────────────────────────────
 
-    Args:
-        doc (Document): The host Revit document
-        matches_batch (list): List of (host_beam, linked_beam) tuples for this batch
-        batch_number (int): Current batch number
-        total_batches (int): Total number of batches
-
-    Returns:
-        tuple: (successful_transfers, failed_transfers) lists
-    """
-    successful = []
-    failed = []
-
+def export_csv(successful, failed, unmatched):
     try:
-        # Disable joins for all elements in this batch first (CRITICAL OPTIMIZATION)
-        host_beams_in_batch = [host_beam for host_beam, _ in matches_batch]
-        if DISABLE_JOINS:
-            joins_disabled = disable_all_joins_in_elements(host_beams_in_batch, doc)
-
-        # Process each match in the batch
-        for i, (host_beam, linked_beam) in enumerate(matches_batch):
-            try:
-                linked_type_info = get_linked_beam_type_info(linked_beam)
-
-                if linked_type_info:
-                    success, old_type_info, new_type_info = transfer_family_type(
-                        host_beam, linked_type_info, doc
-                    )
-
-                    if success:
-                        successful.append((host_beam, linked_beam, old_type_info, new_type_info))
-                    else:
-                        failed.append((host_beam, linked_beam, old_type_info, new_type_info))
-                else:
-                    failed.append((host_beam, linked_beam, None, None))
-
-            except Exception as e:
-                failed.append((host_beam, linked_beam, None, None))
-
+        folder = os.path.join(CSV_BASE_DIR, SCRIPT_SUBFOLDER)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        safe_title = "".join(c for c in doc.Title if c.isalnum() or c in (" ", "-", "_")).strip()
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = "MatchingDimension_{}_{}_{}.csv".format(
+            safe_title,
+            ts[:8],   # date: 20260225
+            ts[9:]    # time: 122226 (strip the underscore between date and time)
+        )
+        path = os.path.join(folder, filename)
+        with io.open(path, 'w', newline='', encoding='utf-8') as f:
+            w = csv.writer(f)
+            w.writerow(['Category', 'Host ID', 'Old Type', 'New Type', 'Linked ID', 'Family', 'Status', 'Reason'])
+            for hb, lb, oi, ni, reason in successful:
+                w.writerow(['Successful', hb.Id,
+                            oi['type_name'] if oi else 'N/A',
+                            ni['type_name'] if ni else 'N/A',
+                            lb.Id, ni['family_name'] if ni else 'N/A', 'SUCCESS', reason])
+            for hb, lb, oi, ni, reason in failed:
+                w.writerow(['Failed', hb.Id,
+                            oi['type_name'] if oi else 'N/A',
+                            ni['type_name'] if ni else 'N/A',
+                            lb.Id if lb else 'N/A',
+                            ni['family_name'] if ni else 'N/A', 'FAILED', reason])
+            for b in unmatched:
+                try:
+                    bname = _safe_name(b) or str(b.Id)
+                except Exception:
+                    bname = str(b.Id)
+                w.writerow(['Unmatched', b.Id, bname, 'N/A', 'N/A', 'N/A', 'UNMATCHED', 'No geometric match'])
+        return path
     except Exception as e:
-        logger.error("Critical error in batch {}: {}".format(batch_number, e))
-        # All items in this batch failed
-        failed.extend([(hb, lb, None, None) for hb, lb in matches_batch])
-        successful = []
+        print("CSV Export gagal: {}".format(e))
+        return None
 
-    # Force garbage collection after each batch
-    gc.collect()
 
-    return successful, failed
-
+# ─── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    """
-    Main execution function that orchestrates the beam type transfer process.
-
-    Handles the complete workflow from model selection through results reporting,
-    including error handling and user feedback.
-    """
-    # Step 1: Select the linked EXR model from available Revit links
-    link_doc, selected_link = select_linked_model()
-
-    # For now, coordinate transformation is disabled (can be enabled in future versions)
-    use_transform = False
-    link_transform = None
-
-    # Step 2: Gather structural framing elements from both host and linked models
+    link_doc = select_linked_model()
     host_beams = collect_host_beams()
     linked_beams = collect_linked_beams(link_doc)
 
     if not host_beams or not linked_beams:
-        forms.alert("No structural framing elements found in the host or linked model.", exitscript=True)
+        forms.alert("Tidak ada elemen ditemukan.", exitscript=True)
 
-    # Step 3: Extract and cache solid geometries for linked beams to optimize matching performance
-    with ProgressBar(title='Processing Beam Geometry ({value} of {max_value})',
-                     cancellable=True) as pb:
-
-        linked_beams_dict = {}
+    # Cache linked beam solids
+    linked_dict = {}
+    with ProgressBar(title='Processing Linked Geometry ({value}/{max_value})', cancellable=True) as pb:
         for i, beam in enumerate(linked_beams):
             if pb.cancelled:
-                forms.alert("Geometry processing was cancelled. Script will exit.", exitscript=True)
-
+                forms.alert("Dibatalkan.", exitscript=True)
             solid = get_solid(beam)
             if solid:
-                linked_beams_dict[beam.Id] = {'element': beam, 'solid': solid}
-
-            # Update progress
+                linked_dict[beam.Id] = {'element': beam, 'solid': solid}
             pb.update_progress(i + 1, len(linked_beams))
 
-    # Step 4: Match host beams to linked beams by calculating geometric intersections
-    matches = []
-    unmatched = []
+    # Match host beams to linked beams by geometry intersection
+    # linked beam dapat dipakai lebih dari satu host beam (kasus duplikat/overlap)
+    matches, unmatched = [], []
+    matched_linked = {}  # linked_beam.Id -> linked_beam, untuk reuse pada duplikat
 
-    with ProgressBar(title='Finding Geometry Matches ({value} of {max_value})',
-                     cancellable=True) as pb:
-
-        for i, host_beam in enumerate(host_beams):
+    with ProgressBar(title='Finding Matches ({value}/{max_value})', cancellable=True) as pb:
+        for i, beam in enumerate(host_beams):
             if pb.cancelled:
-                forms.alert("Matching process was cancelled. Script will exit.", exitscript=True)
+                forms.alert("Dibatalkan.", exitscript=True)
+            host_solid = get_solid(beam)
+            match = find_best_match(host_solid, linked_dict) if host_solid else None
 
-            best_match = find_best_match(host_beam, linked_beams_dict)
+            if not match and host_solid:
+                # Fallback: cari linked beam yang paling banyak overlap dengan host beam ini
+                # menggunakan linked beam yang sudah pernah dipakai (kasus duplikat host)
+                best_reuse, max_vol = None, 0.0
+                for linked_id, linked_beam in matched_linked.items():
+                    linked_solid = linked_dict.get(linked_id, {}).get('solid')
+                    if not linked_solid:
+                        continue
+                    try:
+                        expanded_host = _expand_solid(host_solid, INTERSECTION_TOLERANCE)
+                        expanded_linked = _expand_solid(linked_solid, INTERSECTION_TOLERANCE)
+                        inter = BooleanOperationsUtils.ExecuteBooleanOperation(
+                            expanded_host, expanded_linked, BooleanOperationsType.Intersect)
+                        if inter and inter.Volume > max_vol:
+                            max_vol = inter.Volume
+                            best_reuse = linked_beam
+                    except Exception:
+                        pass
+                if best_reuse:
+                    match = best_reuse
 
-            if best_match:
-                matches.append((host_beam, best_match))
+            if match:
+                matched_linked[match.Id] = match
+                matches.append((beam, match))
             else:
-                unmatched.append(host_beam)
+                unmatched.append(beam)
 
-            # Update progress
             pb.update_progress(i + 1, len(host_beams))
 
     if not matches:
-        forms.alert("No matching beams found between the host and linked model.", exitscript=True)
+        forms.alert("Tidak ada beam yang cocok ditemukan.", exitscript=True)
 
-    # Step 5: Apply type changes to matched host beams using batch processing (OPTIMIZED)
-    successful_transfers = []
-    failed_transfers = []
+    # Transfer types in a single transaction
+    successful, failed = [], []
+    num_batches = (len(matches) + BATCH_SIZE - 1) // BATCH_SIZE
+    t = Transaction(doc, 'Transfer Beam Types')
+    t.Start()
 
-    # Calculate number of batches
-    total_matches = len(matches)
-    num_batches = (total_matches + BATCH_SIZE - 1) // BATCH_SIZE  # Ceiling division
-
-    # Initialize progress tracking
-    beams_processed = 0
-
-    # Process ALL matches in a single transaction with per-beam progress
-    # Manual transaction management for full control over commit timing
-    master_transaction = Transaction(doc, 'Transfer All Beam Types')
-    master_transaction.Start()
-    
-    # Mark unmatched beams with Comments parameter
-    if unmatched:
-        marked_count = mark_unmatched_beams(unmatched, doc)
-        logger.info("Marked {} unmatched beams".format(marked_count))
-    
     try:
-        # Progress bar only for batch processing (not including commit)
-        with ProgressBar(title='Transferring Beam Types ({value} of {max_value})',
-                         cancellable=True) as pb:
+        for beam in unmatched:
+            set_comment(beam, "Unmatched")
 
-            # Process matches in batches (but within single transaction)
-            for batch_num in range(num_batches):
-                # Calculate batch range
-                start_idx = batch_num * BATCH_SIZE
-                end_idx = min(start_idx + BATCH_SIZE, total_matches)
-                matches_batch = matches[start_idx:end_idx]
-
-                # Process this batch WITHOUT creating sub-transactions
-                batch_successful, batch_failed = process_batch_transfers_no_transaction(
-                    doc, matches_batch, batch_num + 1, num_batches
-                )
-
-                # Accumulate results
-                successful_transfers.extend(batch_successful)
-                failed_transfers.extend(batch_failed)
-
-                # Update progress per beam
-                beams_processed += len(matches_batch)
-                pb.update_progress(beams_processed, total_matches)
-
-                # Check for cancellation
+        with ProgressBar(title='Transferring Types ({value}/{max_value})', cancellable=True) as pb:
+            processed = 0
+            for i in range(num_batches):
                 if pb.cancelled:
-                    master_transaction.RollBack()
-                    forms.alert("Transfer process was cancelled. All changes have been rolled back.", exitscript=True)
+                    t.RollBack()
+                    forms.alert("Dibatalkan. Semua perubahan di-rollback.", exitscript=True)
+                batch = matches[i * BATCH_SIZE:(i + 1) * BATCH_SIZE]
+                s, f = process_batch(batch)
+                successful.extend(s)
+                failed.extend(f)
+                processed += len(batch)
+                pb.update_progress(processed, len(matches))
 
-        # DO NOT COMMIT HERE - will commit after all output is complete
+        if t.Commit() != TransactionStatus.Committed:
+            forms.alert("Gagal menyimpan perubahan.", exitscript=True)
 
     except Exception as e:
-        master_transaction.RollBack()
-        logger.error("Critical error during batch processing: {}".format(e))
-        forms.alert("An error occurred during processing. All changes have been rolled back.", exitscript=True)
+        t.RollBack()
+        forms.alert("Error: {}. Semua perubahan di-rollback.".format(e), exitscript=True)
+    finally:
+        linked_dict.clear()
+        gc.collect()
 
-    # Clean up geometry cache to free memory
-    if CLEANUP_GEOMETRY_CACHE:
-        cleanup_geometry_cache(linked_beams_dict)
+    csv_path = export_csv(successful, failed, unmatched) if EXPORT_CSV else None
 
-    # Export full results to CSV if enabled
-    csv_path = None
-    if EXPORT_RESULTS_TO_CSV:
-        csv_path = export_results_to_csv(successful_transfers, failed_transfers, unmatched, doc.Title)
-
-    # Results Summary
-    output.print_md("##Results Summary")
-    output.print_md("")
-    output.print_md("**Total matches found:** {}".format(len(matches)))
-    output.print_md("**Successful transfers:** {}".format(len(successful_transfers)))
-    output.print_md("**Failed transfers:** {}".format(len(failed_transfers)))
-    output.print_md("**Unmatched beams:** {}".format(len(unmatched)))
-
-    # Add CSV path to console if available
+    output.print_md("## Results Summary")
+    output.print_md("- **Matched:** {}".format(len(matches)))
+    output.print_md("- **Successful:** {}".format(len(successful)))
+    output.print_md("- **Failed:** {}".format(len(failed)))
+    output.print_md("- **Unmatched:** {}".format(len(unmatched)))
     if csv_path:
-        output.print_md("")
-        output.print_md("**CSV Results:** {}".format(csv_path))
+        output.print_md("- **CSV:** {}".format(csv_path))
 
-    # EXTRACT SUMMARY DATA BEFORE COMMIT to avoid "managed object is not valid" error
-    summary_data = {
-        'successful_count': len(successful_transfers),
-        'failed_count': len(failed_transfers),
-        'unmatched_count': len(unmatched),
-        'csv_path': csv_path
-    }
 
-    # Commit the transaction AFTER all output is complete to prevent console splitting
-    # Transaction is still active (not rolled back) if we reach this point
-    status = master_transaction.Commit()
-    if status == TransactionStatus.Committed:
-        summary_data['commit_success'] = True
-    else:
-        logger.error("Master transaction failed to commit")
-        summary_data['commit_success'] = False
-        forms.alert("Failed to save beam type changes. Please try again.", exitscript=True)
-
-    # Show completion dialog using TaskDialog (safe after transaction commit)
-    alert_message = "Type transfer complete!\n"
-    alert_message += "Successfully updated: {} beams\n".format(summary_data['successful_count'])
-    alert_message += "Failed: {} beams\n".format(summary_data['failed_count'])
-    if summary_data['unmatched_count'] > 0:
-        alert_message += "Unmatched: {} beams\n".format(summary_data['unmatched_count'])
-
-    TaskDialog.Show("Process Complete", alert_message, TaskDialogCommonButtons.Ok)
+    TaskDialog.Show("Selesai",
+                    "Berhasil: {} | Gagal: {} | Unmatched: {}".format(
+                        len(successful), len(failed), len(unmatched)),
+                    TaskDialogCommonButtons.Ok)
 
 
 if __name__ == '__main__':
