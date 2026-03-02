@@ -38,8 +38,19 @@ sheets = forms.select_sheets(title='Select Sheets', include_placeholder = False,
 
 # display primary UI if sheets found
 if sheets:
+	# Check if single sheet selected
+	is_single_sheet = len(sheets) == 1
+	
+	# Get sheet info for feedback
+	if is_single_sheet:
+		sheet_info = "Sheet: {} - {}".format(sheets[0].SheetNumber, sheets[0].Name)
+	else:
+		sheet_count = len(sheets)
+		sheet_info = "{} sheets selected".format(sheet_count)
+	
 	# open the directory
 	expUtils_openDir(dirPath)
+	
 	# export sheets
 	with forms.ProgressBar(step=1, title='Exporting sheets... ' + '{value} of {max_value}', cancellable=True) as pb1:
 		pbTotal1 = len(sheets)
@@ -60,4 +71,4 @@ if sheets:
 	if pb1.cancelled:
 		forms.alert("Export process cancelled.", title= "Script cancelled")
 	else:
-		forms.alert("Export process complete.", title= "Script finished", warn_icon=False)
+		forms.alert("Export process complete.\n\n{}".format(sheet_info), title= "Script finished", warn_icon=False)
