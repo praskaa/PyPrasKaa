@@ -1,13 +1,31 @@
 # -*- coding: utf-8 -*-
+__title__ = "Override Crop Section & Detail View"
+__author__ = "Erik Frits"
+__version__ = 'Version: 1.2'
+__doc__ = """Version: 1.2
+Date    = 10.11.2020
+_____________________________________________________________________
+Description:
 
-"""
-Crop View Override Script for Revit
+Override Crop View
 
 This script allows users to apply or reset graphic overrides to crop boxes
 in section and detail views placed on sheets.
+
+_____________________________________________________________________
+How-to:
+
+
+_____________________________________________________________________
+Last update:
+
+
+_____________________________________________________________________
+Author:  PrasKaa"""
 """
 
-import os
+"""
+
 from pyrevit import revit, DB, UI, forms
 
 
@@ -49,32 +67,34 @@ class DummyProgressBar:
         self._title = value
 
 
+# =============================================================================
+# CONFIGURATION - Edit these values to customize the script behavior
+# =============================================================================
+CONFIG = {
+    # Line weight for crop box override (1-16)
+    'line_weight': 6,
+
+    # Name of the line pattern to apply (must exist in the project)
+    'line_pattern_name': 'Dash dot',
+
+    # Allowed view types to process
+    'allowed_view_types': ['Section', 'Detail'],
+
+    # Show progress bar during processing
+    'show_progress_bar': True,
+
+    # Show detailed results in final dialog
+    'show_detailed_results': True
+}
+
+
 def load_configuration():
-    """Load configuration from config.py file or use defaults."""
-    script_dir = os.path.dirname(__file__)
-    config_path = os.path.join(script_dir, 'config.py')
+    """Return the configuration dictionary.
 
-    # Default configuration
-    config = {
-        'line_weight': 6,
-        'line_pattern_name': 'Dash dot',
-        'allowed_view_types': ['Section', 'Detail'],
-        'show_progress_bar': True,
-        'show_detailed_results': True
-    }
-
-    try:
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                config_content = f.read()
-            # Execute config in local scope to avoid namespace pollution
-            local_config = {}
-            exec(config_content, {}, local_config)
-            config.update(local_config)
-    except Exception as e:
-        print("Could not load config file, using defaults: {}".format(e))
-
-    return config
+    Configuration is now defined inline above for easier maintenance.
+    Edit the CONFIG dictionary directly to customize behavior.
+    """
+    return CONFIG
 
 
 def get_views_on_sheets(doc, allowed_view_types=None):
@@ -102,6 +122,47 @@ def get_views_on_sheets(doc, allowed_view_types=None):
             continue
 
     return views_on_sheet
+
+
+def get_preselected_views(doc, uidoc, allowed_view_types=None):
+    """Get pre-selected views from Project Browser that match criteria.
+
+    This function captures views that are selected in the Project Browser
+    before running the script, similar to forms.select_sheets(use_selection=True).
+
+    Args:
+        doc: The active Revit document
+        uidoc: The active UI document for selection access
+        allowed_view_types: List of allowed view type names (e.g., ['Section', 'Detail'])
+
+    Returns:
+        List of DB.View objects that are:
+        - Currently selected in Project Browser
+        - Placed on sheets
+        - Match the allowed view types
+    """
+    selected_ids = uidoc.Selection.GetElementIds()
+
+    preselected_views = []
+    for elem_id in selected_ids:
+        element = doc.GetElement(elem_id)
+        if isinstance(element, DB.View):
+            try:
+                # Check if view is on sheet
+                sheet_number = element.get_Parameter(DB.BuiltInParameter.VIEWER_SHEET_NUMBER)
+                if sheet_number and sheet_number.AsString():
+                    # Filter by view type if specified
+                    if allowed_view_types:
+                        view_type_name = element.ViewType.ToString()
+                        if view_type_name in allowed_view_types:
+                            preselected_views.append(element)
+                    else:
+                        preselected_views.append(element)
+            except AttributeError:
+                # Skip views that don't have the required parameters
+                continue
+
+    return preselected_views
 
 
 def create_override_settings(doc, config, action):
@@ -228,6 +289,7 @@ def main():
     """Main function to execute the crop view override script."""
     # Initialize document (no console output needed)
     doc = revit.doc
+    uidoc = revit.uidoc
 
     # Load configuration
     config = load_configuration()
@@ -242,12 +304,16 @@ def main():
             exitscript=True
         )
 
-    # Let user select views
+    # Get pre-selected views from Project Browser (if any)
+    preselected_views = get_preselected_views(doc, uidoc, config.get('allowed_view_types'))
+
+    # Let user select views, with pre-selection from Project Browser
     selected_views = forms.SelectFromList.show(
         views_on_sheet,
         button_name='Select Views',
         multiselect=True,
-        name_attr='Name'
+        name_attr='Name',
+        init_values=preselected_views
     )
 
     if not selected_views:
