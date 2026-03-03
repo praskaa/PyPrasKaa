@@ -1,33 +1,39 @@
 # -*- coding: utf-8 -*-
 __title__ = "Override Crop Section & Detail View"
-__author__ = "Erik Frits"
-__version__ = 'Version: 1.2'
-__doc__ = """Version: 1.2
-Date    = 10.11.2020
+__author__ = "PrasKaa"
+__version__ = 'Version: 1.0'
+__doc__ = """Version: 1.0
+Date    = 03.03.2026
 _____________________________________________________________________
 Description:
-
 Override Crop View
-
 This script allows users to apply or reset graphic overrides to crop boxes
 in section and detail views placed on sheets.
-
 _____________________________________________________________________
 How-to:
+1. Open Revit with PrasKaaPyKit extension loaded
+2. Navigate to: Documentation → Views → Override Crop Section View
+3. Select views - Pre-selected views in Project Browser will be used if available
+4. Choose action: "Apply Standard Overrides" or "Reset Overrides to Default"
 
+Requirements:
+- Views must be Section or Detail type
+- Views must be placed on sheets
+- Crop box must be visible in view
+- "Dash dot" line pattern must exist in project
 
-_____________________________________________________________________
+Tips:
+- Pre-select views in Project Browser for faster workflow
+- Default settings: Line weight = 6, Pattern = "Dash dot"
+- Customize by editing CONFIG dictionary in script (lines 73-88)
+
+_____________________________________________________
 Last update:
-
-
+- [03.03.2026] - 1.0 RELEASE
 _____________________________________________________________________
 Author:  PrasKaa"""
-"""
-
-"""
 
 from pyrevit import revit, DB, UI, forms
-
 
 class DummyProgressBar:
     """Dummy progress bar implementation for when progress bar is disabled."""
@@ -66,7 +72,6 @@ class DummyProgressBar:
         """Set progress bar title."""
         self._title = value
 
-
 # =============================================================================
 # CONFIGURATION - Edit these values to customize the script behavior
 # =============================================================================
@@ -86,7 +91,6 @@ CONFIG = {
     # Show detailed results in final dialog
     'show_detailed_results': True
 }
-
 
 def load_configuration():
     """Return the configuration dictionary.
