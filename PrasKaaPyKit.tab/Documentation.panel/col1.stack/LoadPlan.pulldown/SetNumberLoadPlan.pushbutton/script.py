@@ -1,10 +1,25 @@
 # -*- coding: utf-8 -*-
-"""
-Updates Room Number, SDL, and LL from CSV
-Author: PrasKaa
-"""
-__title__ = 'Set Load Plan by CSV'
-__author__ = 'PrasKaa'
+__title__ = "Set Load Plan Value by CSV"
+__author__ = "PrasKaa"
+__version__ = 'Version: 1.0'
+__doc__ = """Version: 1.0
+Date    = 03.03.2026
+_____________________________________________________________________
+Description:
+Updates Room Number, SDL, and LL from CSV file.
+SDL and LL values will be converted from kN/m2 to Revit internal units.
+_____________________________________________________________________
+How-to:
+1. Open Revit project with Rooms placed
+2. Run tool from PrasKaaPyKit tab > LoadPlan
+3. Select CSV file containing room load data
+4. Tool matches Rooms by Name and updates Number, SDL, LL
+
+______________________________________________________________________
+Last update:
+- [04.03.2026] - 1.0 RELEASE
+_____________________________________________________________________
+Author:  PrasKaa"""
 
 import clr
 import csv
