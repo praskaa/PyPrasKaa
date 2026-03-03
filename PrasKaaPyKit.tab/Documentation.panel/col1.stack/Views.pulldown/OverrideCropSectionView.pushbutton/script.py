@@ -142,28 +142,39 @@ def get_preselected_views(doc, uidoc, allowed_view_types=None):
         - Match the allowed view types
     """
     selected_ids = uidoc.Selection.GetElementIds()
-
     preselected_views = []
+    
     for elem_id in selected_ids:
         element = doc.GetElement(elem_id)
-        if isinstance(element, DB.View):
-            try:
-                # Check if view is on sheet
-                sheet_number = element.get_Parameter(DB.BuiltInParameter.VIEWER_SHEET_NUMBER)
-                if sheet_number and sheet_number.AsString():
-                    # Filter by view type if specified
-                    if allowed_view_types:
-                        view_type_name = element.ViewType.ToString()
-                        if view_type_name in allowed_view_types:
-                            preselected_views.append(element)
-                    else:
-                        preselected_views.append(element)
-            except AttributeError:
-                # Skip views that don't have the required parameters
+        
+        if not isinstance(element, DB.View):
+            continue
+            
+        # Skip view templates
+        if element.IsTemplate:
+            continue
+        
+        # ✅ Cek apakah view ada di sheet via Viewport
+        viewports = DB.FilteredElementCollector(doc)\
+            .OfClass(DB.Viewport)\
+            .ToElements()
+        
+        is_on_sheet = any(vp.ViewId == element.Id for vp in viewports)
+        
+        if not is_on_sheet:
+            continue
+        
+        # Filter by view type
+        if allowed_view_types:
+            view_type_name = element.ViewType.ToString()
+            if view_type_name not in allowed_view_types:
                 continue
-
+        
+        preselected_views.append(element)
+    
     return preselected_views
 
+    print(preselected_views)
 
 def create_override_settings(doc, config, action):
     """Create override graphic settings based on action and configuration."""
@@ -307,14 +318,32 @@ def main():
     # Get pre-selected views from Project Browser (if any)
     preselected_views = get_preselected_views(doc, uidoc, config.get('allowed_view_types'))
 
-    # Let user select views, with pre-selection from Project Browser
-    selected_views = forms.SelectFromList.show(
-        views_on_sheet,
-        button_name='Select Views',
-        multiselect=True,
-        name_attr='Name',
-        init_values=preselected_views
-    )
+    # Jika ada pre-selected views, langsung pakai tanpa dialog
+    if preselected_views:
+        action_msg = 'Found {} pre-selected view(s) in Project Browser:\n{}\n\nUse these views?'.format(
+            len(preselected_views),
+            '\n'.join(['- ' + v.Name for v in preselected_views])
+        )
+        use_preselected = forms.alert(action_msg, title='Pre-selected Views', yes=True, no=True)
+        
+        if use_preselected:
+            selected_views = preselected_views
+        else:
+            # Fallback ke manual select
+            selected_views = forms.SelectFromList.show(
+                views_on_sheet,
+                button_name='Select Views',
+                multiselect=True,
+                name_attr='Name',
+            )
+    else:
+        # Tidak ada pre-selection, buka dialog biasa
+        selected_views = forms.SelectFromList.show(
+            views_on_sheet,
+            button_name='Select Views',
+            multiselect=True,
+            name_attr='Name',
+        )
 
     if not selected_views:
         forms.alert('No views were selected. Please select at least one view.', exitscript=True)
@@ -342,47 +371,47 @@ def main():
     }
     failed_details = []
 
-    # Setup progress bar
-    total_views = len(selected_views)
-    if config.get('show_progress_bar', True):
-        progress_bar = forms.ProgressBar(title=transaction_name, total=total_views, cancellable=True)
-    else:
-        progress_bar = DummyProgressBar(title=transaction_name, total=total_views, cancellable=True)
+    # # Setup progress bar
+    # total_views = len(selected_views)
+    # if config.get('show_progress_bar', True):
+    #     progress_bar = forms.ProgressBar(title=transaction_name, total=total_views, cancellable=True)
+    # else:
+    #     progress_bar = DummyProgressBar(title=transaction_name, total=total_views, cancellable=True)
 
-    with progress_bar as pb:
-        for i, view in enumerate(selected_views):
-            if pb.cancelled:
-                stats['cancelled'] = True
-                break
+    # with progress_bar as pb:
+    #     for i, view in enumerate(selected_views):
+    #         if pb.cancelled:
+    #             stats['cancelled'] = True
+    #             break
 
-            success, error_message = process_single_view(doc, view, override, transaction_name, config)
+    #         success, error_message = process_single_view(doc, view, override, transaction_name, config)
 
-            if success:
-                stats['processed'] += 1
-                # View processed successfully - no console output needed
-            elif error_message == "No crop box found":
-                stats['errors'] += 1
-                failed_details.append("{} ({})".format(view.Name, error_message))
-                # Failed to find crop box - details will be shown in final toast
-            elif "not in allowed types" in error_message:
-                stats['skipped'] += 1
-                # View type not allowed - will be summarized in final toast
-            else:
-                stats['errors'] += 1
-                failed_details.append("{} ({})".format(view.Name, error_message))
-                # Processing error - details will be shown in final toast
+    #         if success:
+    #             stats['processed'] += 1
+    #             # View processed successfully - no console output needed
+    #         elif error_message == "No crop box found":
+    #             stats['errors'] += 1
+    #             failed_details.append("{} ({})".format(view.Name, error_message))
+    #             # Failed to find crop box - details will be shown in final toast
+    #         elif "not in allowed types" in error_message:
+    #             stats['skipped'] += 1
+    #             # View type not allowed - will be summarized in final toast
+    #         else:
+    #             stats['errors'] += 1
+    #             failed_details.append("{} ({})".format(view.Name, error_message))
+    #             # Processing error - details will be shown in final toast
 
-            # Safely update progress bar, handling potential UI threading issues
-            try:
-                if not pb.cancelled:
-                    pb.update_progress(i + 1, total_views)
-            except (AttributeError, Exception):
-                # Progress bar might be disposed or have threading issues
-                # Continue processing without progress updates
-                pass
+    #         # Safely update progress bar, handling potential UI threading issues
+    #         try:
+    #             if not pb.cancelled:
+    #                 pb.update_progress(i + 1, total_views)
+    #         except (AttributeError, Exception):
+    #             # Progress bar might be disposed or have threading issues
+    #             # Continue processing without progress updates
+    #             pass
 
-    # Display results using toast notifications
-    display_results(transaction_name, stats, failed_details, config, action, success_message_verb)
+    # Display results
+    # display_results(transaction_name, stats, failed_details, config, action, success_message_verb)
 
 
 if __name__ == "__main__":
