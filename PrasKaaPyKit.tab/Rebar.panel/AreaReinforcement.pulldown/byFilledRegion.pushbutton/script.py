@@ -1,11 +1,35 @@
 # -*- coding: utf-8 -*-
-"""
-Filled Region to Area Reinforcement
-Membuat Area Reinforcement dari boundary Filled Region yang dipilih
-"""
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Creates Area Reinforcement from selected Filled Region boundaries.
+The tool converts Filled Region boundaries into Area Reinforcement on a selected host element (Floor or Foundation).
+
+This is useful for quickly adding reinforcement to floor areas defined by filled region boundaries.
+_____________________________________________________________________
+How-to:
+1. Select a Filled Region in the current view
+2. Run the tool
+3. When prompted, select a host element (Floor or Foundation)
+4. The Area Reinforcement will be created with default parameters
+
+Notes:
+- The host element must be a Floor or Foundation
+- Default Area Reinforcement Type and Rebar Bar Type will be used
+- Parameters can be adjusted manually after creation
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
 
 __title__ = "Filled Region to Area Rebar"
 __author__ = "PrasKaa Team"
+__version__ = 'Version: 1.0'
 
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import *

@@ -1,8 +1,30 @@
 # -*- coding: utf-8 -*-
 """
-This script creates a Revit parameter filter based on a user-provided Sub Category parameter (shared/project parameter).
-It mimics the workflow of the provided Dynamo graph, adapted for pyRevit.
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Creates a Revit parameter filter based on a user-provided Sub Category parameter.
+The filter targets sections, callouts, and elevations based on their subcategory.
+_____________________________________________________________________
+How-to:
+1. Click "Filter Section"
+2. Select parameter type (Sub Category or Category)
+3. Enter sub category name (format: xx.x_SubCategoryName)
+4. Filter will be created
+
+Notes:
+- Works with shared or project parameters
+- Supports Text, Number, Integer, and Yes/No parameter types
+- Filter excludes the specified subcategory value
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  Cline + PrasKaa
 """
+
 __title__ = 'Filter Section'
 __author__ = 'Cline + PrasKaa'
 

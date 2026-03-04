@@ -1,5 +1,34 @@
 # -*- coding: utf-8 -*-
-from pyrevit import forms, revit, script
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Bulk rotate selected elements by a specified angle. Rotates each element individually around its own center point.
+
+Supports both LocationPoint (columns, piles) and LocationCurve (walls, beams) elements.
+_____________________________________________________________________
+How-to:
+1. Select elements to rotate
+2. Click the tool button
+3. Enter rotation angle in degrees
+4. Elements will be rotated individually around their centers
+
+Notes:
+- Positive angle rotates counter-clockwise
+- Works with columns, piles, walls, beams, and other element types
+- Each element rotates around its own center point
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
+
+__title__ = 'Bulk Rotate Elements'
+__author__ = 'PrasKaa Team'
+__version__ = 'Version: 1.0'
 from Autodesk.Revit.DB import *
 import math
 

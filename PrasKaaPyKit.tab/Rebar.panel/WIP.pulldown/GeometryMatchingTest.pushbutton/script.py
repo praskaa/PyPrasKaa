@@ -10,6 +10,36 @@ CONTEXT: PyRevit UI tool - only runs from Revit interface
 Shift+Click: Opens WPF configuration dialog
 """
 
+__title__ = 'Geometry Matching Test'
+__author__ = 'PrasKaa Team'
+__version__ = '1.0'
+__doc__ = """Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Test button for the modular geometry matching system. Tests the filtering
+pipeline between linked model and host model to match structural elements.
+
+How-to:
+1. Click the tool button to run with default filter pipeline
+2. Shift+Click to open WPF configuration dialog
+3. Select element category (Structural Framing or Columns)
+4. Select linked model to match against
+5. Select host elements to match
+6. View matching results
+
+Notes:
+- Uses modular filter system from geometry_matching library
+- Supports smart selection for host elements
+- Configurable filter pipeline via WPF dialog
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+"""
+
 import os
 
 from pyrevit import revit, DB, forms, script

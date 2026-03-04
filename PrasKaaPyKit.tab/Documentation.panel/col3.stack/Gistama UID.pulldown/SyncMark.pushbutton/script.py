@@ -1,4 +1,30 @@
 # -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Synchronizes Mark parameter values from linked model to host model based on
+matching GIS_Element_UID. Updates empty values or overwrites based on user choice.
+_____________________________________________________________________
+How-to:
+1. Click "Sync Mark by UID"
+2. Select source linked model
+3. Select category to sync
+4. Choose mode: Update Empty Only or Overwrite All
+5. Mark values are synced from link to host
+
+Notes:
+- Requires GIS_Element_UID parameter in both models
+- Matches elements by UID then syncs Mark parameter
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 __title__ = 'Sync Mark by UID'
 __author__ = 'PrasKaa'
 

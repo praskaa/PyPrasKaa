@@ -1,4 +1,30 @@
 # -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Fixes GIS_Element_UID issues by comparing current model state with saved registry.
+Detects conflicts, duplicates, orphaned entries, and new elements.
+_____________________________________________________________________
+How-to:
+1. Click "Fix UIDs"
+2. Review detected issues (conflicts, duplicates, new elements)
+3. Confirm to fix
+4. UIDs are regenerated and registry is updated
+
+Notes:
+- Requires registry database from previous Generate operation
+- Mark changes are detected but not auto-fixed
+- Generates new UIDs for conflicting elements
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 __title__ = "Fix UIDs"
 __author__ = "PrasKaa"
 

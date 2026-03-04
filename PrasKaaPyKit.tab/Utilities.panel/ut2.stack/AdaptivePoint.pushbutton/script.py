@@ -1,7 +1,31 @@
-"""Ensures Adaptive Points are hidden in all views placed on sheets"""
+# -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Hides adaptive point components from all views that are placed on sheets.
+Useful for cleaning up sheet presentations where adaptive points should not be visible.
+_____________________________________________________________________
+How-to:
+1. Click "Hide Adaptive Points"
+2. Select sheets or views to process
+3. Adaptive points will be hidden in selected views on sheets
+
+Notes:
+- Processes all views placed on sheets
+- Uses HideElements method to hide adaptive points
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
 
 __title__ = "Hide Adaptive Points"
 __author__ = "PrasKaa Team"
+__version__ = "1.0"
 
 from pyrevit import framework
 from pyrevit import revit, DB

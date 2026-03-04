@@ -1,13 +1,31 @@
-"""
-Recap LastModifiedBy
-Description: Recaps LastModifiedBy value for structural and architectural elements.
-Author: PrasKaa
-Version: 1.0.0
-Last Updated: 2026-02-24
+# -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Recaps LastModifiedBy parameter values for structural and architectural elements.
+Displays results in a table with Element ID and LastModifiedBy value.
+_____________________________________________________________________
+How-to:
+1. Click "Recap LastModifiedBy"
+2. Tool will analyze all structural and architectural elements
+3. Results displayed in output window as table
 
-Changelog:
-    v1.0.0 (2026-02-24): Initial release
-"""
+Notes:
+- Processes: Structural Framing, Columns, Foundations, Walls, Floors, Stairs
+- Clickable Element IDs in the output table
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
+__title__ = 'Recap LastModifiedBy'
+__author__ = 'PrasKaa'
+__version__ = '1.0'
 
 from pyrevit import revit, DB
 from Autodesk.Revit.DB import BuiltInCategory

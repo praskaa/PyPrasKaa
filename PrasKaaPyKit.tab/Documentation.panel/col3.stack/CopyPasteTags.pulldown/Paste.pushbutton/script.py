@@ -1,3 +1,28 @@
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Pastes tags from clipboard to a linked Revit model. Uses location detection
+to find corresponding elements in the linked model.
+_____________________________________________________________________
+How-to:
+1. Ensure linked model is loaded
+2. Click "Paste Tags"
+3. Tags are placed based on matching location in linked model
+
+Notes:
+- Requires a loaded Revit link
+- Uses spatial search to find host elements
+- Falls back to bounding box intersection if exact ID not found
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 from pyrevit import revit, forms
 from Autodesk.Revit import DB as db
 import json

@@ -1,5 +1,34 @@
 # -*- coding: utf-8 -*-
-from pyrevit import forms, revit, script
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Place piles from CSV data. Reads CSV file with PN, X, Y coordinates and creates pile family instances at specified locations.
+
+The CSV should have columns: PN, X, Y (in meters)
+_____________________________________________________________________
+How-to:
+1. Click the tool button
+2. Select a CSV file with pile data (PN, X, Y columns)
+3. Select the pile family type to use
+4. Piles will be placed at the specified coordinates
+
+Notes:
+- CSV format: PN, X, Y (header row required)
+- Coordinates are in meters and converted to feet internally
+- Mark parameter will be set from PN column
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
+
+__title__ = 'Place Piles from CSV'
+__author__ = 'PrasKaa Team'
+__version__ = 'Version: 1.0'
 from Autodesk.Revit.DB import *
 import csv
 

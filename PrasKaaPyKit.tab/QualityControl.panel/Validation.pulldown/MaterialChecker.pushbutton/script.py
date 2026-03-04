@@ -1,9 +1,40 @@
 # -*- coding: utf-8 -*-
 """
 Structural Material Manager by Level Range
+
 Description: Set structural materials for elements based on Level ranges (Elevation).
-Author: Gemini for User
-Revit Version: 2025
+
+CONTEXT: PyRevit UI tool - only runs from Revit interface
+"""
+
+__title__ = 'Material Checker'
+__author__ = 'PrasKaa Team'
+__version__ = '1.0'
+__doc__ = """Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Set structural materials for elements based on Level ranges (Elevation).
+Configurable rules to automatically assign materials to structural elements
+(Columns, Framing, Floors) based on their elevation range.
+
+How-to:
+1. Configure RULES dictionary at the top of the script
+2. Set Category (OST_StructuralColumns, OST_StructuralFraming, OST_Floors)
+3. Set Start_Level and End_Level names
+4. Set Material_Name to match material in Revit project
+5. Run the script to apply materials
+
+Notes:
+- Requires valid level names in the project
+- Requires materials to exist in the project
+- Only processes elements within specified level ranges
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
 """
 
 from pyrevit import revit, DB, script

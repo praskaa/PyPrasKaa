@@ -1,4 +1,29 @@
 # -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Validates GIS_Element_UID consistency by comparing current model state with
+saved registry. Detects conflicts, duplicates, orphans, and new elements.
+_____________________________________________________________________
+How-to:
+1. Click "Validate UIDs"
+2. Review validation results
+3. Run "Fix UIDs" if issues detected
+
+Notes:
+- Requires registry database from previous Generate operation
+- Reports: conflicts, duplicates, orphans, new elements, mark changes
+- No modifications made - read-only validation
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 __title__ = "Validate UIDs"
 __author__ = "PrasKaa"
 

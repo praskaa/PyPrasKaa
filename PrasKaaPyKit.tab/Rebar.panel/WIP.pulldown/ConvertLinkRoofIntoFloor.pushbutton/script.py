@@ -1,6 +1,33 @@
 # -*- coding: utf-8 -*-
 __title__ = "Convert Linked Roof\nto Floor"
-__doc__ = "Converts a selected roof from a linked model to a floor instance in the current model"
+__author__ = 'PrasKaa Team'
+__version__ = '1.0'
+__doc__ = """Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Converts a selected roof from a linked model to a floor instance in the current model.
+
+How-to:
+1. Click the tool button
+2. Hover over a ROOF in the linked model
+3. Press TAB key to highlight the roof
+4. Click to select
+5. Select floor type from the list
+6. Select level for the floor
+7. Floor is created automatically
+
+Notes:
+- Only works with roof elements from linked Revit models
+- Requires the linked model to be loaded
+- Boundary curves are extracted automatically using multiple methods
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+"""
 
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI.Selection import ObjectType, ISelectionFilter

@@ -1,3 +1,32 @@
+# -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Opens the Excel template file for creating sheets from CSV. The template
+provides a format for entering sheet numbers and names that can be imported
+using the "Create Sheets from CSV" tool.
+_____________________________________________________________________
+How-to:
+1. Click "CSV Template"
+2. Excel template will open automatically
+3. Save As CSV to a new location
+4. Fill in sheet numbers and names
+5. Use "Sheets from CSV" tool to import
+
+Notes:
+- First column: Sheet Number
+- Second column: Sheet Name
+- Do not modify the header row
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 # import libraries
 import clr
 import os

@@ -1,8 +1,34 @@
 # -*- coding: utf-8 -*-
 # pyRevit | IronPython 2.7
-# Tulis "nomor urut di Print Order" -> ke parameter sheet bernama "Number"
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Writes the print order sequence number to the sheet "Number" parameter
+for each sheet in a Print Set. Numbers follow the order defined in the
+Print Set.
 
-from __future__ import print_function
+Useful for renumbering sheets based on a pre-defined printing order.
+_____________________________________________________________________
+How-to:
+1. Click "Set Sheet Number from Print Order"
+2. Select the Print Set to use from the list
+3. Enter the starting number (default: 1)
+4. Click OK to execute
+
+Notes:
+- Sheets without "Number" parameter will be skipped
+- Sheets with read-only "Number" parameter will be skipped
+- Number sequence follows Print Set order (not alphabetical)
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 from pyrevit import forms
 from Autodesk.Revit.DB import (
     FilteredElementCollector, ViewSheetSet, ViewSheet,
@@ -87,13 +113,3 @@ except Exception as ex:
     t.RollBack()
     forms.alert("Gagal melakukan penulisan.\n{}".format(ex), warn_icon=True)
     raise
-
-# --- Laporan ringkas
-#msg = ("Print Set : {}\n"
-#       "Mulai dari : {}\n"
-#       "Updated    : {}\n"
-#      "No Param   : {}\n"
-#      "Read-Only  : {}"
-#      ).format(vss.Name, start_at, updated, skipped_no_param, skipped_ro)
-#forms.alert(msg)
-#print(msg)

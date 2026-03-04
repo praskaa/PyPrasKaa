@@ -1,11 +1,39 @@
 # -*- coding: utf-8 -*-
-"""Merge Material
+"""
+Merge Material
 Merge material A ke material B dan update semua element yang menggunakan material A
 Compatible dengan Revit 2024-2026
 """
 
 __title__ = 'Merge\nMaterial'
-__author__ = 'Your Name'
+__author__ = 'PrasKaa Team'
+__version__ = '1.0'
+__doc__ = """Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Merge material A ke material B dan update semua element yang menggunakan material A.
+Compatible dengan Revit 2024-2026.
+
+How-to:
+1. Click the tool button
+2. Select Material A (sumber/yang akan diganti)
+3. Select Material B (target/yang akan dipakai)
+4. Konfirmasi action
+5. Semua element dengan Material A akan diubah ke Material B
+6. Material A akan dihapus
+
+Notes:
+- Requires both materials to exist in the project
+- Updates all elements that use the source material
+- Deletes the source material after merge
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+"""
 
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI.Selection import ObjectType

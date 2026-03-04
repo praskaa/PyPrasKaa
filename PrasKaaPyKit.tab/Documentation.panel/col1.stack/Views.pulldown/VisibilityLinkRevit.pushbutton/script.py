@@ -1,6 +1,33 @@
 # -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Hides Revit link instances in selected views or view templates. Works with
+VG/Graphics method (Revit 2023+) or HideElements fallback.
+
+This is useful for creating presentation views that should not show linked coordination models.
+_____________________________________________________________________
+How-to:
+1. Click "Hide Link Revit"
+2. Select one or more Link Types
+3. Select views/templates to hide links in
+4. Links will be hidden in selected views
+
+Notes:
+- Uses SetLinkOverrides for Revit 2023+
+- Uses HideElements for older versions
+- Progress bar with cancel option
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 __title__ = "Hide Link Revit in Views/Templates (VG Level)"
-__doc__ = "Pilih Link Type (bisa multiple), lalu pilih View/Template mana saja untuk disembunyikan. Semua instance dari link type tersebut akan terpengaruh."
 
 from Autodesk.Revit.DB import *
 from pyrevit import revit, forms, script

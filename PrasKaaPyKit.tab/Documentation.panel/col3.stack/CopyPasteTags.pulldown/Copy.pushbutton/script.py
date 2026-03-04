@@ -1,3 +1,28 @@
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Copies tags from the active view to a temporary file. Stores tag data
+including host element, position, family, and type for later pasting.
+_____________________________________________________________________
+How-to:
+1. Navigate to the view containing tags
+2. Click "Copy Tags"
+3. Tags data is saved to temporary clipboard
+
+Notes:
+- Stores: host element ID, position (X, Y, Z), family name, type name
+- Data is saved to TEMP folder as JSON file
+- Use "Paste Tags" to paste on linked model
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 from pyrevit import revit, forms
 from Autodesk.Revit import DB as db
 import json

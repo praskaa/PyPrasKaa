@@ -1,6 +1,34 @@
 # -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Finds all views on sheets that contain specific grids and allows hiding
+those grids from selected views. Useful for creating presentation drawings
+where certain grids should not be visible.
+_____________________________________________________________________
+How-to:
+1. Click "Grid View Hider"
+2. Select grids to hide from the list
+3. Select views where grids should be hidden
+4. Confirm to hide grids in selected views
+
+Notes:
+- Works with views on sheets
+- Uses HideElements method for hiding grids
+- Shows summary of changes after execution
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  Prasetyo
+'''
+
 __title__ = "Grid View Hider"
 __author__ = "Prasetyo"
+__version__ = "1.0"
 __doc__ = """Tool to find all views on sheets that contain specific grids and hide selected grids from chosen views"""
 
 # Imports

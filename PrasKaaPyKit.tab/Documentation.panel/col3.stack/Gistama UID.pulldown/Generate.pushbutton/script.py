@@ -1,4 +1,30 @@
 # -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Generates GIS_Element_UID for selected categories. Creates unique identifiers
+for structural elements based on category prefix and sequential numbering.
+_____________________________________________________________________
+How-to:
+1. Click "Generate UIDs"
+2. Select categories to process
+3. Choose mode: Generate Missing or Regenerate All
+4. UIDs are generated and saved to registry database
+
+Notes:
+- Stores registry in Documents\PrasKaaPyKit\
+- UIDs follow format: PREFIX-00001
+- Updates existing UIDs if "Regenerate All" selected
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 __title__ = "Generate UIDs"
 __author__ = "PrasKaa"
 

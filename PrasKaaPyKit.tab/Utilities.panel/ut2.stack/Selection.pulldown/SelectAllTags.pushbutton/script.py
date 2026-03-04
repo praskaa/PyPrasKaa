@@ -1,3 +1,31 @@
+# -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Selects all Independent Tags and Spot Dimensions (Elevation & Slope) in the
+active view and highlights them in the selection. Useful for batch operations.
+_____________________________________________________________________
+How-to:
+1. Click "Select All Tags"
+2. All tags and spot dimensions in active view will be selected
+
+Notes:
+- Works on Independent Tags and Spot Dimensions
+- Only processes elements in the active view
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
+
+__title__ = "Select All Tags"
+__author__ = "PrasKaa Team"
+__version__ = "1.0"
+
 from pyrevit import revit, forms
 from Autodesk.Revit import DB as db
 

@@ -3,6 +3,30 @@
 # ║║║║╠═╝║ ║╠╦╝ ║ ╚═╗
 # ╩╩ ╩╩  ╚═╝╩╚═ ╩ ╚═╝
 #==================================================
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Sets the "Title on Sheet" parameter for selected views to match their view name.
+This allows automatic population of the view title displayed on sheets.
+_____________________________________________________________________
+How-to:
+1. Select views in the Project Browser
+2. Click "Set View Title on Sheet"
+3. Title on Sheet parameter is updated for each view
+
+Notes:
+- Updates the VIEW_DESCRIPTION parameter
+- Skips views with read-only parameters
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 import sys, clr
 
 from Autodesk.Revit.DB import Transaction, BuiltInParameter

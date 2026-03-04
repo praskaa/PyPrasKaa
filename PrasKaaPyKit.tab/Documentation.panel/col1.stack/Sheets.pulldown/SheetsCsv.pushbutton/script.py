@@ -1,11 +1,32 @@
+# -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Creates sheets in the project from a CSV file. The CSV should contain
+sheet numbers and names in the first two columns.
+_____________________________________________________________________
+How-to:
+1. Click "Sheets from CSV"
+2. Select the CSV file containing sheet data
+3. Select a titleblock for the new sheets
+4. Sheets will be created based on CSV data
+
+Notes:
+- Skips sheets if number already exists in project
+- Uses progress bar with cancel option
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
+
 # Import libraries
 import os
-import sys
 from pyrevit import revit, DB, script, forms
-
-# Add lib path for imports
-lib_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'lib')
-sys.path.insert(0, lib_path)
 
 # Store current document into variable
 doc = revit.doc
@@ -31,8 +52,8 @@ titleBlock = forms.select_titleblocks(doc=doc)
 if not titleBlock:
 	script.exit()
 
-# Import csv data
-from csv_utils import *
+# Import CSV utilities
+from csv_utils import csvUtils
 
 csv_reader = csvUtils([],pathFile)
 dat = csv_reader.csvUtils_import("Sheet1",2,0)

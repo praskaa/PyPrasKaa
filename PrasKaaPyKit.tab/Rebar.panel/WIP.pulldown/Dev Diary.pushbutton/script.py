@@ -1,7 +1,34 @@
 # -*- coding: utf-8 -*-
 __title__ = 'Try get host beams'
-__author__ = 'PrasKaa'
-__doc__ = "Matches beams by geometry intersection and transfers family types from linked EXR model."
+__author__ = 'PrasKaa Team'
+__version__ = '1.0'
+__doc__ = """Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Matches beams by geometry intersection and transfers family types from linked EXR model.
+
+Analyzes structural framing elements and detects duplicate family types
+with numerical suffixes (e.g., "Beam 1", "Beam 2").
+
+How-to:
+1. Click the tool button
+2. The tool automatically collects all Structural Framing elements
+3. Filters for Rectangular framing sections
+4. Groups families into Original vs Duplicate categories
+5. Shows analysis results in output window
+
+Notes:
+- Uses regex pattern to detect numerical suffixes
+- Checks if duplicates have instances in the model
+- Helps identify which families can be cleaned up
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+"""
 
 # ╦╔╦╗╔═╗╔═╗╦═╗╔╦╗╔═╗
 # ║║║║╠═╝║ ║╠╦╝ ║ ╚═╗
