@@ -29,7 +29,7 @@ author: PrasKaa Team
 # Pulldown Layout Configuration
 layout:
   - 3D view by ElementID
-
+  - IsolateElementbyModifiedDate
 # Engine Configuration
 engine:
   clean: true
