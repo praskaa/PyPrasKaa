@@ -31,9 +31,11 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Dimension-Tools
 # Pulldown Layout Configuration
 layout:
   - AutoDimensionColumn
+  - AutoDimensionColumnv2
   - AutoDimensionWall
   - -----
   - DimensionTextReplace
+  - DimensionLevel
 # Engine Configuration
 engine:
   clean: true
