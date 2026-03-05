@@ -1,36 +1,88 @@
 # -*- coding: utf-8 -*-
 __title__ = "Isolate Elements Modified on a Specific Date."
-__author__ = "PrasKaa Team"
-__version__ = '1.0'
-__doc__ = """Version: 1.0
+__author__ = "PrasKaa"
+__version__ = 'Version: 0.2'
+__doc__ = """Version: 0.2
 Date    = 04.03.2026
 _____________________________________________________________________
 Description:
-Isolate Elements Modified on a Specific Date. Reads the 'LastModifiedBy'
-shared parameter from structural/architectural elements and creates a 3D
-isolated view for those modified on the chosen date.
+Isolate Elements Modified on a Specific Date.
+Reads the 'LastModifiedBy' shared parameter from structural/architectural
+elements and creates a 3D isolated view for those modified on the chosen date.
 
 This tool is useful for quality control and auditing changes made to a
-Revit model on a specific date.
+Revit model on a specific date. It helps identify which elements were
+modified by whom and when.
 
-How-to:
-1. Click the tool button to open the dialog
-2. Select a target date using the date picker
-3. (Optional) Filter by specific users
-4. Click 'Filter Elements' to search for matching elements
-5. Review the results in the results box
-6. Click 'Create 3D View' to generate an isolated 3D view
-
-Notes:
-- Supports Structural Framing, Columns, Foundations, Walls, Floors, etc.
-- Sheet and View elements cannot be isolated in 3D views
-
-_____________________________________________________
-Last update:
-- 04.03.2026 - 1.0 Initial release
+Changes in v0.2 (UI/UX fixes):
+- Font changed from Consolas to Segoe UI for all labels/buttons
+  (Consolas retained only in result_box for data readability)
+- Minimum font size raised to 9pt across all controls
+- result_box font raised from 8pt to 9pt
+- Form no longer closes inside _on_create; main() handles close after
+  successful view creation
+- Added "Clear Selection" button below user ListBox
+- Removed verbose instructions from labels; moved to ToolTip
+- Status label made more prominent (9pt Bold Segoe UI)
+- Added Application.DoEvents() loading indicator during _load_data()
+- User ListBox hint moved to tooltip
 _____________________________________________________________________
-Author:  PrasKaa Team
-"""
+Supported Element Categories:
+- Structural Framing, Columns, Foundations
+- Walls, Floors, Edge Slabs, Stairs
+- Rebar
+- Doors, Windows, Roofs, Ceilings
+- Generic Models, Furniture
+- Mechanical Equipment, Plumbing Fixtures, Electrical Fixtures
+
+Note: Sheet and View elements are listed separately in the search results
+but cannot be isolated in a 3D view.
+_____________________________________________________________________
+How-to:
+1. Click the tool button to open the dialog.
+2. The tool automatically loads all elements with the 'LastModifiedBy'
+   parameter from the current document.
+3. Select a target date using the date picker.
+4. (Optional) Filter by specific users using the user list:
+   - Single click to select one user
+   - Ctrl+Click to select multiple users
+   - Use "Clear Selection" button to reset user filter
+   - Leave empty to include all users
+5. Click 'Filter Elements' to search for matching elements.
+6. Review the results in the results box showing:
+   - Total elements found
+   - Summary grouped by user
+   - Detailed list with Element ID, Category, and modification info
+7. Click 'Create 3D View' to generate an isolated 3D view.
+8. The tool will:
+   - Create a new 3D isometric view named 'Isolated_ByDate_YYYYMMDD'
+   - Hide all elements except the matched ones
+   - Hide levels, grids, and other interfering elements
+   - Automatically activate the new view
+
+A summary report will be printed to the pyRevit output panel.
+
+Keyboard Shortcuts:
+- Ctrl+Click: Select multiple users in the filter list
+- Enter: Close dialog and create 3D view (when enabled)
+- Escape: Cancel and close dialog
+
+Troubleshooting:
+- If no elements are found, check that the 'LastModifiedBy' shared
+  parameter is applied to elements in your project.
+- The date format in 'LastModifiedBy' is expected to be in the format:
+  'username (Day, DD Mon HH:MM)' e.g., 'john.doe (Mon, 25 Mar 14:30)'
+- If only sheets/views are matched, they cannot be isolated in 3D views.
+  The tool will notify you and exclude them automatically.
+- Large models may take longer to load elements; the status indicator
+  will show "Loading..." during the process.
+_____________________________________________________________________
+Last update:
+- [04.03.2026] - 0.2 UI/UX improvements (Segoe UI font, Clear Selection button,
+  improved loading indicator, tooltip hints)
+- [04.03.2026] - 0.1 Initial release
+_____________________________________________________________________
+Author:  PrasKaa"""
 
 import clr
 clr.AddReference('System.Windows.Forms')
@@ -637,20 +689,21 @@ def main():
     uidoc.ActiveView = view_3d
 
     output = script.get_output()
+    linkify_view3d   = output.linkify(view_3d.Id,'3D Isolate View')
     output.print_md("# Isolate by Date — Complete")
-    output.print_md("**View Created:** `{}`".format(view_3d.Name))
-    output.print_md("**Elements Isolated:** {}".format(len(isolatable)))
-    if non_isolatable:
-        output.print_md("**Skipped (Sheet/View):** {}".format(len(non_isolatable)))
-    output.print_md("---")
-    output.print_md("### Isolated Elements")
-    for el in isolatable:
-        p = el.LookupParameter(PARAM_NAME)
-        val = p.AsString() if p and p.HasValue else "-"
-        cat_name = el.Category.Name if el.Category else "Unknown"
-        output.print_md("- **ID** `{}` | **Cat** {} | **{}** {}".format(
-            el.Id.IntegerValue, cat_name, PARAM_NAME, val
-        ))
+    output.print_md("**View Created:** `{}` --- {}".format(view_3d.Name,linkify_view3d))
+    # output.print_md("**Elements Isolated:** {}".format(len(isolatable)))
+    # if non_isolatable:
+    #     output.print_md("**Skipped (Sheet/View):** {}".format(len(non_isolatable)))
+    # output.print_md("---")
+    # output.print_md("### Isolated Elements")
+    # for el in isolatable:
+    #     p = el.LookupParameter(PARAM_NAME)
+    #     val = p.AsString() if p and p.HasValue else "-"
+    #     cat_name = el.Category.Name if el.Category else "Unknown"
+    #     output.print_md("- **ID** `{}` | **Cat** {} | **{}** {}".format(
+    #         el.Id.IntegerValue, cat_name, PARAM_NAME, val
+    #     ))
 
 
 if __name__ == '__main__':
