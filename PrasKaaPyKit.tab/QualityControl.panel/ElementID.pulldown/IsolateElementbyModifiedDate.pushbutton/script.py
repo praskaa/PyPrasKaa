@@ -689,20 +689,21 @@ def main():
     uidoc.ActiveView = view_3d
 
     output = script.get_output()
+    linkify_view3d   = output.linkify(view_3d.Id,'3D Isolate View')
     output.print_md("# Isolate by Date — Complete")
-    output.print_md("**View Created:** `{}`".format(view_3d.Name))
-    output.print_md("**Elements Isolated:** {}".format(len(isolatable)))
-    if non_isolatable:
-        output.print_md("**Skipped (Sheet/View):** {}".format(len(non_isolatable)))
-    output.print_md("---")
-    output.print_md("### Isolated Elements")
-    for el in isolatable:
-        p = el.LookupParameter(PARAM_NAME)
-        val = p.AsString() if p and p.HasValue else "-"
-        cat_name = el.Category.Name if el.Category else "Unknown"
-        output.print_md("- **ID** `{}` | **Cat** {} | **{}** {}".format(
-            el.Id.IntegerValue, cat_name, PARAM_NAME, val
-        ))
+    output.print_md("**View Created:** `{}` --- {}".format(view_3d.Name,linkify_view3d))
+    # output.print_md("**Elements Isolated:** {}".format(len(isolatable)))
+    # if non_isolatable:
+    #     output.print_md("**Skipped (Sheet/View):** {}".format(len(non_isolatable)))
+    # output.print_md("---")
+    # output.print_md("### Isolated Elements")
+    # for el in isolatable:
+    #     p = el.LookupParameter(PARAM_NAME)
+    #     val = p.AsString() if p and p.HasValue else "-"
+    #     cat_name = el.Category.Name if el.Category else "Unknown"
+    #     output.print_md("- **ID** `{}` | **Cat** {} | **{}** {}".format(
+    #         el.Id.IntegerValue, cat_name, PARAM_NAME, val
+    #     ))
 
 
 if __name__ == '__main__':
