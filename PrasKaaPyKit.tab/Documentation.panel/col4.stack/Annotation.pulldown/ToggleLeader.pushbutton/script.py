@@ -37,14 +37,24 @@ if not selection_ids:
     script.exit()
 
 tags = []
+spots = []
+
 for eid in selection_ids:
     el = doc.GetElement(eid)
     if isinstance(el, DB.IndependentTag):
         tags.append(el)
+    elif isinstance(el, DB.SpotDimension):
+        spots.append(el)
 
-if not tags:
+if not tags and not spots:
     script.exit()
 
-with revit.Transaction("Toggle Tag Leader"):
+with revit.Transaction("Toggle Leader"):
     for tag in tags:
         tag.HasLeader = not tag.HasLeader
+
+    for spot in spots:
+        param = spot.get_Parameter(DB.BuiltInParameter.SPOT_DIM_LEADER)
+        if param and not param.IsReadOnly:
+            current = param.AsInteger()
+            param.Set(0 if current == 1 else 1)
