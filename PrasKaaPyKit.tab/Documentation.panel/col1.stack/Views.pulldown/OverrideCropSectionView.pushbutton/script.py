@@ -101,84 +101,48 @@ def load_configuration():
     return CONFIG
 
 
-def get_views_on_sheets(doc, allowed_view_types=None):
-    """Get all views that are placed on sheets and match allowed types."""
+def get_all_views(doc, allowed_view_types=None):
     views = DB.FilteredElementCollector(doc)\
              .OfCategory(DB.BuiltInCategory.OST_Views)\
              .WhereElementIsNotElementType()\
              .ToElements()
 
-    views_on_sheet = []
+    result = []
     for view in views:
         try:
-            # Check if view is on sheet
-            sheet_number = view.get_Parameter(DB.BuiltInParameter.VIEWER_SHEET_NUMBER)
-            if sheet_number and sheet_number.AsString():
-                # Filter by view type if specified
-                if allowed_view_types:
-                    view_type_name = view.ViewType.ToString()
-                    if view_type_name in allowed_view_types:
-                        views_on_sheet.append(view)
-                else:
-                    views_on_sheet.append(view)
+            if view.IsTemplate:
+                continue
+            if allowed_view_types:
+                if view.ViewType.ToString() in allowed_view_types:
+                    result.append(view)
+            else:
+                result.append(view)
         except AttributeError:
-            # Skip views that don't have the required parameters
             continue
 
-    return views_on_sheet
+    return result
 
 
 def get_preselected_views(doc, uidoc, allowed_view_types=None):
-    """Get pre-selected views from Project Browser that match criteria.
-
-    This function captures views that are selected in the Project Browser
-    before running the script, similar to forms.select_sheets(use_selection=True).
-
-    Args:
-        doc: The active Revit document
-        uidoc: The active UI document for selection access
-        allowed_view_types: List of allowed view type names (e.g., ['Section', 'Detail'])
-
-    Returns:
-        List of DB.View objects that are:
-        - Currently selected in Project Browser
-        - Placed on sheets
-        - Match the allowed view types
-    """
     selected_ids = uidoc.Selection.GetElementIds()
-    preselected_views = []
     
+    if not selected_ids:
+        return []
+
+    preselected_views = []
     for elem_id in selected_ids:
         element = doc.GetElement(elem_id)
-        
+
         if not isinstance(element, DB.View):
             continue
-            
-        # Skip view templates
         if element.IsTemplate:
             continue
-        
-        # ✅ Cek apakah view ada di sheet via Viewport
-        viewports = DB.FilteredElementCollector(doc)\
-            .OfClass(DB.Viewport)\
-            .ToElements()
-        
-        is_on_sheet = any(vp.ViewId == element.Id for vp in viewports)
-        
-        if not is_on_sheet:
+        if allowed_view_types and element.ViewType.ToString() not in allowed_view_types:
             continue
-        
-        # Filter by view type
-        if allowed_view_types:
-            view_type_name = element.ViewType.ToString()
-            if view_type_name not in allowed_view_types:
-                continue
-        
-        preselected_views.append(element)
-    
-    return preselected_views
 
-    print(preselected_views)
+        preselected_views.append(element)
+
+    return preselected_views
 
 def create_override_settings(doc, config, action):
     """Create override graphic settings based on action and configuration."""
@@ -310,7 +274,7 @@ def main():
     config = load_configuration()
 
     # Get views on sheets
-    views_on_sheet = get_views_on_sheets(doc, config.get('allowed_view_types'))
+    views_on_sheet = get_all_views(doc, config.get('allowed_view_types'))
 
     if not views_on_sheet:
         view_types_str = ', '.join(config.get('allowed_view_types', ['All']))
@@ -375,44 +339,44 @@ def main():
     }
     failed_details = []
 
-    # # Setup progress bar
-    # total_views = len(selected_views)
-    # if config.get('show_progress_bar', True):
-    #     progress_bar = forms.ProgressBar(title=transaction_name, total=total_views, cancellable=True)
-    # else:
-    #     progress_bar = DummyProgressBar(title=transaction_name, total=total_views, cancellable=True)
+    # Setup progress bar
+    total_views = len(selected_views)
+    if config.get('show_progress_bar', True):
+        progress_bar = forms.ProgressBar(title=transaction_name, total=total_views, cancellable=True)
+    else:
+        progress_bar = DummyProgressBar(title=transaction_name, total=total_views, cancellable=True)
 
-    # with progress_bar as pb:
-    #     for i, view in enumerate(selected_views):
-    #         if pb.cancelled:
-    #             stats['cancelled'] = True
-    #             break
+    with progress_bar as pb:
+        for i, view in enumerate(selected_views):
+            if pb.cancelled:
+                stats['cancelled'] = True
+                break
 
-    #         success, error_message = process_single_view(doc, view, override, transaction_name, config)
+            success, error_message = process_single_view(doc, view, override, transaction_name, config)
 
-    #         if success:
-    #             stats['processed'] += 1
-    #             # View processed successfully - no console output needed
-    #         elif error_message == "No crop box found":
-    #             stats['errors'] += 1
-    #             failed_details.append("{} ({})".format(view.Name, error_message))
-    #             # Failed to find crop box - details will be shown in final toast
-    #         elif "not in allowed types" in error_message:
-    #             stats['skipped'] += 1
-    #             # View type not allowed - will be summarized in final toast
-    #         else:
-    #             stats['errors'] += 1
-    #             failed_details.append("{} ({})".format(view.Name, error_message))
-    #             # Processing error - details will be shown in final toast
+            if success:
+                stats['processed'] += 1
+                # View processed successfully - no console output needed
+            elif error_message == "No crop box found":
+                stats['errors'] += 1
+                failed_details.append("{} ({})".format(view.Name, error_message))
+                # Failed to find crop box - details will be shown in final toast
+            elif "not in allowed types" in error_message:
+                stats['skipped'] += 1
+                # View type not allowed - will be summarized in final toast
+            else:
+                stats['errors'] += 1
+                failed_details.append("{} ({})".format(view.Name, error_message))
+                # Processing error - details will be shown in final toast
 
-    #         # Safely update progress bar, handling potential UI threading issues
-    #         try:
-    #             if not pb.cancelled:
-    #                 pb.update_progress(i + 1, total_views)
-    #         except (AttributeError, Exception):
-    #             # Progress bar might be disposed or have threading issues
-    #             # Continue processing without progress updates
-    #             pass
+            # Safely update progress bar, handling potential UI threading issues
+            try:
+                if not pb.cancelled:
+                    pb.update_progress(i + 1, total_views)
+            except (AttributeError, Exception):
+                # Progress bar might be disposed or have threading issues
+                # Continue processing without progress updates
+                pass
 
     # Display results
     # display_results(transaction_name, stats, failed_details, config, action, success_message_verb)
