@@ -151,3 +151,5 @@ lib/smart_tag_config.json
 #Folder
 plans/
 logic-library/
+unused-scripts/
+bin/
