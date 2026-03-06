@@ -1,3 +1,4 @@
 # Panel Layout Configuration
 layout:
-  - SetNumberLoadPlan
+  - LoadPlanManager
+  - LegendLoadPlan
