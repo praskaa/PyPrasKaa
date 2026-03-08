@@ -41,7 +41,7 @@ layout:
   - EXR
   - QualityControl
   - Utilities
-  - Rebar
+  - Development
   - Automation
 
 # Engine Configuration
