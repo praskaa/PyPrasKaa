@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-'''
-Version: 1.0
-Date    = 04.03.2026
+__title__ = "Open CSV Tempalate"
+__author__ = "PrasKaa"
+__version__ = 'Version: 1.1'
+__doc__ ="""Version: 1.1
+Date    = 09.03.2026
 _____________________________________________________________________
 Description:
 Opens the Excel template file for creating sheets from CSV. The template
@@ -22,30 +24,50 @@ Notes:
 
 _____________________________________________________
 Last update:
+- 09.03.2026 - 1.1 Fixed path calculation, removed unused imports, fixed logic
 - 04.03.2026 - 1.0 Initial release
 _____________________________________________________________________
 Author:  PrasKaa
-'''
+"""
 
-# import libraries
-import clr
+# Standard library
 import os
-# import pyrevit libraries
+
+# pyRevit libraries
 from pyrevit import forms, script
 
-# get bin path
-curPath = script.get_script_path()
-remPath = curPath.split('guRoo.tab')[0]
-temPath = remPath + r'bin\Templates'
 
-# Load the path
-try:
-	# Return outcome to user
-	form_message = "1. Open the Excel template." + "\n" + "2. Save As CSV to another location." + "\n" + "3. Populate with numbers/names." + "\n" + "4. Run the import sheets tool."
-	checkForm = forms.alert(form_message, title= "Instructions", warn_icon=False)
-except:
-	print('The path was not found.')
+def main():
+    """Open the CSV template file."""
+    # Get script path and calculate extension root
+    # Path structure: .../PrasKaaPyKitv2.extension/PrasKaaPyKit.tab/.../CsvTemplate.pushbutton/script.py
+    script_path = script.get_script_path()
+    extension_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_path)))))
+    
+    # Build template path using os.path.join for cross-platform compatibility
+    template_path = os.path.join(extension_root, 'bin', 'Templates', 'PrasKaa Import Sheets.xlsx')
+    
+    # Check if template exists
+    if not os.path.exists(template_path):
+        forms.alert(
+            "Template file not found at:\n{}".format(template_path),
+            title="Error",
+            warn_icon=True
+        )
+        return
+    
+    # Show instructions to user
+    form_message = (
+        "1. Excel template will open automatically.\n"
+        "2. Save As CSV to another location.\n"
+        "3. Populate with sheet numbers and names.\n"
+        "4. Run the import sheets tool."
+    )
+    forms.alert(form_message, title="Instructions", warn_icon=False)
+    
+    # Open the template file
+    os.startfile(template_path)
 
-# Open the path
-if checkForm:
-	os.startfile(temPath)
+
+if __name__ == '__main__':
+    main()
