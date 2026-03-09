@@ -153,3 +153,5 @@ plans/
 logic-library/
 # Development
 PrasKaaPyKit.tab/Rebar.panel/WIP.pulldown/Dev Diary.pushbutton/
+unused-scripts/
+bin/

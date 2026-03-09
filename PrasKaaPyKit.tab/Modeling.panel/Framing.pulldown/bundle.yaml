@@ -1,6 +1,7 @@
 # Pulldown Layout Configuration
 layout:
   - Set Slope Beam
+  - DisallowAllowJoin
 # Engine Configuration
 engine:
   clean: true

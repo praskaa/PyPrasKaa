@@ -36,12 +36,12 @@ layout:
   - Modeling
   - Documentation
   - CAD
-  - Line Color
+  - Colorizers
   - Templates
   - EXR
   - QualityControl
   - Utilities
-  - Rebar
+  - Development
   - Automation
 
 # Engine Configuration
