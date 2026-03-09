@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Matching Dimension Column v2 - Transfer Column Type based on Geometry Intersection
-"""
-
-__title__ = 'Matching Dimension Column v2'
-__author__ = 'PrasKaa Team'
-__doc__ = "Matches columns by geometry and transfers family types from a linked model."
+__title__ = 'Matching Dimension from EXR Geometry'
+__author__ = 'PrasKaa'
+__doc__ = "Matches beams by geometry intersection and transfers family types from linked EXR model."
 
 import gc
 import csv
@@ -16,323 +12,481 @@ from datetime import datetime
 from Autodesk.Revit.DB import (
     FilteredElementCollector, BuiltInCategory, RevitLinkInstance, ElementId,
     Solid, BooleanOperationsUtils, BooleanOperationsType, Transaction,
-    TransactionStatus, View, ViewType, Element, Transform, GeometryInstance,
-    FamilySymbol, Family, BuiltInParameter, JoinGeometryUtils, Options
+    TransactionStatus, ViewType, View, GeometryInstance, FamilySymbol,
+    BuiltInParameter, JoinGeometryUtils, SolidUtils, XYZ
 )
-
+from Autodesk.Revit.UI import TaskDialog, TaskDialogCommonButtons
 from pyrevit import revit, forms, script
 from pyrevit.forms import ProgressBar
 
-# Import local library
-from lib import MatchingConfig, ConfigDialog
+# --- Config ---
+SCRIPT_SUBFOLDER = "Matching Framing"
+BATCH_SIZE = 50
+EXPORT_CSV = True
 
-# Setup
+# CSV output: ~/Documents/PrasKaaPyKit/Matching Framing/
+CSV_BASE_DIR = os.path.join(os.path.expanduser("~"), "Documents", "PrasKaaPyKit")
+
 doc = revit.doc
 uidoc = revit.uidoc
-logger = script.get_logger()
 output = script.get_output()
-config = MatchingConfig()
 
-# Revit API Options for geometry extraction
+# Geometry options — prefer active view, fallback to any 3D view
 app = doc.Application
-options = app.Create.NewGeometryOptions()
-active_view = doc.ActiveView
-if active_view:
-    options.View = active_view
+geo_opts = app.Create.NewGeometryOptions()
+if doc.ActiveView:
+    geo_opts.View = doc.ActiveView
 else:
-    view_collector = FilteredElementCollector(doc).OfClass(View)
-    for v in view_collector:
+    for v in FilteredElementCollector(doc).OfClass(View):
         if not v.IsTemplate and v.ViewType == ViewType.ThreeD:
-            options.View = v
+            geo_opts.View = v
             break
 
+
+# ─── Geometry ──────────────────────────────────────────────────────────────────
+
 def get_solid(element):
-    """Extracts the solid geometry from a given element."""
-    geom_element = element.get_Geometry(options)
-    if not geom_element:
+    geom = element.get_Geometry(geo_opts)
+    if not geom:
         return None
-
     solids = []
-    for geom_obj in geom_element:
-        if isinstance(geom_obj, Solid) and geom_obj.Volume > 0:
-            solids.append(geom_obj)
-        elif isinstance(geom_obj, GeometryInstance):
-            instance_geom = geom_obj.GetInstanceGeometry()
-            if instance_geom:
-                for inst_obj in instance_geom:
-                    if isinstance(inst_obj, Solid) and inst_obj.Volume > 0:
-                        solids.append(inst_obj)
-
+    for obj in geom:
+        if isinstance(obj, Solid) and obj.Volume > 0:
+            solids.append(obj)
+        elif isinstance(obj, GeometryInstance):
+            for inst_obj in obj.GetInstanceGeometry() or []:
+                if isinstance(inst_obj, Solid) and inst_obj.Volume > 0:
+                    solids.append(inst_obj)
     if not solids:
         return None
-
-    if len(solids) > 1:
-        main_solid = solids[0]
-        for s in solids[1:]:
-            try:
-                main_solid = BooleanOperationsUtils.ExecuteBooleanOperation(main_solid, s, BooleanOperationsType.Union)
-            except Exception as e:
-                logger.warning("Could not unite solids for element {}. Error: {}".format(element.Id, e))
-        return main_solid
-    return solids[0]
-
-def select_linked_model():
-    """Prompts the user to select a linked model."""
-    link_instances = FilteredElementCollector(doc).OfClass(RevitLinkInstance).ToElements()
-    if not link_instances:
-        forms.alert("No Revit links found.", exitscript=True)
-
-    link_dict = {link.Name: link for link in link_instances}
-    selected_link_name = forms.SelectFromList.show(
-        sorted(link_dict.keys()),
-        title='Select Source Linked Model',
-        button_name='Select Link'
-    )
-    if not selected_link_name:
-        forms.alert("No link selected.", exitscript=True)
-
-    selected_link = link_dict[selected_link_name]
-    link_doc = selected_link.GetLinkDocument()
-    if not link_doc:
-        forms.alert("Could not access the linked document.", exitscript=True)
-
-    return link_doc, selected_link
-
-def collect_columns(document, is_host=True):
-    """Collects structural columns from a document."""
-    if is_host:
-        selection_ids = uidoc.Selection.GetElementIds()
-        if selection_ids:
-            columns = [doc.GetElement(id) for id in selection_ids if doc.GetElement(id).Category and int(doc.GetElement(id).Category.Id) == int(BuiltInCategory.OST_StructuralColumns)]
-            if columns:
-                return columns
-
-    return FilteredElementCollector(document).OfCategory(BuiltInCategory.OST_StructuralColumns).WhereElementIsNotElementType().ToElements()
-
-def find_best_match(host_solid, linked_columns_dict):
-    """Finds the best matching linked column for a host column solid."""
-    if not host_solid:
-        return None
-
-    best_match = None
-    max_intersection_volume = 0.0
-
-    for linked_id, linked_data in linked_columns_dict.items():
-        linked_solid = linked_data['solid']
-        if not linked_solid:
-            continue
-
+    result = solids[0]
+    for s in solids[1:]:
         try:
-            intersection_solid = BooleanOperationsUtils.ExecuteBooleanOperation(host_solid, linked_solid, BooleanOperationsType.Intersect)
-            if intersection_solid and intersection_solid.Volume > max_intersection_volume:
-                max_intersection_volume = intersection_solid.Volume
-                best_match = linked_data['element']
-        except Exception as e:
-            logger.debug("Boolean op failed between host and linked {}: {}".format(linked_id, e))
-            continue
+            result = BooleanOperationsUtils.ExecuteBooleanOperation(
+                result, s, BooleanOperationsType.Union)
+        except Exception:
+            pass
+    return result
 
-    return best_match
 
-def get_type_info(column):
-    """Retrieves type information for a column."""
+# Tolerance in feet — tweak jika masih ada unmatched
+# 0.05 ~ 1.5cm | 0.1 ~ 3cm | 0.2 ~ 6cm
+INTERSECTION_TOLERANCE = 0.2
+
+
+def _expand_solid(solid, tolerance):
+    """Expand solid by moving each face outward by tolerance amount.
+    Used as fallback when direct intersection returns no volume.
+    """
     try:
-        type_id = column.GetTypeId()
-        if type_id:
-            col_type = column.Document.GetElement(type_id)
-            if col_type and hasattr(col_type, 'Family'):
-                return {
-                    'type_name': col_type.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString(),
-                    'family_name': col_type.Family.Name,
-                    'family_symbol': col_type
-                }
-    except Exception as e:
-        logger.debug("Failed to get type info for column {}: {}".format(column.Id, e))
-    return None
+        # SolidUtils.CreateTransformed with scale — simple approximation via BoundingBox inflation
+        # Revit does not have native inflate, so we use the solid as-is with a small offset check
+        # Instead: try Boolean with a slightly scaled copy via transform
+        from Autodesk.Revit.DB import Transform
+        center = solid.ComputeCentroid()
+        # Scale transform slightly outward from centroid
+        scale = 1.0 + tolerance  # e.g. 1.05 = 5% larger
+        t = Transform.Identity
+        t.Origin = center.Multiply(1 - scale)
+        t.BasisX = XYZ(scale, 0, 0)
+        t.BasisY = XYZ(0, scale, 0)
+        t.BasisZ = XYZ(0, 0, scale)
+        return SolidUtils.CreateTransformed(solid, t)
+    except Exception:
+        return solid
 
-def find_matching_type_in_host(host_doc, family_name, type_name):
-    """Finds a matching family type in the host document."""
-    all_symbols = FilteredElementCollector(host_doc).OfClass(FamilySymbol).WhereElementIsElementType().ToElements()
-    for symbol in all_symbols:
+
+def find_best_match(host_solid, linked_beams_dict):
+    """Find linked beam with largest intersection volume.
+    Falls back to tolerance-expanded solid if direct intersection fails.
+    """
+    best, max_vol = None, 0.0
+
+    # Pass 1: direct intersection
+    no_intersect = []
+    for beam_id, data in linked_beams_dict.items():
+        if not data['solid']:
+            continue
         try:
-            if symbol.Family.Name == family_name and symbol.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString() == type_name:
-                return symbol
-        except:
-            continue
-    return None
+            inter = BooleanOperationsUtils.ExecuteBooleanOperation(
+                host_solid, data['solid'], BooleanOperationsType.Intersect)
+            if inter and inter.Volume > max_vol:
+                max_vol = inter.Volume
+                best = data['element']
+            elif not inter or inter.Volume == 0:
+                no_intersect.append(data)
+        except Exception:
+            no_intersect.append(data)
 
-def disable_element_joins(doc, element):
-    """Disables all joins for a given element."""
-    joined_ids = JoinGeometryUtils.GetJoinedElements(doc, element)
-    for joined_id in joined_ids:
-        joined_element = doc.GetElement(joined_id)
-        if JoinGeometryUtils.AreElementsJoined(doc, element, joined_element):
-            JoinGeometryUtils.UnjoinGeometry(doc, element, joined_element)
+    if best:
+        return best
 
-def process_batch(matches_batch):
-    """Processes a batch of type transfers (transaction handled externally)."""
-    successful = []
-    failed = []
-    for host_column, linked_column in matches_batch:
-        if config.get('disable_joins'):
-            disable_element_joins(doc, host_column)
-
-        linked_type_info = get_type_info(linked_column)
-        host_type_info = get_type_info(host_column)
-
-        if not linked_type_info:
-            failed.append((host_column, linked_column, host_type_info, None))
-            continue
-
-        target_type = find_matching_type_in_host(doc, linked_type_info['family_name'], linked_type_info['type_name'])
-        if target_type:
+    # Pass 2: expand host solid and retry
+    try:
+        expanded_host = _expand_solid(host_solid, INTERSECTION_TOLERANCE)
+        for data in no_intersect:
             try:
-                host_column.ChangeTypeId(target_type.Id)
-                successful.append((host_column, linked_column, host_type_info, linked_type_info))
-            except Exception as e:
-                logger.error("Failed to change type for {}: {}".format(host_column.Id, e))
-                failed.append((host_column, linked_column, host_type_info, linked_type_info))
-        else:
-            failed.append((host_column, linked_column, host_type_info, linked_type_info))
-    return successful, failed
-
-def export_to_csv(successful, failed, unmatched, doc_title):
-    """Exports the results to a CSV file."""
-    if not config.get('export_results_to_csv'):
-        return None
-
-    output_dir = config.get('csv_base_dir')
-    if config.get('csv_create_folders') and not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = "MatchingColumn_v2_{}_{}.csv".format(doc_title, timestamp)
-    filepath = os.path.join(output_dir, filename)
-
-    try:
-        with io.open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(['Status', 'Host Column ID', 'Old Type', 'Linked Column ID', 'New Type', 'Family Name'])
-
-            for hc, lc, old_info, new_info in successful:
-                writer.writerow(['SUCCESS', hc.Id, old_info['type_name'] if old_info else 'N/A', lc.Id, new_info['type_name'], new_info['family_name']])
-            for hc, lc, old_info, new_info in failed:
-                writer.writerow(['FAIL', hc.Id, old_info['type_name'] if old_info else 'N/A', lc.Id if lc else 'N/A', new_info['type_name'] if new_info else 'N/A', new_info['family_name'] if new_info else 'N/A'])
-            for hc in unmatched:
-                writer.writerow(['UNMATCHED', hc.Id, get_type_info(hc)['type_name'] if get_type_info(hc) else 'N/A', '', '', ''])
-        return filepath
-    except Exception as e:
-        logger.error("Failed to export CSV: {}".format(e))
-        return None
-
-def main():
-    """Main script execution."""
-    output_lines = []
-
-    # Show config dialog if shift is pressed
-    try:
-        if script.get_shift_key_state():
-            dialog = ConfigDialog(config)
-            dialog.ShowDialog()
-    except AttributeError:
-        # Fallback for older pyRevit versions that don't have get_shift_key_state
+                inter = BooleanOperationsUtils.ExecuteBooleanOperation(
+                    expanded_host, data['solid'], BooleanOperationsType.Intersect)
+                if inter and inter.Volume > max_vol:
+                    max_vol = inter.Volume
+                    best = data['element']
+            except Exception:
+                pass
+    except Exception:
         pass
 
-    output_lines.append("# Matching Dimension Column v2")
-    output_lines.append("---")
+    if best:
+        return best
 
-    link_doc, selected_link = select_linked_model()
-    output_lines.append("Linked Model: **{}**".format(link_doc.Title))
+    # Pass 3: expand BOTH host and linked solids
+    try:
+        expanded_host = _expand_solid(host_solid, INTERSECTION_TOLERANCE)
+        for data in no_intersect:
+            try:
+                expanded_linked = _expand_solid(data['solid'], INTERSECTION_TOLERANCE)
+                inter = BooleanOperationsUtils.ExecuteBooleanOperation(
+                    expanded_host, expanded_linked, BooleanOperationsType.Intersect)
+                if inter and inter.Volume > max_vol:
+                    max_vol = inter.Volume
+                    best = data['element']
+            except Exception:
+                pass
+    except Exception:
+        pass
 
-    host_columns = collect_columns(doc, is_host=True)
-    linked_columns = collect_columns(link_doc, is_host=False)
+    return best
 
-    if not host_columns or not linked_columns:
-        forms.alert("No columns found in host or linked model.", exitscript=True)
 
-    output_lines.append("Host Columns: **{}** | Linked Columns: **{}**".format(len(host_columns), len(linked_columns)))
-    output_lines.append("---")
+# ─── Type Info (cross-document safe) ───────────────────────────────────────────
 
-    output_lines.append("## Processing Geometry...")
-    linked_columns_dict = {c.Id: {'element': c, 'solid': get_solid(c)} for c in linked_columns}
-    output_lines.append("✓ Linked column geometry cached.")
+def _safe_name(elem):
+    """Get element name via parameters — avoids AttributeError on linked-doc FamilySymbol (Revit 2024+)."""
+    for bip in [BuiltInParameter.SYMBOL_NAME_PARAM, BuiltInParameter.ALL_MODEL_TYPE_NAME]:
+        try:
+            p = elem.get_Parameter(bip)
+            if p and p.HasValue:
+                val = p.AsString()
+                if val:
+                    return val
+        except Exception:
+            pass
+    try:
+        return elem.Name
+    except Exception:
+        return None
 
-    output_lines.append("## Finding Matches...")
-    matches = []
-    unmatched = []
 
-    for hc in host_columns:
-        host_solid = get_solid(hc)
-        best_match = find_best_match(host_solid, linked_columns_dict)
-        if best_match:
-            matches.append((hc, best_match))
-        else:
-            unmatched.append(hc)
-    output_lines.append("✓ Matching complete. Found **{}** matches.".format(len(matches)))
-    output_lines.append("---")
+def _safe_family_name(beam, btype):
+    """Get family name via FamilySymbol.Family then instance parameters."""
+    try:
+        if hasattr(btype, 'Family') and btype.Family:
+            return btype.Family.Name
+    except Exception:
+        pass
+    for bip in [BuiltInParameter.ELEM_FAMILY_PARAM, BuiltInParameter.ALL_MODEL_FAMILY_NAME]:
+        try:
+            p = beam.get_Parameter(bip)
+            if p and p.HasValue:
+                val = p.AsString()
+                if val:
+                    return val
+        except Exception:
+            pass
+    return "Unknown"
 
-    output_lines.append("## Transferring Column Types...")
-    batch_size = config.get('batch_size')
-    num_batches = (len(matches) + batch_size - 1) // batch_size
-    successful_transfers = []
-    failed_transfers = []
 
-    # Process transfers with progress bar inside transaction (like ClearColumnComments)
-    with Transaction(doc, 'Transfer Column Type Marks and Marks v2') as t:
-        t.Start()
+def get_type_info(beam):
+    """Returns {'type_name', 'family_name'} or None. Works for both host and linked beams."""
+    try:
+        type_id = beam.GetTypeId()
+        btype = beam.Document.GetElement(type_id)
+        if not btype:
+            return None
+        type_name = _safe_name(btype)
+        if not type_name:
+            return None
+        family_name = _safe_family_name(beam, btype)
+        return {'type_name': type_name, 'family_name': family_name}
+    except Exception:
+        return None
 
-        with ProgressBar(title='Transferring Types (Batch {value} of {max_value})',
-                        cancellable=False) as pb:
 
+def find_family_symbol(host_doc, family_name, type_name):
+    """Returns matching FamilySymbol. Pass 1: exact family+type. Pass 2: type name only."""
+    symbols = FilteredElementCollector(host_doc).OfClass(FamilySymbol).ToElements()
+    # Pass 1: exact family name + type name
+    for sym in symbols:
+        try:
+            sym_type = _safe_name(sym)
+            sym_family = sym.Family.Name if (hasattr(sym, 'Family') and sym.Family) else None
+            if sym_family == family_name and sym_type == type_name:
+                return sym
+        except Exception:
+            pass
+    # Pass 2: type name only (handles different family names between host and linked)
+    for sym in symbols:
+        try:
+            sym_type = _safe_name(sym)
+            if sym_type == type_name:
+                return sym
+        except Exception:
+            pass
+    return None
+
+
+# ─── Collection ────────────────────────────────────────────────────────────────
+
+def collect_host_beams():
+    sel_ids = uidoc.Selection.GetElementIds()
+    if sel_ids:
+        beams = []
+        for i in sel_ids:
+            elem = doc.GetElement(i)
+            if elem and elem.Category:
+                beams.append(elem)
+        if not beams:
+            forms.alert("Pilih elemen Structural Framing terlebih dahulu.", exitscript=True)
+        return beams
+    return list(FilteredElementCollector(doc)
+                .OfCategory(BuiltInCategory.OST_StructuralColumns)
+                .WhereElementIsNotElementType().ToElements())
+
+
+def collect_linked_beams(link_doc):
+    return list(FilteredElementCollector(link_doc)
+                .OfCategory(BuiltInCategory.OST_StructuralColumns)
+                .WhereElementIsNotElementType().ToElements())
+
+
+def select_linked_model():
+    links = FilteredElementCollector(doc).OfClass(RevitLinkInstance).ToElements()
+    if not links:
+        forms.alert("Tidak ada Revit link.", exitscript=True)
+    link_dict = {l.Name: l for l in links}
+    name = forms.SelectFromList.show(sorted(link_dict), title='Pilih Linked EXR Model',
+                                     button_name='Select', multiselect=False)
+    link = link_dict.get(name) if name else None
+    if not link:
+        forms.alert("Tidak ada link yang dipilih.", exitscript=True)
+    link_doc = link.GetLinkDocument()
+    if not link_doc:
+        forms.alert("Tidak dapat mengakses dokumen link.", exitscript=True)
+    return link_doc
+
+
+# ─── Transfer ──────────────────────────────────────────────────────────────────
+
+def unjoin_beam(beam):
+    for jid in JoinGeometryUtils.GetJoinedElements(doc, beam):
+        try:
+            j = doc.GetElement(jid)
+            if j and JoinGeometryUtils.AreElementsJoined(doc, beam, j):
+                JoinGeometryUtils.UnjoinGeometry(doc, beam, j)
+        except Exception:
+            pass
+
+
+def set_comment(beam, text):
+    p = beam.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
+    if p and not p.IsReadOnly:
+        p.Set(text)
+
+
+def transfer_type(host_beam, linked_info):
+    """Returns (success, old_info, new_info, reason)."""
+    if not linked_info:
+        return False, None, None, "No type info from linked beam"
+
+    old_info = get_type_info(host_beam)
+    type_name = linked_info['type_name']
+
+    # Already correct — no change needed
+    if old_info and old_info['type_name'] == type_name:
+        set_comment(host_beam, "Dimension Matched (Already Correct)")
+        return True, old_info, linked_info, ""
+
+    # Find target symbol in host doc (by host family first, then type name only)
+    host_family = old_info['family_name'] if old_info else linked_info['family_name']
+    sym = find_family_symbol(doc, host_family, type_name)
+
+    if sym:
+        unjoin_beam(host_beam)
+        host_beam.ChangeTypeId(sym.Id)
+        set_comment(host_beam, "Change Dimension Type")
+        return True, old_info, linked_info, ""
+
+    reason = "Type '{}' not found in family '{}'".format(type_name, host_family)
+    return False, old_info, linked_info, reason
+
+
+def process_batch(matches_batch):
+    successful, failed = [], []
+    for host_beam, linked_beam in matches_batch:
+        try:
+            linked_info = get_type_info(linked_beam)
+            ok, old_info, new_info, reason = transfer_type(host_beam, linked_info)
+            (successful if ok else failed).append((host_beam, linked_beam, old_info, new_info, reason))
+        except Exception as e:
+            failed.append((host_beam, linked_beam, None, None, str(e)))
+    return successful, failed
+
+
+# ─── CSV Export ────────────────────────────────────────────────────────────────
+
+def export_csv(successful, failed, unmatched):
+    try:
+        folder = os.path.join(CSV_BASE_DIR, SCRIPT_SUBFOLDER)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        safe_title = "".join(c for c in doc.Title if c.isalnum() or c in (" ", "-", "_")).strip()
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = "MatchingDimension_{}_{}_{}.csv".format(
+            safe_title,
+            ts[:8],   # date: 20260225
+            ts[9:]    # time: 122226 (strip the underscore between date and time)
+        )
+        path = os.path.join(folder, filename)
+        with io.open(path, 'w', newline='', encoding='utf-8') as f:
+            w = csv.writer(f)
+            w.writerow(['Category', 'Host ID', 'Old Type', 'New Type', 'Linked ID', 'Family', 'Status', 'Reason'])
+            for hb, lb, oi, ni, reason in successful:
+                w.writerow(['Successful', hb.Id,
+                            oi['type_name'] if oi else 'N/A',
+                            ni['type_name'] if ni else 'N/A',
+                            lb.Id, ni['family_name'] if ni else 'N/A', 'SUCCESS', reason])
+            for hb, lb, oi, ni, reason in failed:
+                w.writerow(['Failed', hb.Id,
+                            oi['type_name'] if oi else 'N/A',
+                            ni['type_name'] if ni else 'N/A',
+                            lb.Id if lb else 'N/A',
+                            ni['family_name'] if ni else 'N/A', 'FAILED', reason])
+            for b in unmatched:
+                try:
+                    bname = _safe_name(b) or str(b.Id)
+                except Exception:
+                    bname = str(b.Id)
+                w.writerow(['Unmatched', b.Id, bname, 'N/A', 'N/A', 'N/A', 'UNMATCHED', 'No geometric match'])
+        return path
+    except Exception as e:
+        print("CSV Export gagal: {}".format(e))
+        return None
+
+
+# ─── Main ──────────────────────────────────────────────────────────────────────
+
+def main():
+    link_doc = select_linked_model()
+    host_beams = collect_host_beams()
+    linked_beams = collect_linked_beams(link_doc)
+
+    if not host_beams or not linked_beams:
+        forms.alert("Tidak ada elemen ditemukan.", exitscript=True)
+
+    # Cache linked beam solids
+    linked_dict = {}
+    with ProgressBar(title='Processing Linked Geometry ({value}/{max_value})', cancellable=True) as pb:
+        for i, beam in enumerate(linked_beams):
+            if pb.cancelled:
+                forms.alert("Dibatalkan.", exitscript=True)
+            solid = get_solid(beam)
+            if solid:
+                linked_dict[beam.Id] = {'element': beam, 'solid': solid}
+            pb.update_progress(i + 1, len(linked_beams))
+
+    # Match host beams to linked beams by geometry intersection
+    # linked beam dapat dipakai lebih dari satu host beam (kasus duplikat/overlap)
+    matches, unmatched = [], []
+    matched_linked = {}  # linked_beam.Id -> linked_beam, untuk reuse pada duplikat
+
+    with ProgressBar(title='Finding Matches ({value}/{max_value})', cancellable=True) as pb:
+        for i, beam in enumerate(host_beams):
+            if pb.cancelled:
+                forms.alert("Dibatalkan.", exitscript=True)
+            host_solid = get_solid(beam)
+            match = find_best_match(host_solid, linked_dict) if host_solid else None
+
+            if not match and host_solid:
+                # Fallback: cari linked beam yang paling banyak overlap dengan host beam ini
+                # menggunakan linked beam yang sudah pernah dipakai (kasus duplikat host)
+                best_reuse, max_vol = None, 0.0
+                for linked_id, linked_beam in matched_linked.items():
+                    linked_solid = linked_dict.get(linked_id, {}).get('solid')
+                    if not linked_solid:
+                        continue
+                    try:
+                        expanded_host = _expand_solid(host_solid, INTERSECTION_TOLERANCE)
+                        expanded_linked = _expand_solid(linked_solid, INTERSECTION_TOLERANCE)
+                        inter = BooleanOperationsUtils.ExecuteBooleanOperation(
+                            expanded_host, expanded_linked, BooleanOperationsType.Intersect)
+                        if inter and inter.Volume > max_vol:
+                            max_vol = inter.Volume
+                            best_reuse = linked_beam
+                    except Exception:
+                        pass
+                if best_reuse:
+                    match = best_reuse
+
+            if match:
+                matched_linked[match.Id] = match
+                matches.append((beam, match))
+            else:
+                unmatched.append(beam)
+
+            pb.update_progress(i + 1, len(host_beams))
+
+    if not matches:
+        forms.alert("Tidak ada beam yang cocok ditemukan.", exitscript=True)
+
+    # Transfer types in a single transaction
+    successful, failed = [], []
+    num_batches = (len(matches) + BATCH_SIZE - 1) // BATCH_SIZE
+    t = Transaction(doc, 'Transfer Beam Types')
+    t.Start()
+
+    try:
+        for beam in unmatched:
+            set_comment(beam, "Unmatched")
+
+        with ProgressBar(title='Transferring Types ({value}/{max_value})', cancellable=True) as pb:
+            processed = 0
             for i in range(num_batches):
-                start = i * batch_size
-                end = start + batch_size
-                batch = matches[start:end]
-                if config.get('enable_progress_detail'):
-                    output_lines.append("Processing Batch {}/{} ({} elements)".format(i + 1, num_batches, len(batch)))
+                if pb.cancelled:
+                    t.RollBack()
+                    forms.alert("Dibatalkan. Semua perubahan di-rollback.", exitscript=True)
+                batch = matches[i * BATCH_SIZE:(i + 1) * BATCH_SIZE]
+                s, f = process_batch(batch)
+                successful.extend(s)
+                failed.extend(f)
+                processed += len(batch)
+                pb.update_progress(processed, len(matches))
 
-                successful, failed = process_batch(batch)
-                successful_transfers.extend(successful)
-                failed_transfers.extend(failed)
-                pb.update_progress(i + 1, num_batches)
+        if t.Commit() != TransactionStatus.Committed:
+            forms.alert("Gagal menyimpan perubahan.", exitscript=True)
 
-        # Print results BEFORE commit
-        output_lines.append("---")
-        output_lines.append("## Results Summary")
-        output_lines.append("- Successful Transfers: **{}**".format(len(successful_transfers)))
-        output_lines.append("- Failed Transfers: **{}**".format(len(failed_transfers)))
-        output_lines.append("- Unmatched Columns: **{}**".format(len(unmatched)))
-
-        csv_path = export_to_csv(successful_transfers, failed_transfers, unmatched, doc.Title)
-        if csv_path:
-            output_lines.append("Full results exported to: `{}`".format(csv_path))
-
-        output_lines.append("---")
-        output_lines.append("\\n💾 **Saving changes...**")
-
-        status = t.Commit()
-
-        if status != TransactionStatus.Committed:
-            logger.warning("Transaction was not committed successfully")
-            forms.alert("Failed to update column marks. Please try again.", exitscript=True)
-
-    # Final output - only print once after transaction is complete
-    for line in output_lines:
-        output.print_md(line)
-
-    if config.get('cleanup_geometry_cache'):
-        del linked_columns_dict
+    except Exception as e:
+        t.RollBack()
+        forms.alert("Error: {}. Semua perubahan di-rollback.".format(e), exitscript=True)
+    finally:
+        linked_dict.clear()
         gc.collect()
-        output.print_md("✓ Geometry cache cleared.")
 
-    alert_message = "Column Type Transfer Complete!\n\n"
-    alert_message += "Successful: {} columns\n".format(len(successful_transfers))
-    alert_message += "Failed: {} columns\n".format(len(failed_transfers))
-    alert_message += "Unmatched: {} columns\n".format(len(unmatched))
+    csv_path = export_csv(successful, failed, unmatched) if EXPORT_CSV else None
 
+    output.print_md("## Results Summary")
+    output.print_md("- **Matched:** {}".format(len(matches)))
+    output.print_md("- **Successful:** {}".format(len(successful)))
+    output.print_md("- **Failed:** {}".format(len(failed)))
+    output.print_md("- **Unmatched:** {}".format(len(unmatched)))
     if csv_path:
-        alert_message += "\n\nDetailed results: {}".format(os.path.basename(csv_path))
+        output.print_md("- **CSV:** {}".format(csv_path))
 
-    forms.alert(alert_message, title="Transfer Complete")
+
+    TaskDialog.Show("Selesai",
+                    "Berhasil: {} | Gagal: {} | Unmatched: {}".format(
+                        len(successful), len(failed), len(unmatched)),
+                    TaskDialogCommonButtons.Ok)
+
 
 if __name__ == '__main__':
     main()
