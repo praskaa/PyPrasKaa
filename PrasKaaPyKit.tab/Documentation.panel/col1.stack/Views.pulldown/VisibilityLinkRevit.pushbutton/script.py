@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-Version: 1.0
-Date    = 04.03.2026
+Version: 1.1
+Date    = 09.03.2026
 _____________________________________________________________________
 Description:
 Hides Revit link instances in selected views or view templates. Works with
@@ -22,6 +22,7 @@ Notes:
 
 _____________________________________________________
 Last update:
+- 09.03.2026 - 1.1 Fix: lt.get_Name -> lt.Name (IronPython property access)
 - 04.03.2026 - 1.0 Initial release
 _____________________________________________________________________
 Author:  PrasKaa
@@ -44,7 +45,9 @@ from Snippets._worksharing import (
 doc = revit.doc
 
 # Kumpulkan Link Types (bukan Instance) - agar semua instance terpengaruh
-link_types = {lt.Name: lt for lt in FilteredElementCollector(doc).OfClass(RevitLinkType)}
+# FIX: IronPython tidak bisa akses .Name langsung pada RevitLinkType
+# Harus cast via base class: Element.Name.GetValue(lt)
+link_types = {Element.Name.GetValue(lt): lt for lt in FilteredElementCollector(doc).OfClass(RevitLinkType)}
 
 if not link_types:
     forms.alert("Tidak ada Revit Link Type ditemukan.", exitscript=True)
