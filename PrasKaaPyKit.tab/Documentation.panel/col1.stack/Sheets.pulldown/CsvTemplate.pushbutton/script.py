@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__title__ = "Open CSV Tempalate"
+__title__ = "Open CSV Template"
 __author__ = "PrasKaa"
 __version__ = 'Version: 1.1'
 __doc__ ="""Version: 1.1

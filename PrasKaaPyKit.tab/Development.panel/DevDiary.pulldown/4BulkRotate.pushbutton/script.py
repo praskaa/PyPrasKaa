@@ -23,7 +23,7 @@ _____________________________________________________
 Last update:
 - 04.03.2026 - 1.0 Initial release
 _____________________________________________________________________
-Author:  PrasKaa Team
+Author:  PrasKaa
 '''
 
 __title__ = 'Bulk Rotate Elements'

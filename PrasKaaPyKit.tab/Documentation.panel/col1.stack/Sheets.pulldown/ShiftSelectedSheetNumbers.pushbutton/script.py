@@ -1,5 +1,7 @@
 #pylint: disable=W0703,E0401,C0103,C0111
-'''
+__title__ = "Increment Sheet\nNumbers"
+__author__ = "PrasKaa"
+__doc__ = """
 Version: 1.0
 Date    = 04.03.2026
 _____________________________________________________________________
@@ -22,7 +24,7 @@ Last update:
 - 04.03.2026 - 1.0 Initial release
 _____________________________________________________________________
 Author:  PrasKaa
-'''
+"""
 
 from pyrevit import coreutils
 from pyrevit import revit, DB

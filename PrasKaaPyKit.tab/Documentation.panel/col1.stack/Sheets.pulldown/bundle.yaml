@@ -33,11 +33,13 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Sheet-Tools
 layout:
   - AddRunningNumberToSheetList
   - AlignViewports
-  - SetSheetNumberFromPrintOrder
+  - ReNumberFromPrintOrder
   - ShiftSelectedSheetNumbers
+  - appearssetparam
   - -----
   - CsvTemplate
   - SheetsCsv
+  - -----
 
 # Engine Configuration
 engine:
