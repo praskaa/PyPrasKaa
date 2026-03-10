@@ -1,7 +1,45 @@
 # -*- coding: utf-8 -*-
 __title__ = 'Matching Dimension from EXR Geometry'
 __author__ = 'PrasKaa'
-__doc__ = "Matches beams by geometry intersection and transfers family types from linked EXR model."
+__version__ = 'Version: 1.0'
+__doc__ ="""Version: 1.0
+Date    = 02.03.2026
+_____________________________________________________________________
+Description:
+Matches structural column dimensions from a linked EXR (ETABS export) model to the
+host Revit model using geometry-based matching. The tool analyzes the physical
+geometry of columns in both models to find corresponding elements, then transfers
+the type information (family name and type name) from the linked model to the
+host elements.
+
+This tool is useful for structural projects where column dimensions need to be
+synchronized between ETABS analysis models and Revit construction models.
+Specifically designed for column elements with improved matching algorithm.
+_____________________________________________________________________
+How-to:
+1. Ensure the EXR (ETABS export) model is linked to your Revit project
+2. Run this tool from the PrasKaaPyKit tab in the EXR panel under Column category
+3. Select the linked EXR model from the dialog
+4. Choose how to select host columns:
+   - Leave empty to process all structural columns in the model
+   - Or pre-select specific columns in the view before running
+5. The tool will:
+   - Extract geometry from all columns in the linked model
+   - Match each host column to a linked column using intersection analysis
+   - Transfer the type information (dimension/type name)
+   - Mark unmatched elements with a comment
+6. Review the results in the output panel
+7. CSV report is automatically saved to Documents/PrasKaaPyKit/Matching Framing/
+
+Note: Required family types must exist in the host model before matching.
+Run "Pre-run Matching Dimension" first to check type availability.
+
+_____________________________________________________
+Last update:
+- 02.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+"""
 
 import gc
 import csv

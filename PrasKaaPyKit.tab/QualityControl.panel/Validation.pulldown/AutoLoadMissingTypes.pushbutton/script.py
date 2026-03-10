@@ -1,8 +1,46 @@
 # -*- coding: utf-8 -*-
 __title__ = 'Auto Load Missing Types'
 __author__ = 'PrasKaa'
-__doc__ = "Loads missing families and creates missing types from linked EXR model " \
-          "to prepare for Matching Dimension tools."
+__version__ = 'Version: 1.0'
+__doc__ ="""Version: 1.0
+Date    = 03.03.2026
+_____________________________________________________________________
+Description:
+Automatically loads missing structural family types from a linked EXR (ETABS export)
+model into the host Revit model. This tool handles two scenarios:
+
+1. Missing families: Exports the family from the linked model and loads it into
+   the host model using temporary .rfa files
+2. Missing types: Creates new types in existing families by duplicating existing
+   types and copying parameter values from the linked model
+
+This tool works together with the Pre-run Matching Dimension tool to prepare
+the host model for dimension matching from ETABS models.
+_____________________________________________________________________
+How-to:
+1. Ensure the EXR (ETABS export) model is linked to your Revit project
+2. Run this tool from the PrasKaaPyKit tab under Quality Control > Validation
+3. Select the linked EXR model from the dialog
+4. The tool will automatically:
+   - Scan structural framing and column elements in the linked model
+   - Compare used family types against available types in host model
+   - Identify missing families and missing types within existing families
+   - Load missing families from the linked model
+   - Create missing types by duplicating existing types and copying parameters
+5. Review the results in the output panel showing:
+   - Families loaded successfully or failed
+   - Types created or skipped (if already exist)
+6. After completion, run the Matching Dimension tool to match element dimensions
+
+Tip: Run "Pre-run Matching Dimension" first to preview which types are missing
+before loading them.
+
+_____________________________________________________
+Last update:
+- 02.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+"""
 
 import os
 import tempfile

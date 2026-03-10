@@ -1,34 +1,39 @@
 # -*- coding: utf-8 -*-
-"""
-Pre-run Matching Dimension - Pre-check Tool for Matching Dimension.
-
-Overview:
-    This script checks if beam and column types from linked EXR model exist in the host model.
-    It serves as a pre-check tool before running the "Matching Dimension" script to ensure
-    all required family types are available in the host document.
-
-Process:
-    1. Select a linked EXR model (from ETABS).
-    2. Collect structural framing elements (beams) and structural columns from linked model.
-    3. Extract unique family and type combinations used by these elements.
-    4. Check which of these types exist in the host model.
-    5. Report missing types with element counts and recommendations.
-
-Requirements:
-    - Revit environment with pyRevit extension.
-    - A linked EXR model from ETABS containing beam and column elements.
-    - Host model to check against.
-
-Notes:
-    - This is a pre-check tool for the "Matching Dimension" script.
-    - Missing types will cause failures in the type transfer process.
-    - Use this tool to identify what families need to be loaded before running Matching Dimension.
-"""
-
 __title__ = 'Pre-run\nMatching Dimension'
-__author__ = 'Cline'
-__doc__ = "Pre-check tool that verifies beam and column types from linked EXR model exist in host model " \
-          "before running Matching Dimension tool."
+__author__ = 'PrasKaa'
+__version__ = 'Version: 1.0'
+__doc__ ="""Version: 1.0
+Date    = 02.03.2026
+_____________________________________________________________________
+Description:
+Pre-check tool to verify structural framing and column family types availability
+in the host model before running the Matching Dimension tool. This tool scans the
+linked EXR (ETABS export) model and compares used family types against available
+types in the active Revit project.
+
+This pre-check helps identify missing family types early, preventing errors
+during the matching process and ensuring a smoother workflow.
+_____________________________________________________________________
+How-to:
+1. Open the Revit project containing the host structural elements
+2. Ensure the EXR (ETABS export) model is linked to the project
+3. Run this tool from the PrasKaaPyKit tab
+4. Select the linked EXR model from the list of available Revit links
+5. The tool will automatically:
+   - Collect structural framing and column elements from the linked model
+   - Extract unique family and type combinations used
+   - Compare against available types in the host model
+   - Generate a report showing missing types
+6. Review the report:
+   - If types are missing: Load the required families into the host model
+   - If all types available: Proceed with the Matching Dimension tool
+
+_____________________________________________________
+Last update:
+- 02.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+"""
 
 import re
 from Autodesk.Revit.DB import (
