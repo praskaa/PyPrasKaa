@@ -1,37 +1,6 @@
-# pyRevit Bundle Configuration - Main Tab
-# PrasKaaPyKit v2 - Comprehensive Revit Productivity Tools
-
 title:
-  en_us: PrasKaaPyKit v2
+  en_us: PrasKaaPyKit
 
-tooltip:
-  en_us: |
-    PrasKaaPyKit v2 - Advanced Revit Productivity Suite
-
-    A comprehensive collection of tools designed to enhance productivity
-    and streamline workflows in Autodesk Revit. Features advanced modeling,
-    documentation, quality control, and utility tools.
-
-    MAIN FEATURES:
-    • Advanced Modeling Tools - Structural element manipulation
-    • Documentation Suite - Smart tagging, view management, sheets
-    • CAD Integration - DWG management and line style controls
-    • Quality Control - EXR validation, type marking, matching tools
-    • Family Management - Profile updates, template systems
-    • Utility Tools - Grid management, selection helpers
-
-    PERFECT FOR:
-    • Structural engineers and BIM modelers
-    • Documentation specialists
-    • Quality assurance teams
-    • Large-scale Revit projects
-
-    Version: 2.0 | Author: PrasKaa Team | Compatible: Revit 2018-2026
-
-author: PrasKaa
-image: icon.png
-
-# Tab Layout Configuration
 layout:
   - Modeling
   - Documentation
@@ -43,19 +12,3 @@ layout:
   - Utilities
   - Development
   - Automation
-
-# Engine Configuration
-engine:
-  clean: true
-  full_frame: false
-  persistent: false
-
-# Context and Version Requirements
-context: ["Project"]
-min_revit_ver: 2018
-max_revit_ver: 2026
-
-# Extension Metadata
-version: "2.0.0"
-description:
-  en_us: "Advanced Revit productivity tools suite for structural engineering and BIM workflows"

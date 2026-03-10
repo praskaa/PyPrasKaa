@@ -1,9 +1,30 @@
+# -*- coding: utf-8 -*-
+__title__ = "Quick Line Color"
+__author__ = "PrasKaa"
+__version__ = 'Version: 1.0'
+__doc__ = """
+10.03.2026
+_____________________________________________________________________
+Description:
+Quickly overrides the Projection Line, Cut Line, and Cut Pattern colors of selected elements in the active view.
+
+Does NOT apply surface patterns - only applies line colors and cut pattern colors to maintain existing surface fill appearance.
+_____________________________________________________________________
+How-to:
+1. Select one or more elements in the active view
+2. Click the button to apply the stored color
+3. Color is stored in tool config (default: RGB 100,177,70 - green)
+4. To change color, use the config file or edit the color_code setting
+
+_____________________________________________________
+Last update:
+- [10.03.2026] - 1.0 RELEASE
+_____________________________________________________________________
+Author:  PrasKaa"""
+
 from pyrevit import  script
 from graphicOverrides import setProjLines
 
-__title__ = "Line Color"
-__doc__ = 'Quicker override Projection & Cut Line Color of Elements.'
-__author__ = "David Vadkerti"
 
 my_config = script.get_config()
 
