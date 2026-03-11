@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from Autodesk.Revit.DB import (
-    BuiltInCategory, BuiltInParameter, ElementId,
+    BuiltInCategory, ElementId,
     WorksharingUtils, FamilyInstance,
-    ViewSheet, View  # ← tambahkan import ini
+    Viewport
 )
 
-sender         = __eventsender__
-args           = __eventargs__
-doc            = args.GetDocument()
+sender = __eventsender__
+args   = __eventargs__
+doc    = args.GetDocument()
 
 modified_el_ids = args.GetModifiedElementIds()
 modified_el     = [doc.GetElement(e_id) for e_id in modified_el_ids]
@@ -20,24 +20,23 @@ allowed_cats = [
     ElementId(BuiltInCategory.OST_Walls),
     ElementId(BuiltInCategory.OST_Floors),
     ElementId(BuiltInCategory.OST_Stairs),
-    ElementId(BuiltInCategory.OST_Sheets),  # ← Sheet
-    ElementId(BuiltInCategory.OST_Views),   # ← View
+    ElementId(BuiltInCategory.OST_Viewports),
+    ElementId(BuiltInCategory.OST_Sheets),  
 ]
 
 for el in modified_el:
-    # Ganti filter: izinkan FamilyInstance ATAU ViewSheet ATAU View
-    is_family   = isinstance(el, FamilyInstance)
-    is_sheet    = isinstance(el, ViewSheet)
-    is_view     = isinstance(el, View) and not isinstance(el, ViewSheet)
-
-    if not (is_family or is_sheet or is_view):
+    if el is None:
         continue
 
-    # Cek kategori (opsional untuk sheet/view karena sudah dicek tipenya)
-    el_cat = el.Category
-    in_allowed_cat = el_cat is not None and el_cat.Id in allowed_cats
+    is_family   = isinstance(el, FamilyInstance)
+    is_viewport = isinstance(el, Viewport)
 
-    if not (in_allowed_cat or is_sheet or is_view):
+    if not (is_family or is_viewport):
+        continue
+
+    el_cat         = el.Category
+    in_allowed_cat = el_cat is not None and el_cat.Id in allowed_cats
+    if not in_allowed_cat:
         continue
 
     try:
@@ -45,12 +44,12 @@ for el in modified_el:
         f_timestamp = timestamp.strftime(r"%a, %d %b %H:%M")
         wti         = WorksharingUtils.GetWorksharingTooltipInfo(doc, el.Id)
         last        = wti.LastChangedBy
-        value       = "{} ({})".format(last, f_timestamp)
-
+        if not last or last.strip() == "":
+            last = doc.Application.Username
+        value  = "{} ({})".format(last, f_timestamp)
         p_last = el.LookupParameter('LastModifiedBy')
         if p_last and not p_last.IsReadOnly:
             p_last.Set(value)
-
     except:
         import traceback
         print(traceback.format_exc())
