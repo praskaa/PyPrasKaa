@@ -2,8 +2,8 @@
 __title__ = "Copy Grid\nState"
 __author__ = "PrasKaa"
 __doc__ = """
-Version: 1.0
-Date    = 10.03.2026
+Version: 1.1
+Date    = 12.03.2026
 _____________________________________________________________________
 Description:
 Copy grid extent states (2D/3D mode and endpoint positions) from a source view to one or
@@ -15,7 +15,8 @@ grid setups in related views.
 _____________________________________________________________________
 How-to:
 1. Run the tool from pyRevit toolbar
-2. Select the SOURCE view (the view whose grid state will be copied)
+2. The source view is automatically taken from the active view (if it contains grids).
+   If the active view has no grids, select the SOURCE view manually from the list.
 3. Select one or more TARGET views (views to receive the grid state)
 4. Review the output report showing successful, skipped, and failed grids
 
@@ -23,6 +24,7 @@ Note: Grids that don't exist in target views are skipped. Grids must have matchi
 names or Element IDs in both source and target.
 _____________________________________________________
 Last update:
+- 12.03.2026 - 1.1 Source view automatically taken from active view if it has grids
 - 10.03.2026 - 1.0 Initial release
 _____________________________________________________________________
 Author:  PrasKaa
@@ -56,9 +58,9 @@ def get_grids_in_view(view):
 
 def get_view_elevation_z(grid, view):
     """
-    Ambil Z elevation yang dipakai kurva grid di view ini.
-    Caranya: baca dari kurva existing (ViewSpecific atau Model).
-    Setiap view punya Z berbeda sesuai cut plane / elevation-nya.
+    Get the Z elevation used by the grid curve in this view.
+    Reads from the existing curve (ViewSpecific or Model).
+    Each view has a different Z based on its cut plane / elevation.
     """
     curve = (
         get_curve_safe(grid, DB.DatumExtentType.ViewSpecific, view) or
@@ -71,8 +73,8 @@ def get_view_elevation_z(grid, view):
 
 def get_param_on_infinite_line(infinite_line, point):
     """
-    Hitung parameter posisi titik pada infinite line (dot product).
-    Orientation-independent: bekerja untuk semua arah grid.
+    Calculate the parameter position of a point on an infinite line (dot product).
+    Orientation-independent: works for all grid directions.
     """
     origin    = infinite_line.Origin
     direction = infinite_line.Direction.Normalize()
@@ -82,9 +84,9 @@ def get_param_on_infinite_line(infinite_line, point):
 
 def rebuild_point(infinite_line, param, z):
     """
-    Rebuild XYZ dari parameter di atas infinite line,
-    dengan Z diganti sesuai view target.
-    Ini PASTI coincident dengan grid di target view.
+    Rebuild an XYZ point from a parameter on the infinite line,
+    with Z replaced by the target view's elevation.
+    This guarantees the point is coincident with the grid in the target view.
     """
     origin    = infinite_line.Origin
     direction = infinite_line.Direction.Normalize()
@@ -93,7 +95,7 @@ def rebuild_point(infinite_line, param, z):
 
 
 # ══════════════════════════════════════════════
-#  STEP 1 — CAPTURE dari source view
+#  STEP 1 — CAPTURE from source view
 # ══════════════════════════════════════════════
 
 def capture_grid_states(source_view):
@@ -130,11 +132,11 @@ def capture_grid_states(source_view):
 
 
 # ══════════════════════════════════════════════
-#  STEP 2 — APPLY ke satu grid
+#  STEP 2 — APPLY to a single grid
 # ══════════════════════════════════════════════
 
 def apply_single_grid(grid, target_view, state):
-    # Wajib set extent type DULU sebelum SetCurveInView
+    # Must set extent type FIRST before calling SetCurveInView
     grid.SetDatumExtentType(DB.DatumEnds.End0, target_view, state["extent_end0"])
     grid.SetDatumExtentType(DB.DatumEnds.End1, target_view, state["extent_end1"])
 
@@ -144,15 +146,15 @@ def apply_single_grid(grid, target_view, state):
     )
 
     if not any_view_specific:
-        return  # Mode 3D → Revit atur sendiri
+        return  # 3D mode → Revit handles positioning automatically
 
     if state["param0"] is None or state["param1"] is None:
         return
 
-    # ── Kunci fix: ambil Z dari TARGET view, bukan source ──
+    # ── Key fix: get Z from TARGET view, not source ──
     z = get_view_elevation_z(grid, target_view)
 
-    # Rebuild titik di atas infinite line grid dengan Z target
+    # Rebuild points on the grid's infinite line using the target view's Z
     pt0 = rebuild_point(grid.Curve, state["param0"], z)
     pt1 = rebuild_point(grid.Curve, state["param1"], z)
 
@@ -164,7 +166,7 @@ def apply_single_grid(grid, target_view, state):
 
 
 # ══════════════════════════════════════════════
-#  STEP 3 — APPLY ke semua target (1 transaction)
+#  STEP 3 — APPLY to all targets (1 transaction)
 # ══════════════════════════════════════════════
 
 def apply_grid_states(states, target_views):
@@ -233,33 +235,47 @@ def main():
     view_names    = sorted(view_name_map.keys())
 
     if not view_names:
-        forms.alert("Tidak ada view yang tersedia.", exitscript=True)
+        forms.alert("No views available.", exitscript=True)
 
-    # Pilih SOURCE view
-    selected_source_name = forms.SelectFromList.show(
-        view_names,
-        title       = "Pilih SOURCE View",
-        prompt      = "View yang akan di-COPY state grid-nya:",
-        multiselect = False,
-    )
-    if not selected_source_name:
-        script.exit()
+    # ── Check active view first ───────────────────────────────────────
+    active_view      = revit.active_view
+    active_has_grids = bool(active_view and get_grids_in_view(active_view))
 
-    source_view = view_name_map[selected_source_name]
+    if active_has_grids:
+        source_view          = active_view
+        selected_source_name = source_view.Name
+    else:
+        # Active view has no grids → show form to pick SOURCE manually
+        if active_view:
+            forms.alert(
+                "Active view '{}' has no grids.\n"
+                "Please select a SOURCE view manually.".format(active_view.Name)
+            )
 
-    if not get_grids_in_view(source_view):
-        forms.alert(
-            "Tidak ada grid di view '{}'.".format(source_view.Name),
-            exitscript=True
+        selected_source_name = forms.SelectFromList.show(
+            view_names,
+            title       = "Select SOURCE View",
+            prompt      = "View whose grid state will be copied:",
+            multiselect = False,
         )
+        if not selected_source_name:
+            script.exit()
 
-    # Pilih TARGET view(s)
+        source_view = view_name_map[selected_source_name]
+
+        if not get_grids_in_view(source_view):
+            forms.alert(
+                "No grids found in view '{}'.".format(source_view.Name),
+                exitscript=True
+            )
+
+    # ── Select TARGET view(s) ─────────────────────────────────────────
     target_view_names = sorted([n for n in view_names if n != selected_source_name])
 
     selected_target_names = forms.SelectFromList.show(
         target_view_names,
-        title       = "Pilih TARGET View",
-        prompt      = "View tujuan (bisa pilih lebih dari 1):",
+        title       = "Select TARGET View(s)",
+        prompt      = "Destination views (multiple selection allowed):",
         multiselect = True,
     )
     if not selected_target_names:
@@ -267,41 +283,44 @@ def main():
 
     target_views = [view_name_map[n] for n in selected_target_names]
 
-    # Capture + Apply
+    # ── Capture + Apply ───────────────────────────────────────────────
     states                            = capture_grid_states(source_view)
     ok_list, skipped_list, error_list = apply_grid_states(states, target_views)
 
-    # ── Laporan ────────────────────────────────
+    # ── Report ────────────────────────────────────────────────────────
     output.print_md("# Copy Grid States")
-    output.print_md("**Source :** `{}`".format(source_view.Name))
+    output.print_md("**Source :** `{}`{}".format(
+        source_view.Name,
+        "  _(active view)_" if active_has_grids else ""
+    ))
     output.print_md("**Target :** {}".format(
         ", ".join("`{}`".format(n) for n in selected_target_names)
     ))
-    output.print_md("**Grid di source :** {}".format(len(states)))
+    output.print_md("**Grids in source :** {}".format(len(states)))
     output.print_md("---")
 
-    output.print_md("## ✅ Berhasil ({})".format(len(ok_list)))
+    output.print_md("## ✅ Succeeded ({})".format(len(ok_list)))
     if ok_list:
         for view_name, grid_name in ok_list:
             output.print_md("- [{}] Grid **{}**".format(view_name, grid_name))
     else:
-        output.print_md("_Tidak ada_")
+        output.print_md("_None_")
 
-    output.print_md("## ⏭ Di-skip — tidak ada di target ({})".format(len(skipped_list)))
+    output.print_md("## ⏭ Skipped — not found in target ({})".format(len(skipped_list)))
     if skipped_list:
         for view_name, grid_name in skipped_list:
             output.print_md("- [{}] Grid **{}**".format(view_name, grid_name))
     else:
-        output.print_md("_Tidak ada_")
+        output.print_md("_None_")
 
-    output.print_md("## ❌ Error ({})".format(len(error_list)))
+    output.print_md("## ❌ Errors ({})".format(len(error_list)))
     if error_list:
         for view_name, grid_name, err in error_list:
             output.print_md("- [{}] Grid **{}**: `{}`".format(view_name, grid_name, err))
     else:
-        output.print_md("_Tidak ada_")
+        output.print_md("_None_")
 
-    output.print_md("---\n**Selesai!**")
+    output.print_md("---\n**Done!**")
 
 
 main()
