@@ -1,0 +1,9 @@
+# pyRevit Bundle Configuration - ElementID Pulldown
+
+title:
+  en_us: Validation
+
+layout:
+  - AutoLoadMissingTypes
+  - CheckRevisionScheduleOnSheet
+  - WorksetSuperimposedlLink
