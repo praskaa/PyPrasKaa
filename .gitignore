@@ -151,6 +151,7 @@ lib/smart_tag_config.json
 # Folder
 plans/
 logic-library/
+.axon/
 # Development
 PrasKaaPyKit.tab/Rebar.panel/WIP.pulldown/Dev Diary.pushbutton/
 unused-scripts/
