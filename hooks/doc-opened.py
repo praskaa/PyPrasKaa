@@ -12,6 +12,7 @@ if lib_path not in sys.path:
     sys.path.insert(0, lib_path)
 
 from customOutput import def_openingLogPath
+from log_sender import send_log
 
 doc = __eventargs__.Document
 
@@ -98,6 +99,13 @@ if doc:
                 log_file = open(log_file_path, "a")
             log_file.write(end_time_string_seconds + separator + str(timeDelta) + separator + user_name + "\n")
             log_file.close()
+
+            # Send to Google Sheets
+            try:
+                send_log(event_type="doc-opened", doc=doc, duration_s=timeDelta)
+            except Exception:
+                pass
+
         except:
             pass
 

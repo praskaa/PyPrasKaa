@@ -12,6 +12,7 @@ if lib_path not in sys.path:
     sys.path.insert(0, lib_path)
 
 from customOutput import def_syncLogPath
+from log_sender import send_log
 
 doc = __eventargs__.Document
 filePath = doc.PathName
@@ -98,5 +99,11 @@ if fileExtension == "rvt":
             log_file = open(fallback_path + "\\"+ central_file_name + "_Sync.log", "a")
         log_file.write(end_time_string_seconds + separator + str(timeDelta) + separator + user_name + "\n")
         log_file.close()
+
+        # Send to Google Sheets
+        try:
+            send_log(event_type="doc-synced", doc=doc, duration_s=timeDelta)
+        except Exception:
+            pass
     except:
          pass

@@ -95,8 +95,8 @@ def hookTurnOff(function, hook_id):
             return
             
         with open(config_file_path, 'r') as config_file:
-            content = config_file.read()
-            lines = content.split('\n')
+            lines = [l.strip() for l in config_file.readlines() 
+                    if l.strip() and not l.strip().startswith('#')]
             
             if not lines or len(lines[0].strip()) == 0:
                 # If config file is empty, enable by default
