@@ -1,3 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+Colorize by Value
+Description: Override element colors based on parameter values.
+             Shift+Click: apply overrides to multiple selected views.
+Author: PrasKaa
+Version: 1.1.0
+Last Updated: 2026-03-18
+
+Changelog:
+    v1.1.0 (2026-03-18): Shift+Click mode - apply overrides to multiple views
+                         (regular views only, View Templates excluded)
+    v1.0.0            : Initial release
+"""
+
 from pyrevit import revit, DB, forms, script
 from pyrevit.revit.db import query
 from collections import defaultdict
@@ -7,19 +22,39 @@ from database import get_param_value_as_string
 from colorize import (
     get_colorize_only_categories_config,
     get_colours,
-    set_colour_overrides_by_option
+    set_colour_overrides_by_option,
+    get_config,
+    OVERRIDES_CONFIG_OPTION_NAME,
+    default_override_options
 )
-
-import colorizebyvalueconfig
 
 logger = script.get_logger()
 BIC = DB.BuiltInCategory
 doc = revit.doc
 view = revit.active_view
 
-overrides_option = colorizebyvalueconfig.get_overrides_config()
+# Detect Shift+Click using pyRevit's recommended EXEC_PARAMS.config_mode.
+# This is the preferred method over the older __shiftclick__ builtin.
+# Requires NO config script inside the bundle — otherwise pyRevit runs
+# the config script directly and this code is never reached.
+from pyrevit import EXEC_PARAMS
+_is_shiftclick = EXEC_PARAMS.config_mode
+
+# Get colorizebyvalue config - to store override options
+overrides_config = script.get_config()
+
+
+def get_overrides_config():
+    return get_config(overrides_config, OVERRIDES_CONFIG_OPTION_NAME, default_override_options)
+
+
+overrides_option = get_overrides_config()
 categories_for_selection = get_colorize_only_categories_config(doc)
 
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 class ParameterOption(forms.TemplateListItem):
     """Wrapper for selecting parameters from a list"""
@@ -33,20 +68,74 @@ class ParameterOption(forms.TemplateListItem):
         return str(self.param_dict[self.item])
 
 
+class ViewOption(forms.TemplateListItem):
+    """Wrapper for displaying regular views in SelectFromList.
+    Shows 'ViewType | View Name' so the user can distinguish views easily.
+    """
+
+    def __init__(self, v):
+        super(ViewOption, self).__init__(v)
+
+    @property
+    def name(self):
+        return "{} | {}".format(self.item.ViewType, self.item.Name)
+
+
+# View types that make sense to colorize elements in.
+# Sheets and Schedules are excluded — SetElementOverrides does not apply there.
+_VALID_VIEW_TYPES = {
+    DB.ViewType.FloorPlan,
+    DB.ViewType.CeilingPlan,
+    DB.ViewType.Elevation,
+    DB.ViewType.Section,
+    DB.ViewType.ThreeD,
+    DB.ViewType.Detail,
+    DB.ViewType.DraftingView,
+    DB.ViewType.AreaPlan,
+    DB.ViewType.EngineeringPlan,
+}
+
+
+def get_regular_views():
+    """Return all non-template, non-sheet views that support element overrides,
+    sorted by ViewType then Name.
+    """
+    all_views = DB.FilteredElementCollector(doc) \
+        .OfClass(DB.View) \
+        .ToElements()
+    regular = [
+        v for v in all_views
+        if not v.IsTemplate
+        and v.ViewType in _VALID_VIEW_TYPES
+        and not v.IsCallout  # skip callout views that are sub-views of sheets
+    ]
+    return sorted(regular, key=lambda v: (str(v.ViewType), v.Name))
+
+
+def param_is_bip(param):
+    return param.Definition.BuiltInParameter != DB.BuiltInParameter.INVALID
+
+
+# ---------------------------------------------------------------------------
+# Step 1 – Category selection
+# ---------------------------------------------------------------------------
+
 sorted_cats = sorted(categories_for_selection.keys(), key=lambda x: x)
 
 if forms.check_modelview(revit.active_view):
-    selected_cat = forms.CommandSwitchWindow.show(sorted_cats, message="Select Category to Colorize",
-                                                  width=400)
+    selected_cat = forms.CommandSwitchWindow.show(
+        sorted_cats,
+        message="Select Category to Colorize",
+        width=400
+    )
 else:
     selected_cat = None
 
-if selected_cat == None:
+if selected_cat is None:
     script.exit()
-# format the category dictionary
+
 chosen_bic = categories_for_selection[selected_cat]
 
-# get all element categories and return a list of all categories except chosen BIC
 all_cats = doc.Settings.Categories
 chosen_category = all_cats.get_Item(chosen_bic)
 hide_categories_except = [c for c in all_cats if c.Id != chosen_category.Id]
@@ -56,29 +145,24 @@ get_view_elements = DB.FilteredElementCollector(doc) \
     .WhereElementIsNotElementType() \
     .ToElements()
 
+# ---------------------------------------------------------------------------
+# Step 2 – Build parameter dictionaries
+# ---------------------------------------------------------------------------
+
 inst_param_dict = {}
 type_param_dict = {}
-
-
-def param_is_bip(param):
-    # check if parameter if a BIP
-    return param.Definition.BuiltInParameter != DB.BuiltInParameter.INVALID
-
 
 for e in get_view_elements:
     element_parameter_set = e.Parameters
     for ip in element_parameter_set:
-        # if the parameter is shared - store as Id
         if ip.IsShared and ip.Definition.Id not in inst_param_dict:
             pretty_param_name = "".join([str(ip.Definition.Name), " [Shared Parameter]"])
             inst_param_dict[ip.Definition.Id] = pretty_param_name
-        # if the param is BIP - store as BIP
         elif param_is_bip(ip) and ip.Definition.Name not in inst_param_dict:
             inst_param_dict[ip.Definition.BuiltInParameter] = str(ip.Definition.Name)
-        # Family Parameters - not Shared and not BIP, store by NAME for LookupParameter
-        elif not (ip.IsShared) and not(param_is_bip(ip)) and ip.Definition.Name not in inst_param_dict:
+        elif not ip.IsShared and not param_is_bip(ip) and ip.Definition.Name not in inst_param_dict:
             pretty_param_name = "".join([str(ip.Definition.Name), " [Family Parameter]"])
-            inst_param_dict[ip.Definition.Name] = pretty_param_name  # Use name as key for LookupParameter
+            inst_param_dict[ip.Definition.Name] = pretty_param_name
 
     type_parameter_set = doc.GetElement(e.GetTypeId()).Parameters
     for tp in type_parameter_set:
@@ -87,34 +171,38 @@ for e in get_view_elements:
             type_param_dict[tp.Definition.Id] = pretty_param_name
         elif param_is_bip(tp) and tp.Definition.Name not in type_param_dict:
             type_param_dict[tp.Definition.BuiltInParameter] = str(tp.Definition.Name)
-        # Family Parameters - not Shared and not BIP, store by NAME for LookupParameter
-        elif not (tp.IsShared) and not(param_is_bip(tp)) and tp.Definition.Name not in type_param_dict:
+        elif not tp.IsShared and not param_is_bip(tp) and tp.Definition.Name not in type_param_dict:
             pretty_param_name = "".join([str(tp.Definition.Name), " [Family Parameter]"])
-            type_param_dict[tp.Definition.Name] = pretty_param_name  # Use name as key for LookupParameter
+            type_param_dict[tp.Definition.Name] = pretty_param_name
 
-# show UI form to pick parameters
-# todo: clean this
+# ---------------------------------------------------------------------------
+# Step 3 – Parameter selection
+# ---------------------------------------------------------------------------
+
 instance_p_class = [ParameterOption(x, inst_param_dict) for x in inst_param_dict.keys()]
 type_p_class = [ParameterOption(x, type_param_dict) for x in type_param_dict.keys()]
 i_p_ops = sorted(instance_p_class, key=lambda x: x.name)
 t_p_ops = sorted(type_p_class, key=lambda x: x.name)
 ops = {"Type Parameters": t_p_ops, "Instance Parameters": i_p_ops}
 
-# note: the selection will not actually be a parameter but either an Element Id or a BIP
-selected_parameter = forms.SelectFromList.show(ops,
-                                               button_name="Select Parameters",
-                                               multiselect=False)
+selected_parameter = forms.SelectFromList.show(
+    ops,
+    button_name="Select Parameters",
+    multiselect=False
+)
 
 forms.alert_ifnot(selected_parameter, "No Parameters Selected", exitscript=True)
 
-# Define override options
+# ---------------------------------------------------------------------------
+# Step 4 – Override style selection
+# ---------------------------------------------------------------------------
+
 override_style_options = [
     "Pattern Only",
     "Lines Only",
     "Lines & Pattern"
 ]
 
-# Ask user to select override style
 selected_override_style = forms.CommandSwitchWindow.show(
     override_style_options,
     message="Select Override Style",
@@ -124,51 +212,102 @@ selected_override_style = forms.CommandSwitchWindow.show(
 if selected_override_style is None:
     script.exit()
 
-# Map selection to override options
 if selected_override_style == "Pattern Only":
     override_option = ["Projection Surface Colour", "Cut Pattern Colour"]
 elif selected_override_style == "Lines Only":
     override_option = ["Projection Line Colour", "Cut Line Colour"]
 else:  # Lines & Pattern
-    override_option = ["Projection Line Colour", "Projection Surface Colour", "Cut Line Colour", "Cut Pattern Colour"]
+    override_option = ["Projection Line Colour", "Projection Surface Colour",
+                       "Cut Line Colour", "Cut Pattern Colour"]
 
-# get elements in current view
-first_el = get_view_elements[0]
+# ---------------------------------------------------------------------------
+# Step 5 – Collect element → param value mapping
+# ---------------------------------------------------------------------------
 
-# need a nested dictionary
-values_dict = defaultdict(list)  # {value of parameter : element id}
+values_dict = defaultdict(list)  # {param_value_string : [ElementId, ...]}
 
 for el in get_view_elements:
-    # Check if selected_parameter is a BuiltInParameter (negative integer in dict key)
     if hasattr(selected_parameter, 'IntegerValue') and selected_parameter.IntegerValue < 0:
-        # It's a BuiltInParameter
+        # BuiltInParameter
         el_parameter = el.get_Parameter(selected_parameter)
         if el_parameter:
             param_value = get_param_value_as_string(el_parameter)
             values_dict[param_value].append(el.Id)
     elif isinstance(selected_parameter, str):
-        # It's a Family Parameter (stored as string key) - use LookupParameter
+        # Family Parameter — LookupParameter by name
         el_parameter = el.LookupParameter(selected_parameter)
         if el_parameter:
             param_value = get_param_value_as_string(el_parameter)
             values_dict[param_value].append(el.Id)
     else:
-        # It's an ElementId (Shared Parameter or other) - use get_Parameter with ElementId
-        # But get_Parameter(ElementId) might not work for all cases, try both methods
+        # Shared Parameter — ElementId key, resolve from type
         el_type = query.get_type(el)
         element_type_parameter = el_type.get_Parameter(selected_parameter)
         if element_type_parameter:
             param_value = get_param_value_as_string(element_type_parameter)
             values_dict[param_value].append(el.Id)
 
-# colour dictionary
 n = len(values_dict.keys())
+forms.alert_ifnot(n > 0, "No values found for the selected parameter.", exitscript=True)
+
+# ---------------------------------------------------------------------------
+# Step 6 – (Shift+Click only) Select target views
+# ---------------------------------------------------------------------------
+
+if _is_shiftclick:
+    regular_views = get_regular_views()
+    if not regular_views:
+        forms.alert("No regular views found in this document.", exitscript=True)
+
+    view_options = [ViewOption(v) for v in regular_views]
+
+    selected_view_options = forms.SelectFromList.show(
+        view_options,
+        message="Select Views to Apply Overrides To",
+        button_name="Apply to Selected Views",
+        multiselect=True,
+        width=550
+    )
+
+    if not selected_view_options:
+        forms.alert("No views selected.", exitscript=True)
+
+    # Unwrap to DB.View objects
+    target_views = [
+        opt if isinstance(opt, DB.View) else opt.item
+        for opt in selected_view_options
+    ]
+else:
+    # Normal click — active view only
+    target_views = [view]
+
+# ---------------------------------------------------------------------------
+# Step 7 – Build colour map and apply overrides
+# ---------------------------------------------------------------------------
+
 revit_colours = get_colours(n)
 
-override_filters = 0
+# Pre-build the (override, [element_ids]) pairs — computed once, applied to all targets
+colour_map = []  # [(OverrideGraphicSettings, [ElementId, ...])]
 
 with revit.Transaction("Colorize by Value", doc):
     for param_value, colour in zip(values_dict.keys(), revit_colours):
         override = set_colour_overrides_by_option(override_option, colour, doc)
-        for el_id in values_dict[param_value]:
-            view.SetElementOverrides(el_id, override)
+        colour_map.append((override, values_dict[param_value]))
+
+    for target in target_views:
+        for override, el_ids in colour_map:
+            for el_id in el_ids:
+                target.SetElementOverrides(el_id, override)
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+
+target_names = ", ".join(t.Name for t in target_views)
+forms.alert(
+    "{} colour group(s) applied across {} view(s):\n{}".format(
+        len(colour_map), len(target_views), target_names
+    ),
+    title="Colorize by Value"
+)

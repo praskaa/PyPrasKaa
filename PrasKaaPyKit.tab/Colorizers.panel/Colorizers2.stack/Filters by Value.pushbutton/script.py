@@ -2,10 +2,12 @@
 Filters by Value
 Description: Create color filters based on parameter values
 Author: PrasKaa
-Version: 1.0.0
-Last Updated: 2026-02-22
+Version: 1.1.0
+Last Updated: 2026-03-18
 
 Changelog:
+    v1.1.0 (2026-03-18): Added post-filter dialog to apply filters to Active View
+                         or one/more selected View Templates
     v1.0.0 (2026-02-22): Initial release
 """
 
@@ -29,16 +31,29 @@ from database import (
 from colorize import (
     get_categories_config,
     get_colours,
-    set_colour_overrides_by_option
+    set_colour_overrides_by_option,
+    get_config,
+    config_overrides,
+    config_category_overrides,
+    OVERRIDES_CONFIG_OPTION_NAME,
+    default_override_options
 )
-
-import filterbyvalueconfig
 
 logger = script.get_logger()
 BIC = DB.BuiltInCategory
 BIP = DB.BuiltInParameter
 doc = revit.doc
 view = revit.active_view
+
+# Get colorizebyvalue config - to store override options
+overrides_config = script.get_config()
+
+
+def get_overrides_config():
+    return get_config(overrides_config, OVERRIDES_CONFIG_OPTION_NAME, default_override_options)
+
+
+overrides_option = get_overrides_config()
 
 
 def get_element_id_value(element_id):
@@ -51,7 +66,7 @@ def get_element_id_value(element_id):
     return element_id.IntegerValue
 
 
-overrides_option = filterbyvalueconfig.get_overrides_config()
+overrides_option = get_overrides_config()
 
 # TODO - disabled for now, let's see .. Line 141-ish
 # OTHER NOTES
@@ -69,6 +84,17 @@ class ParameterOption(forms.TemplateListItem):
     @property
     def name(self):
         return str(self.param_dict[self.item])
+
+
+class ViewTemplateOption(forms.TemplateListItem):
+    """Wrapper for displaying View Templates in SelectFromList"""
+
+    def __init__(self, vt):
+        super(ViewTemplateOption, self).__init__(vt)
+
+    @property
+    def name(self):
+        return self.item.Name
 
 
 def match_bip_by_id(categories_list, id):
@@ -124,6 +150,35 @@ def add_param_value(param, param_storage_type, values):
     return
 
 
+def get_view_templates():
+    """Collect all View Templates in the document, sorted by name."""
+    all_views = DB.FilteredElementCollector(doc) \
+        .OfClass(DB.View) \
+        .ToElements()
+    templates = [v for v in all_views if v.IsTemplate]
+    return sorted(templates, key=lambda v: v.Name)
+
+
+def apply_filters_to_target(target_view, filter_overrides_pairs):
+    """Apply a list of (filter_id, override) pairs to a target view or view template.
+    
+    Safely checks whether the filter is already present on the target before
+    calling AddFilter (which would throw if the filter already exists).
+
+    Args:
+        target_view:           A DB.View instance (can be a View Template).
+        filter_overrides_pairs: List of (DB.ElementId, DB.OverrideGraphicSettings) tuples.
+    """
+    existing_filter_ids = set(
+        get_element_id_value(fid) for fid in target_view.GetFilters()
+    )
+    for filter_id, override in filter_overrides_pairs:
+        if get_element_id_value(filter_id) not in existing_filter_ids:
+            target_view.AddFilter(filter_id)
+        target_view.SetFilterOverrides(filter_id, override)
+
+
+# ---------------------------------------------------------------------------
 # banned list - parameters that exist for instance elements, but their values will be empty
 banned_symbol_parameters = [DB.BuiltInParameter.SYMBOL_NAME_PARAM,
                             DB.BuiltInParameter.SYMBOL_FAMILY_NAME_PARAM]
@@ -227,7 +282,54 @@ else:
     parameter_id = shared_param_id_from_guid(chosen_bics, selected_parameter, doc)
     forms.alert_ifnot(parameter_id, "no id found for parameter {}".format(selected_parameter), exitscript=True)
 
+# ---------------------------------------------------------------------------
+# Ask the user WHERE to apply the filters
+# ---------------------------------------------------------------------------
+APPLY_ACTIVE_VIEW   = "Active View"
+APPLY_VIEW_TEMPLATE = "View Template(s)"
+
+apply_destination = forms.CommandSwitchWindow.show(
+    [APPLY_ACTIVE_VIEW, APPLY_VIEW_TEMPLATE],
+    message="Apply filters to:"
+)
+
+if apply_destination is None:
+    script.exit()
+
+# Resolve target views list
+if apply_destination == APPLY_ACTIVE_VIEW:
+    target_views = [view]
+
+else:  # APPLY_VIEW_TEMPLATE
+    all_templates = get_view_templates()
+    if not all_templates:
+        forms.alert("No View Templates found in this document.", exitscript=True)
+
+    vt_options = sorted(
+        [ViewTemplateOption(vt) for vt in all_templates],
+        key=lambda x: x.name
+    )
+    selected_templates = forms.SelectFromList.show(
+        vt_options,
+        message="Select View Template(s) to apply filters to",
+        button_name="Apply to Selected Templates",
+        multiselect=True,
+        width=500
+    )
+    if not selected_templates:
+        forms.alert("No View Template selected.", exitscript=True)
+
+    # SelectFromList returns the wrapped items; unwrap to DB.View objects
+    target_views = [opt if isinstance(opt, DB.View) else opt.item
+                    for opt in selected_templates]
+
+# ---------------------------------------------------------------------------
+# Build filters and apply to all target views in a single transaction
+# ---------------------------------------------------------------------------
 with revit.Transaction("Filters by Value", doc):
+    # Accumulate (filter_id, override) pairs so we can apply them to every target
+    filter_overrides_pairs = []
+
     for param_value, colour in zip(values, revit_colours):
         override = set_colour_overrides_by_option(overrides_option, colour, doc)
         # create a filter for each param value
@@ -254,7 +356,6 @@ with revit.Transaction("Filters by Value", doc):
             else:
                 override_filters = -1
         if override_filters == 1 and filter_exists:
-
             filter_id = filter_exists.Id
         else:
             if filter_exists:
@@ -276,6 +377,18 @@ with revit.Transaction("Filters by Value", doc):
             new_filter = create_filter_by_name_bics(filter_name, chosen_bics, doc)
             new_filter.SetElementFilter(parameter_filter)
             filter_id = new_filter.Id
-            # add filter to view
-            view.AddFilter(filter_id)
-        view.SetFilterOverrides(filter_id, override)
+
+        filter_overrides_pairs.append((filter_id, override))
+
+    # Apply accumulated filter+override pairs to every target view / template
+    for target in target_views:
+        apply_filters_to_target(target, filter_overrides_pairs)
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+target_names = ", ".join(t.Name for t in target_views)
+forms.alert(
+    "{} filter(s) applied to: {}".format(len(filter_overrides_pairs), target_names),
+    title="Filters by Value"
+)

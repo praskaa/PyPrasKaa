@@ -1,18 +1,37 @@
-
+# -*- coding: utf-8 -*-
 from collections import defaultdict
 from pyrevit import forms
 from pyrevit import revit, DB
 from pyrevit import script
-import inviewconfig
+
+from colorize import (
+    get_colours,
+    set_colour_overrides_by_option,
+    get_categories_config,
+    get_config,
+    config_overrides,
+    config_category_overrides,
+    OVERRIDES_CONFIG_OPTION_NAME,
+    default_override_options
+)
+
 from database import get_solid_fill_pat
-from colorize import get_colours, set_colour_overrides_by_option, get_categories_config
 
 
 logger = script.get_logger()
 BIC = DB.BuiltInCategory
 doc = revit.doc
 view = revit.active_view
-overrides_option = inviewconfig.get_overrides_config()
+
+# Get colorizebyvalue config - to store override options
+overrides_config = script.get_config()
+
+
+def get_overrides_config():
+    return get_config(overrides_config, OVERRIDES_CONFIG_OPTION_NAME, default_override_options)
+
+
+overrides_option = get_overrides_config()
 solid_fill_pattern = get_solid_fill_pat(doc=doc)
 # get all model builtin categories of the doc
 categories_for_selection = get_categories_config(doc)

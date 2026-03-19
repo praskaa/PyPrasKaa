@@ -26,29 +26,7 @@ _____________________________________________________________________
 Author:  PrasKaa"""
 
 from pyrevit import script
-from Autodesk.Revit.UI import ColorSelectionDialog
 from graphicOverrides import setProjLines
-
-
-# Config functions
-def pick_color(my_config):
-    """Open Revit color picker dialog and save selected color."""
-    colorPickerDialog = ColorSelectionDialog()
-    colorPickerDialog.Show()
-    color = colorPickerDialog.SelectedColor
-
-    # Generate color code
-    color_code = str(color.Red) + "," + str(color.Green) + "," + str(color.Blue)
-
-    # Setting parameter
-    setattr(my_config, "color_code", color_code)
-    script.save_config()
-
-
-def read_color(my_config):
-    """Read and print current color code from config."""
-    new_color_code = getattr(my_config, "color_code")
-    print(new_color_code)
 
 
 # Main execution

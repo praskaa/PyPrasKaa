@@ -1,88 +1,70 @@
 # -*- coding: utf-8 -*-
 '''
-Version: 1.0
-Date    = 04.03.2026
-_____________________________________________________________________
-Description:
-Hides adaptive point components from all views that are placed on sheets.
-Useful for cleaning up sheet presentations where adaptive points should not be visible.
-_____________________________________________________________________
-How-to:
-1. Click "Hide Adaptive Points"
-2. Select sheets or views to process
-3. Adaptive points will be hidden in selected views on sheets
-
-Notes:
-- Processes all views placed on sheets
-- Uses HideElements method to hide adaptive points
-
-_____________________________________________________
-Last update:
-- 04.03.2026 - 1.0 Initial release
-_____________________________________________________________________
+Version: 1.4
+Date    = 18.03.2026
 Author:  PrasKaa Team
 '''
-
 __title__ = "Hide Adaptive Points"
 __author__ = "PrasKaa Team"
-__version__ = "1.0"
+__version__ = "1.4"
 
-from pyrevit import framework
-from pyrevit import revit, DB
-
+from pyrevit import revit, DB, forms
 
 def get_views_on_sheets():
-    """Get all views that are placed on sheets."""
-    views_on_sheets = []
-
-    # Get all sheets in the project
     all_sheets = DB.FilteredElementCollector(revit.doc)\
                    .OfCategory(DB.BuiltInCategory.OST_Sheets)\
                    .WhereElementIsNotElementType()\
                    .ToElements()
 
-    # Collect all unique views from all sheets
     view_ids = set()
     for sheet in all_sheets:
-        viewport_ids = sheet.GetAllViewports()
-        for viewport_id in viewport_ids:
-            viewport = revit.doc.GetElement(viewport_id)
-            if viewport:
-                view_ids.add(viewport.ViewId)
+        for vp_id in sheet.GetAllViewports():
+            vp = revit.doc.GetElement(vp_id)
+            if vp:
+                view_ids.add(vp.ViewId)
 
-    # Convert view IDs to view objects
-    for view_id in view_ids:
-        view = revit.doc.GetElement(view_id)
-        if view:
-            views_on_sheets.append(view)
+    views = []
+    for vid in view_ids:
+        v = revit.doc.GetElement(vid)
+        if v:
+            views.append(v)
+    return views
 
-    return views_on_sheets
+def get_adaptive_category():
+    return revit.doc.Settings.Categories.get_Item(
+        DB.BuiltInCategory.OST_AdaptivePoints_Points
+    )
 
+def try_set_category_hidden(view_or_template, category):
+    try:
+        if not view_or_template.CanCategoryBeHidden(category.Id):
+            return False
+        view_or_template.SetCategoryHidden(category.Id, True)
+        return True
+    except Exception:
+        return False
 
-@revit.carryout('Hide Adaptive Points on Sheets')
-def hide_adaptive_points_on_sheets():
-    # Get all adaptive points in the project
-    all_adaptive_points = DB.FilteredElementCollector(revit.doc)\
-                            .OfCategory(DB.BuiltInCategory.OST_AdaptivePoints)\
-                            .WhereElementIsNotElementType()\
-                            .ToElements()
+@revit.carryout('Hide Adaptive Points Subcategory')
+def main():
+    category = get_adaptive_category()
+    if category is None:
+        forms.alert('Category OST_AdaptivePoints_Points not found.', title='Hide Adaptive Points')
+        return
 
-    # Get all views that are placed on sheets
     sheet_views = get_views_on_sheets()
+    invalid_id  = DB.ElementId.InvalidElementId
+    template_ids = set()
 
-    # Process each sheet view
     for view in sheet_views:
-        # Collect points that are visible in this view and can be hidden
-        visible_points_in_view = []
+        tid = view.ViewTemplateId
+        if tid != invalid_id:
+            template_ids.add(tid)
+        else:
+            try_set_category_hidden(view, category)
 
-        for point in all_adaptive_points:
-            # Check if the element can be hidden in this view
-            if point.CanBeHidden(view) and not point.IsHidden(view):
-                visible_points_in_view.append(point.Id)
+    for tid in template_ids:
+        tmpl = revit.doc.GetElement(tid)
+        if tmpl:
+            try_set_category_hidden(tmpl, category)
 
-        # Hide visible points in this view
-        if visible_points_in_view:
-            view.HideElements(framework.List[DB.ElementId](visible_points_in_view))
-
-
-hide_adaptive_points_on_sheets()
+main()
