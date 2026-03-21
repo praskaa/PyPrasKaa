@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__title__ = "Set\nProjection"
+__title__ = "Override Button-3"
 __author__ = "PrasKaa"
 __version__ = "Version: 1.0"
 __doc__ = """

@@ -5,6 +5,7 @@ Family Type Generator from CSV
 - Manual parameter matching UI (no assumptions)
 - MM → Revit internal feet conversion
 - StorageType-aware parameter handling
+- Type Mark supported via BuiltInParameter.ALL_MODEL_TYPE_MARK
 - No output after Transaction.Commit()
 """
 
@@ -21,9 +22,6 @@ clr.AddReference('WindowsBase')
 clr.AddReference('System')
 
 # ── WPF Imports ───────────────────────────────────────────────────────────────
-# IronPython: GridLength, GridUnitType, FontWeights, ResizeMode → System.Windows
-#             NOT System.Windows.Controls
-# ─────────────────────────────────────────────────────────────────────────────
 from System.Windows.Forms import OpenFileDialog, DialogResult
 from System.Windows import (
     ResizeMode,
@@ -64,7 +62,6 @@ from System.Windows.Media import SolidColorBrush, Color as WpfColor
 import os
 import csv
 import math
-import re
 
 # ── pyRevit ───────────────────────────────────────────────────────────────────
 from pyrevit import forms, script
@@ -75,6 +72,7 @@ from Autodesk.Revit.DB import (
     Transaction,
     StorageType,
     TransactionStatus,
+    BuiltInParameter,
 )
 
 
@@ -140,17 +138,40 @@ def convert_csv_value(raw_str, spec_category):
 # FAMILY PARAMETER READER
 # =============================================================================
 
+# Built-in parameters yang di-inject manual karena tidak muncul di FamilyManager
+# Id -1001405 = ALL_MODEL_TYPE_MARK (dikonfirmasi via RevitLookup)
+BUILTIN_INJECT = {
+    "Type Mark": {
+        'param': None,
+        'storage_type': StorageType.String,
+        'spec_category': 'string',
+        'source': 'builtin',
+        'bip': BuiltInParameter.ALL_MODEL_TYPE_MARK,
+    },
+}
+
+
 def get_writable_type_parameters(family_doc):
     result = {}
-    for p in family_doc.FamilyManager.Parameters:
-        if p.IsReadOnly or p.IsDeterminedByFormula:
+    fm = family_doc.FamilyManager
+
+    # Pass 1: FamilyManager parameters (user-defined)
+    for p in fm.Parameters:
+        if p.IsDeterminedByFormula:
             continue
         name = p.Definition.Name
         result[name] = {
             'param': p,
             'storage_type': p.StorageType,
             'spec_category': get_spec_category(p),
+            'source': 'family_manager',
         }
+
+    # Pass 2: Inject built-in parameters manual
+    for name, info in BUILTIN_INJECT.items():
+        if name not in result:
+            result[name] = info
+
     return result
 
 
@@ -214,7 +235,7 @@ class CombinedNameWindow(Window):
     def __init__(self, csv_headers, csv_rows):
         self.csv_headers = csv_headers
         self.preview_rows = csv_rows[:8]
-        self.format_string = None      # set on Apply
+        self.format_string = None
         self._setup_window()
         self._build_ui()
 
@@ -250,7 +271,7 @@ class CombinedNameWindow(Window):
         how_to.Margin = Thickness(0, 4, 0, 0)
         hdr.Children.Add(how_to)
 
-        # ── Format string input ────────────────────────────────────────────────
+        # ── Format string input ───────────────────────────────────────────────
         fmt_row = _row_grid('auto', '*')
         fmt_row.Margin = Thickness(0, 6, 0, 4)
         DockPanel.SetDock(fmt_row, Dock.Top)
@@ -266,7 +287,7 @@ class CombinedNameWindow(Window):
         self._fmt_tb.TextChanged += self._on_format_changed
         _col(fmt_row, 1, self._fmt_tb)
 
-        # ── Validation label ───────────────────────────────────────────────────
+        # ── Validation label ──────────────────────────────────────────────────
         self._val_tb = TextBlock()
         self._val_tb.FontSize = 11
         self._val_tb.Margin = Thickness(0, 2, 0, 6)
@@ -275,7 +296,7 @@ class CombinedNameWindow(Window):
         DockPanel.SetDock(self._val_tb, Dock.Top)
         root.Children.Add(self._val_tb)
 
-        # ── Buttons ────────────────────────────────────────────────────────────
+        # ── Buttons ───────────────────────────────────────────────────────────
         btn_row = StackPanel()
         btn_row.Orientation = Orientation.Horizontal
         btn_row.HorizontalAlignment = HorizontalAlignment.Right
@@ -296,7 +317,7 @@ class CombinedNameWindow(Window):
         apply_btn.Click += self._on_apply
         btn_row.Children.Add(apply_btn)
 
-        # ── Body: columns list + preview ───────────────────────────────────────
+        # ── Body: columns list + preview ──────────────────────────────────────
         body = Grid()
         body.ColumnDefinitions.Add(ColumnDefinition())
         body.ColumnDefinitions[0].Width = GridLength(190)
@@ -418,7 +439,6 @@ class ParameterMatchingWindow(Window):
     SKIP = "-- Skip --"
 
     def __init__(self, csv_headers, name_column, family_params, sample_row):
-        # name_column may be None when combined naming is used
         exclude = [name_column] if name_column else []
         self.data_headers = [h for h in csv_headers if h not in exclude]
         self.family_params = family_params
@@ -611,11 +631,10 @@ class FamilyTypeGenerator:
             out.print_md("❌ Cancelled.")
             return
 
-        name_col = None        # used by single column mode
-        format_string = None   # used by combined mode
+        name_col = None
+        format_string = None
 
         if naming_choice == "Single Column":
-            # User picks which column holds the type name
             name_col = forms.CommandSwitchWindow.show(
                 headers,
                 message="Which column contains the TYPE NAME?",
@@ -647,7 +666,7 @@ class FamilyTypeGenerator:
 
         win = ParameterMatchingWindow(
             csv_headers=headers,
-            name_column=name_col,   # None is fine for combined mode
+            name_column=name_col,
             family_params=family_params,
             sample_row=sample_row,
         )
@@ -679,7 +698,6 @@ class FamilyTypeGenerator:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _resolve_name(self, row, name_col, format_string, headers):
-        """Return the type name for a CSV row depending on naming mode."""
         if format_string:
             result = format_string
             for h in headers:
@@ -730,7 +748,7 @@ class FamilyTypeGenerator:
 
                     pb.update_progress(i + 1, total)
 
-            # Summary BEFORE commit — prevents console splitting
+            # Summary BEFORE commit
             done = counts['ok'] + counts['fail'] + counts['skip']
             rate = int(counts['ok'] / done * 100) if done else 0
             out.print_md("\n## 📊 Results")
@@ -764,25 +782,47 @@ class FamilyTypeGenerator:
             for csv_h, param_n in mapping.items():
                 raw = str(row.get(csv_h, "")).strip()
                 if not raw:
-                    continue   # empty cell → keep parameter default
+                    continue  # empty cell → keep parameter default
 
                 pinfo = family_params[param_n]
-                param = pinfo['param']
+                source = pinfo.get('source', 'family_manager')
                 spec_cat = pinfo['spec_category']
                 st = pinfo['storage_type']
 
                 try:
                     value = convert_csv_value(raw, spec_cat)
-                    if st == StorageType.Double:
-                        self.fm.Set(param, float(value))
-                    elif st == StorageType.Integer:
-                        self.fm.Set(param, int(value))
-                    elif st == StorageType.String:
-                        self.fm.Set(param, str(value))
-                    else:
-                        errors.append("{}: unsupported StorageType".format(csv_h))
-                        continue
+
+                    if source == 'family_manager':
+                        param = pinfo['param']  # FamilyParameter
+                        if st == StorageType.Double:
+                            self.fm.Set(param, float(value))
+                        elif st == StorageType.Integer:
+                            self.fm.Set(param, int(value))
+                        elif st == StorageType.String:
+                            self.fm.Set(param, str(value))
+                        else:
+                            errors.append("{}: unsupported StorageType".format(csv_h))
+                            continue
+
+                    elif source == 'builtin':
+                        bip = pinfo['bip']
+                        elem_param = new_type.get_Parameter(bip)
+                        if elem_param and not elem_param.IsReadOnly:
+                            if st == StorageType.Double:
+                                elem_param.Set(float(value))
+                            elif st == StorageType.Integer:
+                                elem_param.Set(int(value))
+                            elif st == StorageType.String:
+                                elem_param.Set(str(value))
+                            else:
+                                errors.append("{}: unsupported StorageType".format(csv_h))
+                                continue
+                        else:
+                            errors.append("{}: builtin param not settable".format(csv_h))
+                            continue
+
                     ok_n += 1
+
                 except ValueError as e:
                     errors.append("{}: bad value '{}' ({})".format(csv_h, raw, e))
                 except Exception as e:

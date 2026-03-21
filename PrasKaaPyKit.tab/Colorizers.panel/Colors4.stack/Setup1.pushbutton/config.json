@@ -1,0 +1,10 @@
+{
+    "bg_b": 180, 
+    "use_bg": false, 
+    "fg_r": 128, 
+    "fg_g": 128, 
+    "bg_r": 180, 
+    "fg_b": 128, 
+    "pattern_name": "Diagonal crosshatch 10mm", 
+    "bg_g": 180
+}

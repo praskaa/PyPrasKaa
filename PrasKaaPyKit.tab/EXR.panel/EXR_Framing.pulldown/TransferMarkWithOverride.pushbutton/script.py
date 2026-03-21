@@ -198,7 +198,7 @@ def main():
             elem = doc.GetElement(elem_id)
             # Make sure the selected element is a Structural Framing element
             if (elem.Category and
-                    elem.Category.Id.IntegerValue == int(BuiltInCategory.OST_StructuralFraming)):
+                    elem.Category.Id.Value == int(BuiltInCategory.OST_StructuralFraming)):
                 host_beams.append(elem)
         
         if not host_beams:
