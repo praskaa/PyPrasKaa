@@ -6,37 +6,37 @@ __doc__ = """Version: 2.0
 Date    = 21.03.2026
 _____________________________________________________________________
 Description:
-Validates framing dimensions by geometry intersection and parameter comparison.
-Compares structural beams in the host model against beams in a linked EXR
-(ETABS export) model, then stamps each host beam's Comments parameter with
-the validation status.
+Validates structural beam dimensions by comparing host model beams
+against a linked EXR (ETABS export) model using 3-pass geometry
+intersection. Each host beam is stamped with a validation status
+in the Comments parameter.
 
-Status values:
-  Approved               — family type & dimensions match
-  Family unmatched       — geometry intersects but family geometry type differs
-  Dimension to be checked — same family type but dimensions don't match /
-                            parameters not found
-  Unmatched              — no geometric intersection found at all
+Status values written to Comments parameter:
+  Approved           — match found, dimensions already match
+  Dimension Mismatch — match found but dimensions differ, or
+                       dimension parameters could not be read
+  Unmatched          — no geometric match found across all passes
 _____________________________________________________________________
 How-to:
 1. Ensure the EXR model is linked to your Revit project
 2. Optionally pre-select specific structural framing elements
-3. Run this tool
-4. Select the linked EXR model from the dialog
-5. Review the Comments parameter on each beam and the output panel
-6. A CSV report is saved to ~/Documents/PrasKaaPyKit/Check Framing Dimensions/
-   and a 3D issues view is created automatically (if CREATE_ISSUES_VIEW = True)
+3. Run the script and select the linked EXR model
+4. Review the Comments parameter on each beam and the CSV output
+5. A 3D issues view is automatically created for problematic beams
 _____________________________________________________________________
 Last update:
-- 21.03.2026 - 2.0  Refactored geometry & matching system to match
-                     MatchingFraming script patterns:
-                     · get_solid()        — compact, no debug overhead
-                     · find_best_match()  — 3-pass with solid expansion fallback
-                     · _safe_name() / _safe_family_name() — crash-safe
-                       cross-document name access via BuiltInParameter
-                     · collect_host_beams() — simplified category check
-                     · Single transaction with try/except RollBack pattern
-                     · Consistent post-commit output flow
+- 21.03.2026 - 2.0  Full refactor:
+                     · get_solid() with GeometryInstance handling
+                     · find_best_match() 3-pass geometric matching
+                     · get_beam_dimensions() + compare_dimensions()
+                       consistent with MatchingFraming & TransferMark
+                     · Status values: Approved, Dimension Mismatch,
+                       Unmatched — no geometry type check (audit only)
+                     · Category.Id cross-version fix (name-based check)
+                     · Transaction pattern: try/except RollBack
+                       + finally gc.collect()
+                     · Console output trimmed — full detail in CSV
+                     · 3D issues view with color-coded status
 _____________________________________________________________________
 Author: PrasKaa Team
 """
@@ -51,29 +51,24 @@ from Autodesk.Revit.DB import (
     FilteredElementCollector,
     BuiltInCategory,
     RevitLinkInstance,
+    ElementId,
     Solid,
     BooleanOperationsUtils,
     BooleanOperationsType,
     Transaction,
     TransactionStatus,
     View,
-    ViewType,
     View3D,
     ViewFamilyType,
     ViewFamily,
+    ViewType,
+    GeometryInstance,
     OverrideGraphicSettings,
     Color,
-    ElementId,
-    Options,
     BuiltInParameter,
     StorageType,
-    GeometryInstance,
-    ParameterFilterElement,
-    ParameterFilterRuleFactory,
-    ElementParameterFilter,
-    FamilySymbol,
     SolidUtils,
-    XYZ
+    XYZ,
 )
 from System.Collections.Generic import List
 from System import Int64
@@ -81,37 +76,42 @@ from System import Int64
 from pyrevit import revit, forms, script
 from pyrevit.forms import ProgressBar
 
-# Import graphic overrides utility from lib (optional)
+# Graphic overrides utility (optional)
 try:
     from graphicOverrides import get_solid_fill_pattern
 except ImportError:
     get_solid_fill_pattern = None
 
-# Import CSV configuration (optional)
-try:
-    from matching_config import CSV_BASE_DIR, CSV_CREATE_FOLDERS
-except ImportError:
-    CSV_BASE_DIR = os.path.join(os.path.expanduser("~"), "Documents", "PrasKaaPyKit")
-    CSV_CREATE_FOLDERS = True
-
 # ─── Config ────────────────────────────────────────────────────────────────────
 
-SCRIPT_SUBFOLDER = "Check Framing Dimensions"
+SCRIPT_SUBFOLDER   = "Check Framing Dimensions"
+CSV_BASE_DIR       = os.path.join(os.path.expanduser("~"), "Documents", "PrasKaaPyKit")
 CREATE_ISSUES_VIEW = True
-ISSUES_VIEW_TRANSPARENCY = 50
 
-# Tolerance in feet for solid expansion fallback (~6 cm)
+# Solid expansion tolerance ~6 cm
 INTERSECTION_TOLERANCE = 0.2
+
+# Status values — consistent across CheckFraming, MatchingFraming, TransferMark
+STATUS_APPROVED        = "Approved"
+STATUS_DIM_MISMATCH    = "Dimension Mismatch"
+STATUS_FAMILY_MISMATCH = "Family Mismatch"
+STATUS_UNMATCHED       = "Unmatched"
+
+# 3D issues view color map
+COLOR_MAP = {
+    STATUS_UNMATCHED       : Color(255, 0,   0),   # red
+    STATUS_DIM_MISMATCH    : Color(255, 165, 0),   # orange
+    STATUS_FAMILY_MISMATCH : Color(255, 165, 0),   # orange
+}
 
 # ─── Setup ─────────────────────────────────────────────────────────────────────
 
-doc   = revit.doc
-uidoc = revit.uidoc
+doc    = revit.doc
+uidoc  = revit.uidoc
 output = script.get_output()
 logger = script.get_logger()
 
-# Geometry options — prefer active view, fallback to any 3D view
-app = doc.Application
+app      = doc.Application
 geo_opts = app.Create.NewGeometryOptions()
 if doc.ActiveView:
     geo_opts.View = doc.ActiveView
@@ -125,7 +125,7 @@ else:
 # ─── Geometry ──────────────────────────────────────────────────────────────────
 
 def get_solid(element):
-    """Extract largest/united solid from an element. Compact, no debug overhead."""
+    """Extract the largest united solid from an element. Handles GeometryInstance nesting."""
     geom = element.get_Geometry(geo_opts)
     if not geom:
         return None
@@ -150,7 +150,7 @@ def get_solid(element):
 
 
 def _expand_solid(solid, tolerance):
-    """Scale solid slightly outward from its centroid — used as intersection fallback."""
+    """Uniformly scale a solid outward from its centroid. Used as intersection fallback."""
     try:
         from Autodesk.Revit.DB import Transform
         center = solid.ComputeCentroid()
@@ -165,136 +165,105 @@ def _expand_solid(solid, tolerance):
         return solid
 
 
-def find_best_match(host_solid, linked_beams_dict):
+def find_best_match(host_beam, host_solid, linked_beams_dict):
     """
-    3-pass geometry matching (mirrors MatchingFraming logic):
-      Pass 1 — direct intersection
-      Pass 2 — expand host solid
-      Pass 3 — expand both host and linked solid
-    Returns the best-matching linked beam Element, or None.
-    """
-    best, max_vol = None, 0.0
-    no_intersect = []
+    3-pass matching with geometry type check and dimension check integrated
+    per pass — mirrors TransferMark pattern.
 
-    # Pass 1: direct
-    for beam_id, data in linked_beams_dict.items():
-        if not data['solid']:
-            continue
-        try:
-            inter = BooleanOperationsUtils.ExecuteBooleanOperation(
-                host_solid, data['solid'], BooleanOperationsType.Intersect)
-            vol = inter.Volume if inter else 0.0
+    Each pass: intersection volume > 0 AND geometry type matches AND dimensions match.
+    Beams failing a pass enter no_match and are retried in the next pass with
+    expanded solids. A beam with intersection but wrong geometry type or dimensions
+    also enters no_match so it can be retried — but since expansion does not change
+    dimensions, it will ultimately remain unmatched if no correct beam exists.
+
+    Pass 1 — direct intersection
+    Pass 2 — expand host solid
+    Pass 3 — expand host and linked solid
+
+    Returns (best_match Element or None, fail_reason str or None).
+    fail_reason is the last validation failure across all passes.
+    """
+    host_geom_type = get_geometry_type(host_beam)
+    host_dims      = get_beam_dimensions(host_beam)
+
+    def _try_match(candidates, exp_host, expand_linked=False):
+        best        = None
+        max_vol     = 0.0
+        no_match    = []
+        last_reason = None
+
+        for data in candidates:
+            linked_solid = data['solid']
+            if not linked_solid:
+                continue
+
+            ls = _expand_solid(linked_solid, INTERSECTION_TOLERANCE) \
+                 if expand_linked else linked_solid
+
+            try:
+                inter = BooleanOperationsUtils.ExecuteBooleanOperation(
+                    exp_host, ls, BooleanOperationsType.Intersect)
+                vol = inter.Volume if inter else 0.0
+            except Exception:
+                vol = 0.0
+
+            if vol == 0.0:
+                no_match.append(data)
+                continue
+
+            # Intersection found — check geometry type
+            linked_beam      = data['element']
+            linked_geom_type = get_geometry_type(linked_beam)
+            if host_geom_type != linked_geom_type:
+                last_reason = STATUS_FAMILY_MISMATCH
+                no_match.append(data)
+                continue
+
+            # Geometry type ok — check dimensions
+            linked_dims = get_beam_dimensions(linked_beam)
+            if not compare_dimensions(host_dims, linked_dims):
+                last_reason = STATUS_DIM_MISMATCH
+                no_match.append(data)
+                continue
+
+            # All checks passed — valid candidate
             if vol > max_vol:
                 max_vol = vol
-                best = data['element']
-            if vol == 0.0:
-                no_intersect.append(data)
-        except Exception:
-            no_intersect.append(data)
+                best    = linked_beam
 
+        return best, no_match, last_reason
+
+    all_candidates = list(linked_beams_dict.values())
+
+    # Pass 1: direct
+    best, no_match_1, reason = _try_match(all_candidates, host_solid)
     if best:
-        return best
+        return best, None
 
     # Pass 2: expand host
     try:
         exp_host = _expand_solid(host_solid, INTERSECTION_TOLERANCE)
-        for data in no_intersect:
-            try:
-                inter = BooleanOperationsUtils.ExecuteBooleanOperation(
-                    exp_host, data['solid'], BooleanOperationsType.Intersect)
-                vol = inter.Volume if inter else 0.0
-                if vol > max_vol:
-                    max_vol = vol
-                    best = data['element']
-            except Exception:
-                pass
     except Exception:
-        pass
-
+        exp_host = host_solid
+    best, no_match_2, reason = _try_match(no_match_1, exp_host)
     if best:
-        return best
+        return best, None
 
     # Pass 3: expand both
-    try:
-        exp_host = _expand_solid(host_solid, INTERSECTION_TOLERANCE)
-        for data in no_intersect:
-            try:
-                exp_linked = _expand_solid(data['solid'], INTERSECTION_TOLERANCE)
-                inter = BooleanOperationsUtils.ExecuteBooleanOperation(
-                    exp_host, exp_linked, BooleanOperationsType.Intersect)
-                vol = inter.Volume if inter else 0.0
-                if vol > max_vol:
-                    max_vol = vol
-                    best = data['element']
-            except Exception:
-                pass
-    except Exception:
-        pass
+    best, _, reason = _try_match(no_match_2, exp_host, expand_linked=True)
+    if best:
+        return best, None
 
-    return best
+    return None, reason or STATUS_UNMATCHED
 
 
-# ─── Safe name helpers (cross-document, mirrors MatchingFraming) ───────────────
-
-def _safe_name(elem):
-    """Get element/type name via BuiltInParameter — avoids AttributeError on linked-doc types."""
-    for bip in [BuiltInParameter.SYMBOL_NAME_PARAM, BuiltInParameter.ALL_MODEL_TYPE_NAME]:
-        try:
-            p = elem.get_Parameter(bip)
-            if p and p.HasValue:
-                val = p.AsString()
-                if val:
-                    return val
-        except Exception:
-            pass
-    try:
-        return elem.Name
-    except Exception:
-        return None
-
-
-def _safe_family_name(beam, btype):
-    """Get family name via FamilySymbol.Family then instance parameters."""
-    try:
-        if hasattr(btype, 'Family') and btype.Family:
-            return btype.Family.Name
-    except Exception:
-        pass
-    for bip in [BuiltInParameter.ELEM_FAMILY_PARAM, BuiltInParameter.ALL_MODEL_FAMILY_NAME]:
-        try:
-            p = beam.get_Parameter(bip)
-            if p and p.HasValue:
-                val = p.AsString()
-                if val:
-                    return val
-        except Exception:
-            pass
-    return "Unknown"
-
-
-def get_type_info(beam):
-    """Returns {'type_name', 'family_name'} or None. Works for both host and linked beams."""
-    try:
-        type_id = beam.GetTypeId()
-        btype   = beam.Document.GetElement(type_id)
-        if not btype:
-            return None
-        type_name = _safe_name(btype)
-        if not type_name:
-            return None
-        family_name = _safe_family_name(beam, btype)
-        return {'type_name': type_name, 'family_name': family_name}
-    except Exception:
-        return None
-
-
-# ─── Dimension extraction ──────────────────────────────────────────────────────
+# ─── Dimension helpers ─────────────────────────────────────────────────────────
 
 def get_beam_dimensions(beam):
     """
-    Extracts b / h parameters from a beam (in Revit internal feet).
+    Extract b / h dimension parameters from a beam (Revit internal feet).
+    Checks instance level first, then type level.
     Returns {'b': float, 'h': float, 'type': 'rectangular'|'square'} or None.
-    Checks both instance and type-level parameters.
     """
     try:
         def _lookup(elem, names):
@@ -330,44 +299,10 @@ def get_beam_dimensions(beam):
         return None
 
 
-def get_geometry_type(beam):
-    """
-    Detects 'circular', 'square', 'rectangular', or 'unknown' from family/type name,
-    falling back to parameter comparison.
-    """
-    info = get_type_info(beam)
-    family_name = (info.get('family_name') or '').lower() if info else ''
-    type_name   = (info.get('type_name')   or '').lower() if info else ''
-    combined    = family_name + ' ' + type_name
-
-    circular_kw    = ['round', 'circular', 'circle', 'pipe', 'tube', 'diameter', 'ø', 'bulat']
-    square_kw      = ['square', 'box', 'kuadrat']
-    rectangular_kw = ['rectangular', 'rectangle', 'rect', 'persegi']
-
-    for kw in circular_kw:
-        if kw in combined:
-            return 'circular'
-    for kw in square_kw:
-        if kw in combined:
-            return 'square'
-    for kw in rectangular_kw:
-        if kw in combined:
-            return 'rectangular'
-
-    # Fallback: compare b vs h from parameters
-    dims = get_beam_dimensions(beam)
-    if dims:
-        return dims.get('type', 'unknown')
-    return 'unknown'
-
-
-# ─── Dimension comparison ──────────────────────────────────────────────────────
-
 def compare_dimensions(host_dims, linked_dims):
     """
-    Compares dimensions in mm (converts from internal feet first).
-    Tolerance: 0.01 mm.
-    Returns True if dimensions match within tolerance.
+    Compare beam dimensions in mm (converted from internal feet).
+    Tolerance: 0.01 mm. Returns True if dimensions match within tolerance.
     """
     if not host_dims or not linked_dims:
         return False
@@ -382,7 +317,7 @@ def compare_dimensions(host_dims, linked_dims):
         def to_mm(v):
             return v * 304.8
 
-    tol = 0.01  # mm
+    tol = 0.01
 
     if host_dims['type'] == 'square':
         hb = host_dims.get('b')
@@ -402,10 +337,110 @@ def compare_dimensions(host_dims, linked_dims):
     return False
 
 
+
+def get_geometry_type(beam):
+    """
+    Detect geometry type: 'circular', 'square', 'rectangular', or 'unknown'
+    from family/type name. Falls back to b vs h parameter comparison.
+    """
+    try:
+        type_id = beam.GetTypeId()
+        btype   = beam.Document.GetElement(type_id)
+        family_name = ''
+        type_name   = ''
+        if btype:
+            try:
+                if hasattr(btype, 'Family') and btype.Family:
+                    family_name = str(btype.Family.Name).lower()
+            except Exception:
+                pass
+            try:
+                p = btype.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM)
+                type_name = str(p.AsString()).lower() if (p and p.HasValue) else ''
+            except Exception:
+                pass
+    except Exception:
+        family_name = ''
+        type_name   = ''
+
+    combined = family_name + ' ' + type_name
+
+    for kw in ['round', 'circular', 'circle', 'pipe', 'tube', 'diameter', 'ø', 'bulat']:
+        if kw in combined:
+            return 'circular'
+    for kw in ['square', 'box', 'kuadrat']:
+        if kw in combined:
+            return 'square'
+    for kw in ['rectangular', 'rectangle', 'rect', 'persegi']:
+        if kw in combined:
+            return 'rectangular'
+
+    dims = get_beam_dimensions(beam)
+    if dims:
+        return dims.get('type', 'unknown')
+    return 'unknown'
+
+
+# ─── Dimension formatting ──────────────────────────────────────────────────────
+
+def _dims_to_mm_str(dims):
+    """
+    Convert a dims dict (internal feet) to a human-readable mm string for CSV.
+    Examples:
+      square      → 'b=500mm'
+      rectangular → 'b=300mm x h=600mm'
+    Returns '-' if dims is None.
+    """
+    if not dims:
+        return '-'
+    try:
+        from Autodesk.Revit.DB import UnitUtils, UnitTypeId
+        def to_mm(v):
+            return UnitUtils.ConvertFromInternalUnits(v, UnitTypeId.Millimeters)
+    except ImportError:
+        def to_mm(v):
+            return v * 304.8
+
+    if dims.get('type') == 'square':
+        return 'b={:.0f}mm'.format(to_mm(dims['b']))
+    if dims.get('type') == 'rectangular':
+        return 'b={:.0f}mm x h={:.0f}mm'.format(
+            to_mm(dims['b']), to_mm(dims['h']))
+    return str(dims)
+
+
+# ─── Safe name helper ──────────────────────────────────────────────────────────
+
+def _safe_name(elem):
+    """Get element/type name via BuiltInParameter — avoids AttributeError on linked-doc types."""
+    for bip in [BuiltInParameter.SYMBOL_NAME_PARAM, BuiltInParameter.ALL_MODEL_TYPE_NAME]:
+        try:
+            p = elem.get_Parameter(bip)
+            if p and p.HasValue:
+                val = p.AsString()
+                if val:
+                    return val
+        except Exception:
+            pass
+    try:
+        return elem.Name
+    except Exception:
+        return None
+
+
+# ─── Comment helper ────────────────────────────────────────────────────────────
+
+def set_comment(beam, text):
+    """Set the Comments parameter via BuiltInParameter — cross-version safe."""
+    p = beam.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
+    if p and not p.IsReadOnly:
+        p.Set(text)
+
+
 # ─── Collection helpers ────────────────────────────────────────────────────────
 
 def select_linked_model():
-    """Prompts user to select a linked Revit model. Returns (link_doc, link_instance)."""
+    """Prompts user to select a linked model. Returns (link_doc, link_instance)."""
     links = FilteredElementCollector(doc).OfClass(RevitLinkInstance).ToElements()
     if not links:
         forms.alert("No Revit links found in the current project.", exitscript=True)
@@ -421,15 +456,15 @@ def select_linked_model():
         forms.alert("No link selected.", exitscript=True)
     link_doc = link.GetLinkDocument()
     if not link_doc:
-        forms.alert("Could not access the selected link document. Ensure it is loaded.", exitscript=True)
+        forms.alert("Could not access the linked document. Ensure it is loaded.",
+                    exitscript=True)
     return link_doc, link
 
 
 def collect_host_beams():
     """
-    Returns pre-selected structural framing elements, or ALL structural framing
-    if nothing (or non-framing elements) is selected.
-    Simplified — no category-ID integer comparison needed.
+    Return pre-selected structural framing elements, or all framing if nothing selected.
+    Category check via name string — cross-version safe.
     """
     sel_ids = uidoc.Selection.GetElementIds()
     if sel_ids:
@@ -438,7 +473,6 @@ def collect_host_beams():
             elem = doc.GetElement(eid)
             if elem and elem.Category:
                 cat_name = elem.Category.Name or ''
-                # Accept anything whose category name contains "Structural Framing"
                 if 'Structural Framing' in cat_name or 'StructuralFraming' in cat_name:
                     beams.append(elem)
         if beams:
@@ -451,15 +485,13 @@ def collect_host_beams():
         .ToElements()
     )
     if not all_beams:
-        forms.alert(
-            "No structural framing elements found in the host model.",
-            exitscript=True
-        )
+        forms.alert("No structural framing elements found in the host model.",
+                    exitscript=True)
     return all_beams
 
 
 def collect_linked_beams(link_doc):
-    """Collects all structural framing elements from a linked document."""
+    """Collect all structural framing elements from a linked document."""
     return list(
         FilteredElementCollector(link_doc)
         .OfCategory(BuiltInCategory.OST_StructuralFraming)
@@ -468,103 +500,81 @@ def collect_linked_beams(link_doc):
     )
 
 
-# ─── Comment helper ────────────────────────────────────────────────────────────
-
-def set_comment(beam, text):
-    """Sets the ALL_MODEL_INSTANCE_COMMENTS parameter if writable."""
-    p = beam.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
-    if p and not p.IsReadOnly:
-        p.Set(text)
-
-
 # ─── Per-beam validation ───────────────────────────────────────────────────────
 
 def validate_beam(host_beam, linked_beams_dict):
     """
-    Validates a single host beam against the linked beam cache.
+    Validate a single host beam against the linked beam cache.
 
-    Returns:
-        (status_str, validation_dict)
-        status_str — one of: 'Approved', 'Family unmatched',
-                              'Dimension to be checked', 'Unmatched'
+    Flow:
+      1. Extract host solid
+      2. find_best_match() — 3-pass with geometry type + dimension check per pass
+         · returns (match, None)             → Approved
+         · returns (None, Family Mismatch)   → Family Mismatch
+         · returns (None, Dimension Mismatch)→ Dimension Mismatch
+         · returns (None, Unmatched)         → Unmatched
+
+    Returns (status_str, row_dict).
     """
     row = {
-        'host_beam_id'         : str(host_beam.Id),
-        'linked_beam_id'       : None,
-        'host_family_name'     : None,
-        'host_type_name'       : None,
-        'linked_family_name'   : None,
-        'linked_type_name'     : None,
-        'host_geometry_type'   : None,
-        'linked_geometry_type' : None,
-        'host_dimensions'      : None,
-        'linked_dimensions'    : None,
-        'status'               : None,
-        'debug_info'           : None,
+        'host_beam_id'     : str(host_beam.Id),
+        'linked_beam_id'   : None,
+        'host_type_name'   : None,
+        'linked_type_name' : None,
+        'host_dimensions'  : None,
+        'linked_dimensions': None,
+        'status'           : None,
+        'note'             : None,
     }
 
-    host_info = get_type_info(host_beam)
-    if host_info:
-        row['host_family_name'] = host_info.get('family_name')
-        row['host_type_name']   = host_info.get('type_name')
+    # Capture host type name for CSV
+    try:
+        host_type = doc.GetElement(host_beam.GetTypeId())
+        row['host_type_name'] = _safe_name(host_type) if host_type else None
+    except Exception:
+        pass
 
+    # Capture host dims for CSV (always, regardless of match result)
+    host_dims = get_beam_dimensions(host_beam)
+    row['host_dimensions'] = _dims_to_mm_str(host_dims)
+
+    # Step 1: extract solid
     host_solid = get_solid(host_beam)
     if not host_solid:
-        row['status']     = 'Unmatched'
-        row['debug_info'] = 'Could not extract host solid geometry'
-        return 'Unmatched', row
+        row['status'] = STATUS_UNMATCHED
+        row['note']   = 'Failed to extract host solid geometry'
+        return STATUS_UNMATCHED, row
 
-    best = find_best_match(host_solid, linked_beams_dict)
+    # Step 2: 3-pass match with geometry type + dimension check per pass
+    best, fail_reason = find_best_match(host_beam, host_solid, linked_beams_dict)
+
     if not best:
-        row['status']     = 'Unmatched'
-        row['debug_info'] = 'No geometric intersection found'
-        return 'Unmatched', row
+        status = fail_reason or STATUS_UNMATCHED
+        row['status'] = status
+        row['note']   = 'No valid match found across all passes'
+        return status, row
 
+    # Match found and all checks passed → Approved
     row['linked_beam_id'] = str(best.Id)
-    linked_info = get_type_info(best)
-    if linked_info:
-        row['linked_family_name'] = linked_info.get('family_name')
-        row['linked_type_name']   = linked_info.get('type_name')
 
-    # Family geometry type check
-    host_geom_type   = get_geometry_type(host_beam)
-    linked_geom_type = get_geometry_type(best)
-    row['host_geometry_type']   = host_geom_type
-    row['linked_geometry_type'] = linked_geom_type
+    try:
+        linked_type = best.Document.GetElement(best.GetTypeId())
+        row['linked_type_name'] = _safe_name(linked_type) if linked_type else None
+    except Exception:
+        pass
 
-    if host_geom_type != linked_geom_type:
-        row['status']     = 'Family unmatched'
-        row['debug_info'] = 'Geometry type mismatch: {} vs {}'.format(
-            host_geom_type, linked_geom_type)
-        return 'Family unmatched', row
-
-    # Dimension check
-    host_dims   = get_beam_dimensions(host_beam)
     linked_dims = get_beam_dimensions(best)
-    row['host_dimensions']   = str(host_dims)   if host_dims   else None
-    row['linked_dimensions'] = str(linked_dims) if linked_dims else None
+    row['linked_dimensions'] = _dims_to_mm_str(linked_dims)
 
-    if not host_dims or not linked_dims:
-        row['status']     = 'Dimension to be checked'
-        row['debug_info'] = 'Missing dimension params — host:{} linked:{}'.format(
-            'OK' if host_dims else 'FAIL',
-            'OK' if linked_dims else 'FAIL')
-        return 'Dimension to be checked', row
-
-    if compare_dimensions(host_dims, linked_dims):
-        row['status']     = 'Approved'
-        row['debug_info'] = 'Dimensions match within tolerance'
-        return 'Approved', row
-
-    row['status']     = 'Dimension to be checked'
-    row['debug_info'] = "Dimensions don't match"
-    return 'Dimension to be checked', row
+    row['status'] = STATUS_APPROVED
+    row['note']   = 'Dimensions match within tolerance'
+    return STATUS_APPROVED, row
 
 
 # ─── CSV export ────────────────────────────────────────────────────────────────
 
-def export_csv(validation_results, doc_title):
-    """Exports validation results to a timestamped CSV. Returns path or None."""
+def export_csv(results, doc_title):
+    """Export validation results to a timestamped CSV. Returns file path or None."""
     try:
         folder = os.path.join(CSV_BASE_DIR, SCRIPT_SUBFOLDER)
         if not os.path.exists(folder):
@@ -579,26 +589,20 @@ def export_csv(validation_results, doc_title):
             w = csv.writer(f)
             w.writerow([
                 'Host Beam ID', 'Linked Beam ID',
-                'Host Family', 'Host Type',
-                'Linked Family', 'Linked Type',
-                'Host Geom Type', 'Linked Geom Type',
-                'Host Dims', 'Linked Dims',
-                'Status', 'Debug Info'
+                'Host Type', 'Linked Type',
+                'Host Dims (mm)', 'Linked Dims (mm)',
+                'Status', 'Note'
             ])
-            for r in validation_results:
+            for r in results:
                 w.writerow([
                     r.get('host_beam_id'),
                     r.get('linked_beam_id'),
-                    r.get('host_family_name'),
                     r.get('host_type_name'),
-                    r.get('linked_family_name'),
                     r.get('linked_type_name'),
-                    r.get('host_geometry_type'),
-                    r.get('linked_geometry_type'),
                     r.get('host_dimensions'),
                     r.get('linked_dimensions'),
                     r.get('status'),
-                    r.get('debug_info'),
+                    r.get('note'),
                 ])
         return path
     except Exception as e:
@@ -615,58 +619,48 @@ def _find_3d_view_type():
     return None
 
 
-def create_issues_view(validation_results, selected_link):
+def create_issues_view(results):
     """
-    Creates a 3D view highlighting problematic beams:
+    Create a 3D view highlighting problematic beams:
       Red    — Unmatched
-      Orange — Family unmatched
-      Yellow — Dimension to be checked
-    Hides Approved beams for clarity.
+      Orange — Dimension Mismatch / Family Mismatch
+    Approved beams are hidden.
     Returns the View3D or None.
     """
     try:
         vft = _find_3d_view_type()
         if not vft:
-            logger.warning('No 3D view type found; skipping issues view creation.')
+            logger.warning('No 3D view type found — issues view skipped.')
             return None
 
         ts        = datetime.now().strftime('%Y%m%d_%H%M%S')
         view_name = 'FRAMING CHECK - Issues Only {}'.format(ts)
 
-        with Transaction(doc, 'Create Framing Issues View') as t:
+        with Transaction(doc, 'Create Framing Check Issues View') as t:
             t.Start()
             try:
                 new_view      = View3D.CreateIsometric(doc, vft.Id)
                 new_view.Name = view_name
 
-                # Solid fill pattern (optional — from lib)
                 solid_pat = get_solid_fill_pattern(doc) if get_solid_fill_pattern else None
 
-                # Status → color map
-                status_colors = {
-                    'Unmatched'              : Color(255, 0,   0),
-                    'Family unmatched'       : Color(255, 165, 0),
-                    'Dimension to be checked': Color(255, 255, 0),
-                }
+                approved_ids = List[ElementId]()
 
-                approved_ids    = List[ElementId]()
-                problematic_ids = List[ElementId]()
-
-                for row in validation_results:
-                    status   = row.get('status', '')
-                    id_str   = row.get('host_beam_id', '')
+                for row in results:
+                    status = row.get('status', '')
+                    id_str = row.get('host_beam_id', '')
                     if not id_str:
                         continue
                     try:
-                        eid  = ElementId(Int64.Parse(id_str))
+                        eid  = ElementId(Int64.Parse(str(id_str)))
                         beam = doc.GetElement(eid)
                         if not beam:
                             continue
 
-                        if status == 'Approved':
+                        if status == STATUS_APPROVED:
                             approved_ids.Add(eid)
-                        elif status in status_colors:
-                            clr      = status_colors[status]
+                        elif status in COLOR_MAP:
+                            clr      = COLOR_MAP[status]
                             override = OverrideGraphicSettings()
                             override.SetProjectionLineColor(clr)
                             override.SetCutLineColor(clr)
@@ -677,26 +671,24 @@ def create_issues_view(validation_results, selected_link):
                                 override.SetSurfaceBackgroundPatternId(solid_pat)
                                 override.SetCutForegroundPatternId(solid_pat)
                             new_view.SetElementOverrides(eid, override)
-                            problematic_ids.Add(eid)
                     except Exception:
                         continue
 
-                # Hide approved beams
                 if approved_ids.Count > 0:
                     try:
                         new_view.HideElements(approved_ids)
-                    except Exception as e:
-                        logger.warning('Could not hide approved beams: {}'.format(e))
+                    except Exception:
+                        pass
 
-                # Ensure linked model instances are visible
+                # Ensure linked model instances remain visible
                 link_ids = List[ElementId]()
                 for lnk in FilteredElementCollector(doc).OfClass(RevitLinkInstance).ToElements():
                     link_ids.Add(lnk.Id)
                 if link_ids.Count > 0:
                     try:
                         new_view.UnhideElements(link_ids)
-                    except Exception as e:
-                        logger.warning('Could not unhide linked models: {}'.format(e))
+                    except Exception:
+                        pass
 
                 t.Commit()
                 return new_view
@@ -717,23 +709,21 @@ def main():
     # Step 1 — select linked model
     link_doc, selected_link = select_linked_model()
 
-    # Step 2 — collect beams
+    # Step 2 — collect elements
     host_beams   = collect_host_beams()
     linked_beams = collect_linked_beams(link_doc)
 
     if not linked_beams:
-        forms.alert(
-            'No structural framing found in the linked EXR model.',
-            exitscript=True
-        )
+        forms.alert("No structural framing elements found in the linked model.",
+                    exitscript=True)
 
-    # Step 3 — cache linked beam solids (mirrors MatchingFraming)
+    # Step 3 — cache linked beam solids
     linked_dict = {}
     with ProgressBar(title='Processing Linked Geometry ({value}/{max_value})',
                      cancellable=True) as pb:
         for i, beam in enumerate(linked_beams):
             if pb.cancelled:
-                forms.alert('Cancelled.', exitscript=True)
+                forms.alert("Cancelled.", exitscript=True)
             solid = get_solid(beam)
             if solid:
                 linked_dict[beam.Id] = {'element': beam, 'solid': solid}
@@ -742,12 +732,16 @@ def main():
     logger.info('Linked beam cache: {}/{} with valid geometry'.format(
         len(linked_dict), len(linked_beams)))
 
-    # Step 4 — validate in a single transaction (mirrors MatchingFraming pattern)
-    counts = {'Approved': 0, 'Family unmatched': 0,
-              'Dimension to be checked': 0, 'Unmatched': 0}
-    validation_results = []
+    # Step 4 — validate in a single transaction
+    counts = {
+        STATUS_APPROVED       : 0,
+        STATUS_DIM_MISMATCH   : 0,
+        STATUS_FAMILY_MISMATCH: 0,
+        STATUS_UNMATCHED      : 0,
+    }
+    results = []
 
-    t = Transaction(doc, 'Validate Beam Dimensions')
+    t = Transaction(doc, 'Check Framing Dimensions')
     t.Start()
     try:
         with ProgressBar(title='Validating Beams ({value}/{max_value})',
@@ -755,44 +749,44 @@ def main():
             for i, host_beam in enumerate(host_beams):
                 if pb.cancelled:
                     t.RollBack()
-                    forms.alert('Cancelled. All changes rolled back.', exitscript=True)
+                    forms.alert("Cancelled. All changes have been rolled back.",
+                                exitscript=True)
 
                 status, row = validate_beam(host_beam, linked_dict)
-                validation_results.append(row)
+                results.append(row)
                 counts[status] = counts.get(status, 0) + 1
                 set_comment(host_beam, status)
                 pb.update_progress(i + 1, len(host_beams))
 
         if t.Commit() != TransactionStatus.Committed:
-            forms.alert('Failed to commit changes.', exitscript=True)
+            forms.alert("Failed to commit transaction.", exitscript=True)
 
     except Exception as e:
         t.RollBack()
-        forms.alert('Error: {}. All changes rolled back.'.format(e), exitscript=True)
+        forms.alert("Error: {}. All changes have been rolled back.".format(e),
+                    exitscript=True)
     finally:
         linked_dict.clear()
         gc.collect()
 
-    # ─── Post-commit: output, CSV, 3D view ─────────────────────────────────────
+    # ─── Post-commit output ────────────────────────────────────────────────────
 
-    output.print_md('## Results Summary')
+    csv_path = export_csv(results, doc.Title)
+
+    output.print_md('## Check Framing Dimensions — Results')
     output.print_md('- **Total processed**: {}'.format(len(host_beams)))
-    output.print_md('- **Approved**: {}'.format(counts['Approved']))
-    output.print_md('- **Family unmatched**: {}'.format(counts['Family unmatched']))
-    output.print_md('- **Dimension to be checked**: {}'.format(counts['Dimension to be checked']))
-    output.print_md('- **Unmatched**: {}'.format(counts['Unmatched']))
-
-    csv_path = export_csv(validation_results, doc.Title)
+    output.print_md('- **Approved**: {}'.format(counts[STATUS_APPROVED]))
+    output.print_md('- **Dimension Mismatch**: {}'.format(counts[STATUS_DIM_MISMATCH]))
+    output.print_md('- **Unmatched**: {}'.format(counts[STATUS_UNMATCHED]))
     if csv_path:
         output.print_md('- **CSV**: {}'.format(csv_path))
 
     issues_view = None
     if CREATE_ISSUES_VIEW:
-        issues_view = create_issues_view(validation_results, selected_link)
+        issues_view = create_issues_view(results)
         if issues_view:
-            output.print_md('')
-            output.print_md('**3D Issues View**: `{}`'.format(issues_view.Name))
-            output.print_md('*Red*: Unmatched | *Orange*: Family unmatched | *Yellow*: Dimension check needed')
+            output.print_md('- **3D View**: `{}`'.format(issues_view.Name))
+            output.print_md('*Red*: Unmatched | *Orange*: Dimension Mismatch')
             try:
                 uidoc.RequestViewChange(issues_view)
             except Exception:
@@ -800,10 +794,13 @@ def main():
 
     from Autodesk.Revit.UI import TaskDialog, TaskDialogCommonButtons
     TaskDialog.Show(
-        'Validation Complete',
-        'Approved: {}\nFamily unmatched: {}\nDimension to be checked: {}\nUnmatched: {}'.format(
-            counts['Approved'], counts['Family unmatched'],
-            counts['Dimension to be checked'], counts['Unmatched']
+        'Check Framing Dimensions Complete',
+        'Approved          : {}\n'
+        'Dimension Mismatch: {}\n'
+        'Unmatched         : {}'.format(
+            counts[STATUS_APPROVED],
+            counts[STATUS_DIM_MISMATCH],
+            counts[STATUS_UNMATCHED],
         ),
         TaskDialogCommonButtons.Ok
     )

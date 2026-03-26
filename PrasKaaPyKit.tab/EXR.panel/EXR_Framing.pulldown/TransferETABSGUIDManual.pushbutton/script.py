@@ -208,7 +208,7 @@ def validate_beam(element):
         return False
 
     return (element.Category and
-            element.Category.Id.IntegerValue == int(BuiltInCategory.OST_StructuralFraming))
+            element.Category.Id.Value == int(BuiltInCategory.OST_StructuralFraming))
 
 
 def get_beam_dimensions(beam):

@@ -3,53 +3,22 @@
 title:
   en_us: EXR Framing
 
-tooltip:
-  en_us: |
-    EXR Framing Tools - Linked Model Framing Management
-
-    Comprehensive tools for managing structural framing in linked EXR models.
-    Matching, dimension validation, and mark transfer operations for
-    beams, columns, and other framing elements.
-
-    FEATURES:
-    • Matching Framing - Intelligent framing matching
-    • Pre-run Matching Dimension - Dimension preparation
-    • Transfer Mark - Mark transfer with options
-    • Manual Transfer Mark - Advanced transfer controls
-
-    WORKFLOW SUPPORT:
-    • Linked model synchronization
-    • Dimension consistency validation
-    • Mark management across models
-    • Quality control automation
-
-    Version: 2.0 | Author: PrasKaa Team
-
-author: PrasKaa Team
-help_url: https://github.com/praskaa/pyrevit-tools/wiki/EXR-Framing-Tools
-
+author: PrasKaa
 # Pulldown Layout Configuration
 layout:
   - CheckFramingDimensions
-  - ClearFramingComments
   - -----
   - PreRunMatchingDimension
   - MatchingFraming
   - -----
-  - TransferMarkManual
   - TransferMarkWithOverride
-  - TransferMarkWithRevitModel
+  - TransferMarkManual
   - -----
   - TransferETABSGUIDManual
   - TransferMarkByGUID
   - -----
   - TestGeometryMatching
 
-# Engine Configuration
-engine:
-  clean: true
-  full_frame: false
-  persistent: false
 
 # Context and Version Requirements
 context: ["Project"]
