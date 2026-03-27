@@ -264,35 +264,51 @@ def get_beam_dimensions(beam):
     Extract b / h dimension parameters from a beam (Revit internal feet).
     Checks instance level first, then type level.
     Returns {'b': float, 'h': float, 'type': 'rectangular'|'square'} or None.
+    
+    Enhanced with more fallback parameter names to handle various family definitions.
     """
     try:
         def _lookup(elem, names):
             for name in names:
-                p = elem.LookupParameter(name)
-                if p and p.HasValue and p.StorageType == StorageType.Double:
-                    return p.AsDouble()
+                try:
+                    p = elem.LookupParameter(name)
+                    if p and p.HasValue and p.StorageType == StorageType.Double:
+                        return p.AsDouble()
+                except:
+                    continue
             return None
 
+        # Extended parameter name lists for better compatibility
+        # These cover common naming conventions across different families
+        b_param_names = ['b', 'B', 'Width', 'width', 'w', 'W', 'd', 'Depth', 'depth', 'Section Width', 'web_width']
+        h_param_names = ['h', 'H', 'Height', 'height', 'd', 'Depth', 'depth', 'Section Depth', 'flange_width', 'total_depth']
+
+        # Try BuiltInParameter first (most reliable)
         b_val = beam.get_Parameter(BuiltInParameter.STRUCTURAL_SECTION_COMMON_WIDTH)
         b_val = b_val.AsDouble() if (b_val and b_val.HasValue) else None
         if b_val is None:
-            b_val = _lookup(beam, ['b', 'B', 'Width'])
+            b_val = _lookup(beam, b_param_names)
             if b_val is None and beam.Symbol:
-                b_val = _lookup(beam.Symbol, ['b', 'B', 'Width'])
+                b_val = _lookup(beam.Symbol, b_param_names)
 
         h_val = beam.get_Parameter(BuiltInParameter.STRUCTURAL_SECTION_COMMON_HEIGHT)
         h_val = h_val.AsDouble() if (h_val and h_val.HasValue) else None
         if h_val is None:
-            h_val = _lookup(beam, ['h', 'H', 'Height'])
+            h_val = _lookup(beam, h_param_names)
             if h_val is None and beam.Symbol:
-                h_val = _lookup(beam.Symbol, ['h', 'H', 'Height'])
+                h_val = _lookup(beam.Symbol, h_param_names)
+
+        # If we have b but not h, assume it's a square beam (b = h)
+        # This handles cases where only one dimension is defined
+        if b_val is not None and h_val is None:
+            h_val = b_val  # Assume square
 
         if b_val is not None and h_val is not None:
             if abs(b_val - h_val) < 1e-6:
-                return {'b': b_val, 'type': 'square'}
+                return {'b': b_val, 'h': b_val, 'type': 'square'}
             return {'b': b_val, 'h': h_val, 'type': 'rectangular'}
         if b_val is not None:
-            return {'b': b_val, 'type': 'square'}
+            return {'b': b_val, 'h': b_val, 'type': 'square'}
         return None
 
     except Exception:
@@ -387,7 +403,7 @@ def _dims_to_mm_str(dims):
     """
     Convert a dims dict (internal feet) to a human-readable mm string for CSV.
     Examples:
-      square      → 'b=500mm'
+      square      → 'b=500mm x h=500mm'  (always shows both for consistency)
       rectangular → 'b=300mm x h=600mm'
     Returns '-' if dims is None.
     """
@@ -401,12 +417,12 @@ def _dims_to_mm_str(dims):
         def to_mm(v):
             return v * 304.8
 
-    if dims.get('type') == 'square':
-        return 'b={:.0f}mm'.format(to_mm(dims['b']))
-    if dims.get('type') == 'rectangular':
-        return 'b={:.0f}mm x h={:.0f}mm'.format(
-            to_mm(dims['b']), to_mm(dims['h']))
-    return str(dims)
+    b = to_mm(dims.get('b', 0))
+    # For square, use b value for h; for rectangular, use actual h
+    h = to_mm(dims.get('h', dims.get('b', 0)))
+    
+    # Always show both b and h for consistency and clarity
+    return 'b={:.0f}mm x h={:.0f}mm'.format(b, h)
 
 
 # ─── Safe name helper ──────────────────────────────────────────────────────────
