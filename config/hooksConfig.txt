@@ -8,18 +8,17 @@
 #
 # Contoh: 0110000000 = ID 1 dan ID 2 nonaktif
 
-# Default: semua aktif
-1011111111
-1234567890
+# Default: only active hooks enabled
+1011000101
 
 # Mapping Hook ID:
-# ID 1: (unused)
-# ID 2: (unused)
+# ID 1: (not used)
+# ID 2: (not used)
 # ID 3: Link CAD - Warning sebelum link file CAD
 # ID 4: Link CAD in 3D - Warning saat link CAD di 3D view
 # ID 5: Project Parameters - Warning sebelum edit project parameters  
-# ID 6: (unused)
+# ID 6: (not used)
 # ID 7: Load Family - Warning saat load family > 1MB
-# ID 8: (unused)
+# ID 8: (not used)
 # ID 9: Shared Parameters - Warning sebelum edit shared parameters
 # ID 10: In Place Family - Warning sebelum create in-place family

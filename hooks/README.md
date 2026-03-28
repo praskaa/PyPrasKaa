@@ -40,11 +40,7 @@ Hooks dalam PrasKaa PyKit adalah event handlers yang dipicu oleh berbagai aksi d
 |------|------|--------|
 | **Link CAD** | `command-before-exec[ID_FILE_CADFORMAT_LINK].py` | Peringatan sebelum link file CAD |
 | **Shared Parameters** | `command-before-exec[ID_FILE_EXTERNAL_PARAMETERS].py` | Peringatan untuk parameter eksternal |
-| **Import CAD** | `command-before-exec[ID_FILE_IMPORT].py` | Peringatan untuk import file CAD |
 | **In Place Component** | `command-before-exec[ID_INPLACE_COMPONENT].py` | Peringatan untuk komponen in-place |
-| **Architectural Column** | `command-before-exec[ID_OBJECTS_COLUMN].py` | Peringatan untuk pembuatan kolom arsitektural |
-| **Ramp** | `command-before-exec[ID_OBJECTS_RAMP].py` | Peringatan untuk pembuatan ramp |
-| **Roof by Extrusion** | `command-before-exec[ID_ROOF_EXTRUSION].py` | Peringatan untuk roof by extrusion |
 | **Project Parameters** | `command-before-exec[ID_SETTINGS_PROJECT_PARAMETERS].py` | Peringatan untuk parameter proyek |
 
 ### 3. Document Event Hooks
@@ -112,28 +108,8 @@ Semua hooks dalam kategori ini memberikan peringatan dialog sebelum mengeksekusi
 - **Opsi**: View list, Edit, Cancel, More Info
 - **Log**: Ya, ke server
 
-#### `command-before-exec[ID_FILE_IMPORT].py`
-- **Peringatan**: Sebelum import file CAD
-- **Status**: Hook ini masih dalam development (commented out)
-- **Log**: Tidak aktif
-
 #### `command-before-exec[ID_INPLACE_COMPONENT].py` 
 - **Peringatan**: Sebelum membuat komponen in-place
-- **Opsi**: Create, Cancel, More Info
-- **Log**: Ya, ke server
-
-#### `command-before-exec[ID_OBJECTS_COLUMN].py` **TIDAK BUTUH**
-- **Peringatan**: Sebelum membuat kolom arsitektural
-- **Opsi**: Create, Cancel, More Info
-- **Log**: Ya, ke server
-
-#### `command-before-exec[ID_OBJECTS_RAMP].py` **TIDAK BUTUH**
-- **Peringatan**: Sebelum membuat ramp
-- **Opsi**: Create, Cancel, More Info
-- **Log**: Ya, ke server
-
-#### `command-before-exec[ID_ROOF_EXTRUSION].py` **TIDAK BUTUH**
-- **Peringatan**: Sebelum membuat roof by extrusion
 - **Opsi**: Create, Cancel, More Info
 - **Log**: Ya, ke server
 
