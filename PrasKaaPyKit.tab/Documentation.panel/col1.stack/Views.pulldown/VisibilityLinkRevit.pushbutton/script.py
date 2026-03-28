@@ -190,19 +190,19 @@ try:
     # ── Report ringkas ─────────────────────────────────────────────────────
     summary = (
         "Selesai!\n\n"
-        "✓ Berhasil : {s} operasi\n"
-        "✗ Error    : {e} operasi"
+        "[OK] Berhasil : {s} operasi\n"
+        "[X] Error    : {e} operasi"
     ).format(s=results["success"], e=len(results["errors"]))
 
     if results["redirects"]:
-        summary += "\n\n⚠ Redirect ke View Template ({} view):".format(
+        summary += "\n\n[!] Redirect ke View Template ({} view):".format(
             len(results["redirects"])
         )
         for r in results["redirects"]:
             summary += "\n  • " + r
 
     if results["errors"]:
-        summary += "\n\n⚠ Errors:\n"
+        summary += "\n\n[!] Errors:\n"
         for e in results["errors"]:
             summary += "  • " + e + "\n"
 

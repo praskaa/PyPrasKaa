@@ -11,7 +11,15 @@ def lang():
         str: Language code (e.g., 'EN', 'SK', 'ID')
     """
     try:
-        return user_config.PrasKaaToolsSettings.language
+        lang_value = user_config.PrasKaaToolsSettings.language
+        
+        # Handle integer values (legacy config)
+        if isinstance(lang_value, int):
+            lang_map = {0: 'EN', 1: 'SK', 2: 'ID'}
+            return lang_map.get(lang_value, 'EN')
+        
+        # Handle string values
+        return str(lang_value)
     except:
         return 'EN'
 

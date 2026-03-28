@@ -86,7 +86,7 @@ def_dashboardsPath = get_safe_log_path(
     os.path.join(documents_path, 'PrasKaaPyKit', 'powerBI'),
     r"F:\1_STUDI\_PrasKaa Python Kit\PrasKaaToolsLogs\powerBI"
 )
-def_language = 0
+def_language = 'EN'
 def_doorUnflipped = "L"
 def_doorFlipped = "R"
 def_windowUnflipped = "0"
