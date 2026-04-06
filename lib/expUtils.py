@@ -516,9 +516,15 @@ def expUtils_applyDwgExportSetup(doc, opts):
         settings = expUtils_getSavedDwgSettings()
         setup_name = settings.get('export_setup', None)
 
-        available = list(DB.DWGExportOptions.GetPredefinedSetupNames(doc))
-
-        opts = DB.DWGExportOptions.GetPredefinedOptions(doc, setup_name)
+        # Get predefined options - may return None in Revit 2026+ if setup not found
+        predefined_opts = DB.DWGExportOptions.GetPredefinedOptions(doc, setup_name)
+        
+        if predefined_opts is not None:
+            # Revit 2024+ way - use the predefined options
+            opts = predefined_opts
+        else:
+            # Fallback: keep original opts but apply settings manually
+            debug_print("DWG export setup '{}' not found, using manual settings".format(setup_name))
 
         fmt_map = {
             'R2018': DB.ACADVersion.R2018, 'R2013': DB.ACADVersion.R2013,
@@ -529,4 +535,5 @@ def expUtils_applyDwgExportSetup(doc, opts):
         return opts
 
     except Exception as e:
+        debug_print("Error applying DWG export setup:", str(e))
         return opts

@@ -6,7 +6,7 @@ Author: PrasKaa
 Version: 2.0
 """
 
-__title__ = "Link CAD\nBatch"
+__title__ = "Link CAD\nSuperimposed Batch"
 __doc__ = """2025.01.01 - v2.0
 Batch link DWG/DXF files to floor plan views.
 Scan folder -> pair CAD to views -> set X/Y offset -> link all at once."""
