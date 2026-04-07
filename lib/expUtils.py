@@ -305,7 +305,7 @@ def expUtils_viewFocus(v,myDoc,myUiDoc):
 				pass
 
 # make pdf options
-def expUtils_pdfOpts(hcb=False,hsb=True,hrp=True,hvt=False,mcl=False,aur=True):
+def expUtils_pdfOpts(hcb=False,hsb=True,hrp=True,hvt=False,mcl=False,raster_processing=None):
 	opts = DB.PDFExportOptions()
 	# Settings default
 	opts.HideCropBoundaries = hcb
@@ -317,6 +317,15 @@ def expUtils_pdfOpts(hcb=False,hsb=True,hrp=True,hvt=False,mcl=False,aur=True):
 	opts.ColorDepth = DB.ColorDepthType.Color
 	# Paper format
 	opts.PaperFormat = DB.ExportPaperFormat.Default
+
+	# Raster processing - load from config if not specified
+	if raster_processing is None:
+		settings = expUtils_getSavedPdfSettings()
+		raster_processing = settings.get('raster_processing', False)
+
+	opts.AlwaysUseRaster = raster_processing
+	debug_print("PDF opts - AlwaysUseRaster (Raster Processing):", raster_processing)
+
 	return opts
 
 # make dwg options
@@ -518,7 +527,7 @@ def expUtils_applyDwgExportSetup(doc, opts):
 
         # Get predefined options - may return None in Revit 2026+ if setup not found
         predefined_opts = DB.DWGExportOptions.GetPredefinedOptions(doc, setup_name)
-        
+
         if predefined_opts is not None:
             # Revit 2024+ way - use the predefined options
             opts = predefined_opts
@@ -537,3 +546,32 @@ def expUtils_applyDwgExportSetup(doc, opts):
     except Exception as e:
         debug_print("Error applying DWG export setup:", str(e))
         return opts
+
+# ──────────────────────────────────────────────
+# PDF CONFIGURATION UTILITIES
+# ──────────────────────────────────────────────
+
+def expUtils_getSavedPdfSettings():
+    """Get saved PDF export settings from shared config"""
+    try:
+        config = script.get_config(section='shared_naming')
+        settings = {
+            'raster_processing': config.get_option('pdf_raster_processing', False),  # False = Vector (default)
+        }
+        debug_print("Loaded PDF settings:", settings)
+        return settings
+    except Exception as e:
+        debug_print("Error getting PDF settings:", str(e))
+        return {'raster_processing': False}
+
+def expUtils_savePdfSettings(settings):
+    """Save PDF export settings to shared config"""
+    try:
+        config = script.get_config(section='shared_naming')
+        config.set_option('pdf_raster_processing', settings.get('raster_processing', False))
+        script.save_config()
+        debug_print("PDF settings saved:", settings)
+        return True
+    except Exception as e:
+        debug_print("Error saving PDF settings:", str(e))
+        return False

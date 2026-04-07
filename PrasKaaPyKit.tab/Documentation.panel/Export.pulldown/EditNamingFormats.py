@@ -17,6 +17,8 @@ from expUtils import (
     expUtils_getDwgExportSetups,
     expUtils_getSavedDwgSettings,
     expUtils_saveDwgSettings,
+    expUtils_getSavedPdfSettings,
+    expUtils_savePdfSettings,
 )
 
 logger = script.get_logger()
@@ -69,6 +71,7 @@ class EditNamingFormatsWindow(forms.WPFWindow):
         self.reset_formatters()
         self.reset_printer_list()
         self.reset_dwg_settings()
+        self.reset_pdf_settings()
 
     # ── PRINTER ─────────────────────────────────
 
@@ -174,6 +177,44 @@ class EditNamingFormatsWindow(forms.WPFWindow):
             self.dwg_status_tb.Visibility = Windows.Visibility.Visible
         except Exception as e:
             debug_print("Error saving DWG settings:", str(e))
+
+    # ── PDF SETTINGS ─────────────────────────────
+
+    def reset_pdf_settings(self):
+        self._pdf_suppress_save = True
+        try:
+            saved = expUtils_getSavedPdfSettings()
+            debug_print("Saved PDF settings:", saved)
+
+            raster_processing = saved.get('raster_processing', False)
+            self.pdf_raster_cb.SelectedIndex = 1 if raster_processing else 0  # 0=Vector, 1=Raster
+        except Exception as e:
+            debug_print("Error loading PDF settings:", str(e))
+        finally:
+            self._pdf_suppress_save = False
+
+    def pdf_setting_changed(self, sender, args):
+        if self._pdf_suppress_save:
+            return
+        self._save_pdf_settings()
+
+    def _save_pdf_settings(self):
+        try:
+            selected_item = self.pdf_raster_cb.SelectedItem
+            raster_processing = False
+            if selected_item:
+                try: raster_processing = selected_item.Tag == 'True'
+                except: raster_processing = False
+
+            settings = {'raster_processing': raster_processing}
+            expUtils_savePdfSettings(settings)
+            debug_print("PDF settings saved:", settings)
+
+            processing_type = 'Raster' if raster_processing else 'Vector'
+            self.pdf_status_tb.Text = u"\u2713 Saved: {} Processing".format(processing_type)
+            self.pdf_status_tb.Visibility = Windows.Visibility.Visible
+        except Exception as e:
+            debug_print("Error saving PDF settings:", str(e))
 
     # ── NAMING FORMAT ────────────────────────────
 

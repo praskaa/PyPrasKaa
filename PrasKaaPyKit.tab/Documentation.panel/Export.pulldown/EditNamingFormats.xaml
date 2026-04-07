@@ -219,6 +219,33 @@
                 </StackPanel>
             </TabItem>
 
+            <!-- TAB 3: PDF Export Settings -->
+            <TabItem Header="PDF Settings">
+                <StackPanel Margin="8,8,8,8">
+
+                    <!-- Raster Processing -->
+                    <TextBlock Text="Raster Processing" Style="{StaticResource SectionLabel}" />
+                    <TextBlock Text="Pilih mode processing untuk rendering lines dalam PDF. Vector lebih presisi untuk lines bersih, Raster lebih kompatibel untuk graphics kompleks."
+                               Style="{StaticResource HintLabel}"/>
+                    <ComboBox x:Name="pdf_raster_cb"
+                              Style="{StaticResource SettingComboBox}"
+                              SelectionChanged="pdf_setting_changed">
+                        <ComboBoxItem Content="Vector Processing (Default)" Tag="False" />
+                        <ComboBoxItem Content="Raster Processing" Tag="True" />
+                    </ComboBox>
+
+                    <Separator Margin="0,12,0,12" />
+
+                    <!-- Status feedback -->
+                    <TextBlock x:Name="pdf_status_tb"
+                               Text=""
+                               Foreground="#4CAF50"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Visibility="Collapsed"/>
+                </StackPanel>
+            </TabItem>
+
         </TabControl>
     </Grid>
 </Window>

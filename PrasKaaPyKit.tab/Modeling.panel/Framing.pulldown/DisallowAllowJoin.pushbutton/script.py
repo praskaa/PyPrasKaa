@@ -14,12 +14,17 @@ from pyrevit import forms
 from pyrevit import revit
 
 # Local lib imports
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'lib'))
-
 from Snippets._selection import get_selected_elements, pick_by_category
 from Snippets._context_manager import ef_Transaction
+
+# Helper function for Revit API compatibility
+def get_element_id_value(element_id):
+    """Get the integer value from ElementId, compatible with different Revit versions."""
+    try:
+        return element_id.Value
+    except AttributeError:
+        # Fallback for older Revit versions
+        return element_id.IntegerValue
 
 # Setup
 doc = revit.doc
@@ -33,7 +38,7 @@ selected_framing = []
 if selected_elements:
     for elem in selected_elements:
         if (elem and elem.Category and
-            elem.Category.Id.IntegerValue == int(BuiltInCategory.OST_StructuralFraming)):
+            get_element_id_value(elem.Category.Id) == int(BuiltInCategory.OST_StructuralFraming)):
             selected_framing.append(elem)
 
 # If no framing selected, prompt user to select
