@@ -4,3 +4,6 @@ title:
 # Pulldown Layout Configuration
 layout:
   - removeallrevisionbyprintset
+  - RevSet
+  - DownRev
+  - UpRev
