@@ -53,7 +53,6 @@ from System.Windows.Forms import (
     BorderStyle, FlatStyle
 )
 from System.Drawing import Size, Point, Color, Font, FontStyle
-from System.ComponentModel import BindingList
 
 # Initialize
 doc = revit.doc
@@ -540,12 +539,11 @@ class CADLayerManagerForm(Form):
 
     def _populate_grid(self):
         from System.Collections.Generic import List
-        from System.ComponentModel import BindingList as BL
 
         lst = List[object]()
         for layer in self.filtered_layers:
             lst.Add(layer)
-        self.grid.DataSource = BL[object](lst)
+        self.grid.DataSource = lst
         self._update_changes_display()
 
     def _on_filter_changed(self, sender, e):
