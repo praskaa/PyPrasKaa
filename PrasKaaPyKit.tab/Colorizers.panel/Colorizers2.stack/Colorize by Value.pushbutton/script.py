@@ -59,9 +59,10 @@ categories_for_selection = get_colorize_only_categories_config(doc)
 class ParameterOption(forms.TemplateListItem):
     """Wrapper for selecting parameters from a list"""
 
-    def __init__(self, param, param_dict):
+    def __init__(self, param, param_dict, param_type):
         super(ParameterOption, self).__init__(param)
         self.param_dict = param_dict
+        self.param_type = param_type
 
     @property
     def name(self):
@@ -179,8 +180,8 @@ for e in get_view_elements:
 # Step 3 – Parameter selection
 # ---------------------------------------------------------------------------
 
-instance_p_class = [ParameterOption(x, inst_param_dict) for x in inst_param_dict.keys()]
-type_p_class = [ParameterOption(x, type_param_dict) for x in type_param_dict.keys()]
+instance_p_class = [ParameterOption(x, inst_param_dict, 'instance') for x in inst_param_dict.keys()]
+type_p_class = [ParameterOption(x, type_param_dict, 'type') for x in type_param_dict.keys()]
 i_p_ops = sorted(instance_p_class, key=lambda x: x.name)
 t_p_ops = sorted(type_p_class, key=lambda x: x.name)
 ops = {"Type Parameters": t_p_ops, "Instance Parameters": i_p_ops}
@@ -227,24 +228,25 @@ else:  # Lines & Pattern
 values_dict = defaultdict(list)  # {param_value_string : [ElementId, ...]}
 
 for el in get_view_elements:
-    if hasattr(selected_parameter, 'IntegerValue') and selected_parameter.IntegerValue < 0:
-        # BuiltInParameter
-        el_parameter = el.get_Parameter(selected_parameter)
-        if el_parameter:
-            param_value = get_param_value_as_string(el_parameter)
-            values_dict[param_value].append(el.Id)
-    elif isinstance(selected_parameter, str):
-        # Family Parameter — LookupParameter by name
-        el_parameter = el.LookupParameter(selected_parameter)
-        if el_parameter:
-            param_value = get_param_value_as_string(el_parameter)
-            values_dict[param_value].append(el.Id)
-    else:
-        # Shared Parameter — ElementId key, resolve from type
+    if selected_parameter.param_type == 'instance':
+        if isinstance(selected_parameter.item, DB.BuiltInParameter):
+            el_parameter = el.get_Parameter(selected_parameter.item)
+        elif isinstance(selected_parameter.item, str):
+            el_parameter = el.LookupParameter(selected_parameter.item)
+        else:  # ElementId shared
+            el_parameter = el.get_Parameter(selected_parameter.item)
+    else:  # type
         el_type = query.get_type(el)
-        element_type_parameter = el_type.get_Parameter(selected_parameter)
-        if element_type_parameter:
-            param_value = get_param_value_as_string(element_type_parameter)
+        if isinstance(selected_parameter.item, DB.BuiltInParameter):
+            el_parameter = el_type.get_Parameter(selected_parameter.item)
+        elif isinstance(selected_parameter.item, str):
+            el_parameter = el_type.LookupParameter(selected_parameter.item)
+        else:  # ElementId shared
+            el_parameter = el_type.get_Parameter(selected_parameter.item)
+
+    if el_parameter:
+        param_value = get_param_value_as_string(el_parameter)
+        if param_value is not None:
             values_dict[param_value].append(el.Id)
 
 n = len(values_dict.keys())

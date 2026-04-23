@@ -294,15 +294,19 @@ def expUtils_nameView(v):
 
 # open a view/sheet
 def expUtils_viewFocus(v,myDoc,myUiDoc):
-	myUiDoc.RequestViewChange(v)
-	curView  = myDoc.ActiveView
-	allViews = myUiDoc.GetOpenUIViews()
-	for v in allViews:
-		if v.ViewId != curView.Id:
-			try:
-				v.Close()
-			except:
-				pass
+	try:
+		myUiDoc.RequestViewChange(v)
+		curView  = myDoc.ActiveView
+		allViews = myUiDoc.GetOpenUIViews()
+		for v in allViews:
+			if v.ViewId != curView.Id:
+				try:
+					v.Close()
+				except:
+					pass
+	except Exception as e:
+		# Skip view change if not applicable (e.g., inactive document)
+		pass
 
 # make pdf options
 def expUtils_pdfOpts(hcb=False,hsb=True,hrp=True,hvt=False,mcl=False,raster_processing=None):
