@@ -1,0 +1,6 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "skills": {
+    "paths": ["F:\\1_STUDI\\_Agent Kilo\\skills\\gistama-migrate"]
+  }
+}

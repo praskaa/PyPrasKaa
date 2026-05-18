@@ -31,12 +31,11 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Join-Tools
 
 # Pulldown Layout Configuration
 layout:
-  - DisallowAllowJoin
-  - JoinAllElements
   - JoinColumns
-  - JoinFoundation
   - Join Regular Wall
   - Join Shearwall & Corewall
+  - -----
+  - JoinSelection
 # Engine Configuration
 engine:
   clean: true

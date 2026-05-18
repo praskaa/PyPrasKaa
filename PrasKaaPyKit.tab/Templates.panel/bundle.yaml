@@ -30,7 +30,7 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Template-System
 # Panel Layout Configuration
 layout:
   - Family
-  - ViewTemplateRepository
+  - ViewVisibility
 
 # Engine Configuration
 engine:

@@ -114,7 +114,7 @@ def expUtils_getNamingFormat(default_template="{number} {name}"):
 
 # get print directory
 def expUtils_getDir():
-	dp = os.path.join(os.path.expanduser("~"), "Documents", "guRoo Exports")
+	dp = os.path.join(os.path.expanduser("~"), "Documents", "PrasKaa Exports")
 	return dp
 
 # make subfolder extension

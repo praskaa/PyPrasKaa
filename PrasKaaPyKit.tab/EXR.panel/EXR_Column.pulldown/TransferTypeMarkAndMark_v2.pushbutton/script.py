@@ -36,13 +36,20 @@ from Autodesk.Revit.DB import (
 from pyrevit import revit, forms, script
 
 # Import local library - pyRevit adds pushbutton folder to sys.path automatically
-from lib import TransferMarkConfig, show_configuration_dialog, FRAMEWORK_AVAILABLE
+from lib import TransferMarkConfig, show_configuration_dialog, FRAMEWORK_AVAILABLE, ParameterSettingFramework, OptimizationLevel
 
 # Setup
 doc = revit.doc
 uidoc = revit.uidoc
 logger = script.get_logger()
 output = script.get_output()
+
+# Compatibility function for ElementId.Value (Revit 2026+) vs IntegerValue (2024-2025)
+def get_element_id_value(eid):
+    try:
+        return eid.Value  # Revit 2026+
+    except AttributeError:
+        return eid.IntegerValue  # Revit 2024-2025
 
 # Debug: Check file locations
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -239,7 +246,7 @@ def collect_host_columns():
         for elem_id in selection_ids:
             elem = doc.GetElement(elem_id)
             if (elem.Category and
-                    elem.Category.Id.IntegerValue == int(BuiltInCategory.OST_StructuralColumns)):
+                    get_element_id_value(elem.Category.Id) == int(BuiltInCategory.OST_StructuralColumns)):
                 host_columns.append(elem)
 
         if not host_columns:
@@ -407,7 +414,7 @@ def add_operations_to_batch(param_framework, column, type_mark, mark, mark_param
         element=column_type,
         param_name="Type Mark",
         value=type_mark,
-        optimization_level=lib.OptimizationLevel.BATCH
+        optimization_level=OptimizationLevel.BATCH
     )
 
     # Add Mark operation to batch
@@ -415,7 +422,7 @@ def add_operations_to_batch(param_framework, column, type_mark, mark, mark_param
         element=column,
         param_name=mark_param_name,
         value=mark,
-        optimization_level=lib.OptimizationLevel.BATCH
+        optimization_level=OptimizationLevel.BATCH
     )
 
 
@@ -547,7 +554,7 @@ def execute_transfer():
     output_lines.append("="*60)
 
     config_manager = TransferMarkConfig()
-    param_framework = lib.ParameterSettingFramework(doc, logger) if FRAMEWORK_AVAILABLE else None
+    param_framework = ParameterSettingFramework(doc, logger) if FRAMEWORK_AVAILABLE else None
 
     output_lines.append("# Transfer Type Mark and Mark v2 - Column Mark Transfer")
     output_lines.append("---")

@@ -60,13 +60,14 @@ class ParameterOption(forms.TemplateListItem):
     """Wrapper for selecting parameters from a list"""
 
     def __init__(self, param, param_dict, param_type):
-        super(ParameterOption, self).__init__(param)
+        self.param = param
         self.param_dict = param_dict
         self.param_type = param_type
+        super(ParameterOption, self).__init__((param, param_type))
 
     @property
     def name(self):
-        return str(self.param_dict[self.item])
+        return str(self.param_dict[self.param])
 
 
 class ViewOption(forms.TemplateListItem):
@@ -194,6 +195,9 @@ selected_parameter = forms.SelectFromList.show(
 
 forms.alert_ifnot(selected_parameter, "No Parameters Selected", exitscript=True)
 
+# Unpack selected parameter
+selected_param, selected_param_type = selected_parameter
+
 # ---------------------------------------------------------------------------
 # Step 4 – Override style selection
 # ---------------------------------------------------------------------------
@@ -228,21 +232,21 @@ else:  # Lines & Pattern
 values_dict = defaultdict(list)  # {param_value_string : [ElementId, ...]}
 
 for el in get_view_elements:
-    if selected_parameter.param_type == 'instance':
-        if isinstance(selected_parameter.item, DB.BuiltInParameter):
-            el_parameter = el.get_Parameter(selected_parameter.item)
-        elif isinstance(selected_parameter.item, str):
-            el_parameter = el.LookupParameter(selected_parameter.item)
+    if selected_param_type == 'instance':
+        if isinstance(selected_param, DB.BuiltInParameter):
+            el_parameter = el.get_Parameter(selected_param)
+        elif isinstance(selected_param, str):
+            el_parameter = el.LookupParameter(selected_param)
         else:  # ElementId shared
-            el_parameter = el.get_Parameter(selected_parameter.item)
+            el_parameter = el.get_Parameter(selected_param)
     else:  # type
         el_type = query.get_type(el)
-        if isinstance(selected_parameter.item, DB.BuiltInParameter):
-            el_parameter = el_type.get_Parameter(selected_parameter.item)
-        elif isinstance(selected_parameter.item, str):
-            el_parameter = el_type.LookupParameter(selected_parameter.item)
+        if isinstance(selected_param, DB.BuiltInParameter):
+            el_parameter = el_type.get_Parameter(selected_param)
+        elif isinstance(selected_param, str):
+            el_parameter = el_type.LookupParameter(selected_param)
         else:  # ElementId shared
-            el_parameter = el_type.get_Parameter(selected_parameter.item)
+            el_parameter = el_type.get_Parameter(selected_param)
 
     if el_parameter:
         param_value = get_param_value_as_string(el_parameter)

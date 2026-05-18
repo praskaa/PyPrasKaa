@@ -86,23 +86,18 @@ def perform_join_if_needed(doc, element1, element2):
 def ensure_join_order(doc, cutting_element, cut_element):
     """
     Ensure the cutting element is set correctly in the join order.
-
-    Args:
-        doc: Current Revit document
-        cutting_element: Element that should cut
-        cut_element: Element that should be cut
-
-    Returns:
-        bool: True if order was switched, False if already correct or failed
+    Only switches if cutting_element is NOT already cutting.
     """
-    if JoinGeometryUtils.AreElementsJoined(doc, cutting_element, cut_element):
-        if not JoinGeometryUtils.IsCuttingElementInJoin(doc, cutting_element, cut_element):
-            try:
-                JoinGeometryUtils.SwitchJoinOrder(doc, cutting_element, cut_element)
-                return True
-            except:
-                return False
-    return False
+    if not JoinGeometryUtils.AreElementsJoined(doc, cutting_element, cut_element):
+        return False
+    try:
+        is_cutting = JoinGeometryUtils.IsCuttingElementInJoin(doc, cutting_element, cut_element)
+        if not is_cutting:
+            JoinGeometryUtils.SwitchJoinOrder(doc, cutting_element, cut_element)
+            return True
+        return False
+    except:
+        return False
 
 
 def process_elements_with_join_logic(doc, elements, join_func):

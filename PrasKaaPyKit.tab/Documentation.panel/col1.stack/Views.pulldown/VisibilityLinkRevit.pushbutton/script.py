@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-Version: 2.0
-Date    = 10.03.2026
+Version: 2.1
+Date    = 06.05.2026
 _____________________________________________________________________
 Description:
 Hides Revit link types in selected views or view templates via VG
@@ -22,11 +22,15 @@ Notes:
 - SetLinkOverrides is NOT used (it has no Hidden option)
 - If a view has an active View Template, override is applied to the
   template instead (since template controls VG settings)
+- Worksharing check: skips views/templates owned by another user
 - Progress bar with cancel option
 - Full error reporting per view/link
 
 _____________________________________________________
 Last update:
+- 06.05.2026 - 2.1 Added worksharing ownership check before processing.
+                   Views/templates owned by another user are skipped
+                   and reported separately.
 - 10.03.2026 - 2.0 Full rewrite: use HideElements(link_type_id) as
                    correct method to uncheck VG checkbox per link type.
                    Fixed view filter, template redirect, error reporting.
@@ -50,21 +54,50 @@ from Autodesk.Revit.DB import (
     Transaction,
     TransactionGroup,
     Element,
+    WorksharingUtils,
+    CheckoutStatus,
 )
 import System.Collections.Generic as SCG
 from pyrevit import revit, forms, script
 
 doc = revit.doc
 
-# ── 1. Kumpulkan Revit Link Types ─────────────────────────────────────────
-# Gunakan RevitLinkType (bukan Instance) agar HideElements bekerja di VG level
+# ── Worksharing helper ────────────────────────────────────────────────────
+IS_WORKSHARED = doc.IsWorkshared
+
+def is_view_modifiable(view):
+    """
+    Returns (ok, reason_string).
+    ok=True  → safe to modify.
+    ok=False → owned by another user; reason_string names the owner.
+    When file is NOT workshared, always returns (True, None).
+    """
+    if not IS_WORKSHARED:
+        return True, None
+
+    status = WorksharingUtils.GetCheckoutStatus(doc, view.Id)
+
+    if status == CheckoutStatus.OwnedByOtherUser:
+        owner = "another user"
+        try:
+            info = WorksharingUtils.GetWorksharingTooltipInfo(doc, view.Id)
+            if info:
+                # CurrentOwner holds the checked-out username
+                candidate = info.CurrentOwner
+                if candidate and str(candidate).strip():
+                    owner = str(candidate)
+        except Exception:
+            pass  # fallback to "another user" is fine
+        return False, owner
+
+    return True, None
+    
+# ── 1. Collect Revit Link Types ───────────────────────────────────────────
 all_link_types = list(FilteredElementCollector(doc).OfClass(RevitLinkType))
 
 if not all_link_types:
-    forms.alert("Tidak ada Revit Link Type ditemukan di dokumen ini.", exitscript=True)
+    forms.alert("No Revit Link Types found in this document.", exitscript=True)
 
-# Build dict: name -> link_type element
-# Gunakan Element.Name.GetValue() untuk IronPython compatibility
 link_type_map = {}
 for lt in all_link_types:
     try:
@@ -76,18 +109,17 @@ for lt in all_link_types:
             name = str(lt.Id)
     link_type_map[name] = lt
 
-# ── 2. User pilih Link Types ──────────────────────────────────────────────
+# ── 2. User selects Link Types ────────────────────────────────────────────
 sel_link_names = forms.SelectFromList.show(
     sorted(link_type_map.keys()),
-    title='Pilih Revit Link Type (bisa multiple)',
+    title='Select Revit Link Type(s)',
     multiselect=True,
-    button_name='Pilih Link'
+    button_name='Select Links'
 )
 if not sel_link_names:
     script.exit()
 
-# ── 3. Kumpulkan Views + View Templates ───────────────────────────────────
-# Exclude view types yang tidak support HideElements / VG override
+# ── 3. Collect Views + View Templates ────────────────────────────────────
 EXCLUDED_VIEW_TYPES = {
     ViewType.Schedule,
     ViewType.ColumnSchedule,
@@ -113,23 +145,23 @@ for v in FilteredElementCollector(doc).OfClass(View):
     view_map[display_name] = v
 
 if not view_map:
-    forms.alert("Tidak ada view yang valid ditemukan.", exitscript=True)
+    forms.alert("No valid views found.", exitscript=True)
 
 sel_view_names = forms.SelectFromList.show(
     sorted(view_map.keys()),
-    title='Pilih Views / View Templates',
+    title='Select Views / View Templates',
     multiselect=True,
-    button_name='Pilih View'
+    button_name='Select Views'
 )
 if not sel_view_names:
     script.exit()
 
-# ── 4. Helper: redirect ke View Template jika aktif ───────────────────────
+# ── 4. Helper: redirect to View Template if active ────────────────────────
 def get_override_target(view):
     """
-    Jika view punya View Template aktif, override VG harus dilakukan
-    di View Template-nya — bukan di view biasa.
-    Return: (target_view, redirect_info_string_or_None)
+    If the view has an active View Template, VG overrides must be
+    applied to the template instead.
+    Returns: (target_view, redirect_info_string_or_None)
     """
     if view.IsTemplate:
         return view, None
@@ -142,20 +174,65 @@ def get_override_target(view):
 
     return view, None
 
-# ── 5. Main Processing ────────────────────────────────────────────────────
-total_links = len(sel_link_names)
-total_views = len(sel_view_names)
+# ── 5. Pre-flight: worksharing ownership check ────────────────────────────
+# Resolve target views first, then check ownership once per unique target.
+# This avoids checking the same template multiple times when many views
+# share it.
+blocked_views   = []   # list of (display_name, owner_string)
+valid_view_names = []  # display names that passed the check
 
+# Track already-checked targets to avoid duplicate alerts on shared templates
+checked_targets = {}   # target_view.Id (int) -> (ok, owner)
+
+def get_target_id_int(v):
+    try:
+        return v.Id.Value
+    except AttributeError:
+        return v.Id.IntegerValue
+
+for view_name in sel_view_names:
+    view = view_map[view_name]
+    target_view, _ = get_override_target(view)
+    target_int = get_target_id_int(target_view)
+
+    if target_int not in checked_targets:
+        ok, owner = is_view_modifiable(target_view)
+        checked_targets[target_int] = (ok, owner)
+    else:
+        ok, owner = checked_targets[target_int]
+
+    if ok:
+        valid_view_names.append(view_name)
+    else:
+        blocked_views.append((view_name.strip(), owner))
+
+# Report blocked views before proceeding
+if blocked_views:
+    block_msg = "The following views/templates are owned by another user and will be skipped:\n\n"
+    for vn, own in blocked_views:
+        block_msg += "  • {} (owned by: {})\n".format(vn, own)
+
+    if not valid_view_names:
+        forms.alert(
+            block_msg + "\nNo modifiable views remain. Script cancelled.",
+            title="Worksharing Conflict"
+        )
+        script.exit()
+
+    block_msg += "\nContinue with the remaining {} view(s)?".format(len(valid_view_names))
+    if not forms.alert(block_msg, title="Worksharing Conflict", yes=True, no=True):
+        script.exit()
+
+# ── 6. Main Processing ────────────────────────────────────────────────────
 results = {
     "success"  : 0,
     "errors"   : [],
     "redirects": [],
+    "blocked"  : blocked_views,
 }
 
 tg = TransactionGroup(doc, "Hide Revit Links (VG)")
 tg.Start()
-
-op_count = 0
 
 try:
     for link_name in sel_link_names:
@@ -165,8 +242,7 @@ try:
         id_list = SCG.List[ElementId]()
         id_list.Add(link_type_id)
 
-        for view_name in sel_view_names:
-            op_count += 1
+        for view_name in valid_view_names:
             view = view_map[view_name]
 
             target_view, redirect_msg = get_override_target(view)
@@ -187,26 +263,36 @@ try:
 
     tg.Assimilate()
 
-    # ── Report ringkas ─────────────────────────────────────────────────────
+    # ── Summary report ─────────────────────────────────────────────────
     summary = (
-        "Selesai!\n\n"
-        "[OK] Berhasil : {s} operasi\n"
-        "[X] Error    : {e} operasi"
-    ).format(s=results["success"], e=len(results["errors"]))
+        "Done!\n\n"
+        "[OK] Success : {s} operation(s)\n"
+        "[X] Errors  : {e} operation(s)\n"
+        "[/] Skipped : {b} view(s) (worksharing conflict)"
+    ).format(
+        s=results["success"],
+        e=len(results["errors"]),
+        b=len(results["blocked"])
+    )
 
     if results["redirects"]:
-        summary += "\n\n[!] Redirect ke View Template ({} view):".format(
+        summary += "\n\n[!] Redirected to View Template ({} view(s)):".format(
             len(results["redirects"])
         )
         for r in results["redirects"]:
             summary += "\n  • " + r
 
-    if results["errors"]:
-        summary += "\n\n[!] Errors:\n"
-        for e in results["errors"]:
-            summary += "  • " + e + "\n"
+    if results["blocked"]:
+        summary += "\n\n[!] Skipped (owned by another user):"
+        for vn, own in results["blocked"]:
+            summary += "\n  • {} (owner: {})".format(vn, own)
 
-    forms.alert(summary, title="Hide Link Revit - Selesai")
+    if results["errors"]:
+        summary += "\n\n[!] Errors:"
+        for e in results["errors"]:
+            summary += "\n  • " + e
+
+    forms.alert(summary, title="Hide Revit Links - Done")
 
 except Exception as fatal:
     try:
@@ -214,6 +300,6 @@ except Exception as fatal:
     except Exception:
         pass
     forms.alert(
-        "Error kritis:\n{}\n\nSemua perubahan di-rollback.".format(str(fatal)),
+        "Fatal error:\n{}\n\nAll changes rolled back.".format(str(fatal)),
         title="Error"
     )
