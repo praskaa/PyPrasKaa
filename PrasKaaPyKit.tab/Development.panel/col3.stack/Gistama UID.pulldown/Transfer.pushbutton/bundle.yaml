@@ -1,7 +1,0 @@
-layout: vertical
-author: PrasKaa
-description: |
-  Transfer GIS_Element_UID from linked Revit model to host elements.
-  Matches elements by geometry intersection and validates Family + Type name match.
-minimum_build: 2021.0.0.0
-requires: Revit 2021 or newer

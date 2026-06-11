@@ -5,7 +5,7 @@ Date    = 06.05.2026
 _____________________________________________________________________
 Description:
 Hides Revit link types in selected views or view templates via VG
-(Visibility/Graphics) checkbox — same as unchecking the link in
+(Visibility/Graphics) checkbox -- same as unchecking the link in
 VG > Revit Links tab.
 
 Works by calling view.HideElements([link_type_id]) which correctly
@@ -18,7 +18,7 @@ How-to:
 4. Links will be hidden (VG checkbox unchecked) in selected views
 
 Notes:
-- Uses HideElements(RevitLinkType.Id) — the correct API for VG checkbox
+- Uses HideElements(RevitLinkType.Id) -- the correct API for VG checkbox
 - SetLinkOverrides is NOT used (it has no Hidden option)
 - If a view has an active View Template, override is applied to the
   template instead (since template controls VG settings)
@@ -43,7 +43,7 @@ Author:  PrasKaa
 __title__ = "Hides Revit Link In Views"
 __author__ = "PrasKaa"
 
-# ── Imports ───────────────────────────────────────────────────────────────
+# -- Imports -----------------------------------------------------------------
 from Autodesk.Revit.DB import (
     FilteredElementCollector,
     RevitLinkType,
@@ -62,14 +62,14 @@ from pyrevit import revit, forms, script
 
 doc = revit.doc
 
-# ── Worksharing helper ────────────────────────────────────────────────────
+# -- Worksharing helper ----------------------------------------------------
 IS_WORKSHARED = doc.IsWorkshared
 
 def is_view_modifiable(view):
     """
     Returns (ok, reason_string).
-    ok=True  → safe to modify.
-    ok=False → owned by another user; reason_string names the owner.
+    ok=True  -> safe to modify.
+    ok=False -> owned by another user; reason_string names the owner.
     When file is NOT workshared, always returns (True, None).
     """
     if not IS_WORKSHARED:
@@ -92,7 +92,7 @@ def is_view_modifiable(view):
 
     return True, None
     
-# ── 1. Collect Revit Link Types ───────────────────────────────────────────
+# -- 1. Collect Revit Link Types -------------------------------------------
 all_link_types = list(FilteredElementCollector(doc).OfClass(RevitLinkType))
 
 if not all_link_types:
@@ -109,7 +109,7 @@ for lt in all_link_types:
             name = str(lt.Id)
     link_type_map[name] = lt
 
-# ── 2. User selects Link Types ────────────────────────────────────────────
+# -- 2. User selects Link Types --------------------------------------------
 sel_link_names = forms.SelectFromList.show(
     sorted(link_type_map.keys()),
     title='Select Revit Link Type(s)',
@@ -119,7 +119,7 @@ sel_link_names = forms.SelectFromList.show(
 if not sel_link_names:
     script.exit()
 
-# ── 3. Collect Views + View Templates ────────────────────────────────────
+# -- 3. Collect Views + View Templates ------------------------------------
 EXCLUDED_VIEW_TYPES = {
     ViewType.Schedule,
     ViewType.ColumnSchedule,
@@ -156,7 +156,7 @@ sel_view_names = forms.SelectFromList.show(
 if not sel_view_names:
     script.exit()
 
-# ── 4. Helper: redirect to View Template if active ────────────────────────
+# -- 4. Helper: redirect to View Template if active ------------------------
 def get_override_target(view):
     """
     If the view has an active View Template, VG overrides must be
@@ -170,11 +170,11 @@ def get_override_target(view):
     if template_id != ElementId.InvalidElementId:
         template = doc.GetElement(template_id)
         if template and template.IsValidObject:
-            return template, "{} -> template: {}".format(view.Name, template.Name)
+            return template, "{} >> template: {}".format(view.Name, template.Name)
 
     return view, None
 
-# ── 5. Pre-flight: worksharing ownership check ────────────────────────────
+# -- 5. Pre-flight: worksharing ownership check ----------------------------
 # Resolve target views first, then check ownership once per unique target.
 # This avoids checking the same template multiple times when many views
 # share it.
@@ -210,7 +210,7 @@ for view_name in sel_view_names:
 if blocked_views:
     block_msg = "The following views/templates are owned by another user and will be skipped:\n\n"
     for vn, own in blocked_views:
-        block_msg += "  • {} (owned by: {})\n".format(vn, own)
+        block_msg += "  * {} (owned by: {})\n".format(vn, own)
 
     if not valid_view_names:
         forms.alert(
@@ -223,7 +223,7 @@ if blocked_views:
     if not forms.alert(block_msg, title="Worksharing Conflict", yes=True, no=True):
         script.exit()
 
-# ── 6. Main Processing ────────────────────────────────────────────────────
+# -- 6. Main Processing ----------------------------------------------------
 results = {
     "success"  : 0,
     "errors"   : [],
@@ -263,7 +263,7 @@ try:
 
     tg.Assimilate()
 
-    # ── Summary report ─────────────────────────────────────────────────
+    # -- Summary report ----------------------------------------------------
     summary = (
         "Done!\n\n"
         "[OK] Success : {s} operation(s)\n"
@@ -280,17 +280,17 @@ try:
             len(results["redirects"])
         )
         for r in results["redirects"]:
-            summary += "\n  • " + r
+            summary += "\n  * " + r
 
     if results["blocked"]:
         summary += "\n\n[!] Skipped (owned by another user):"
         for vn, own in results["blocked"]:
-            summary += "\n  • {} (owner: {})".format(vn, own)
+            summary += "\n  * {} (owner: {})".format(vn, own)
 
     if results["errors"]:
         summary += "\n\n[!] Errors:"
         for e in results["errors"]:
-            summary += "\n  • " + e
+            summary += "\n  * " + e
 
     forms.alert(summary, title="Hide Revit Links - Done")
 
