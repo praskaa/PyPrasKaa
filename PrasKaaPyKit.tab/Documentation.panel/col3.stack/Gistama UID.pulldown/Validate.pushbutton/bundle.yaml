@@ -1,9 +1,0 @@
-title:
-  en_us: "Validate UIDs"
-  id_ID: "Validasi UIDI"
-
-tooltip:
-  en_us: "Check UID consistency against database"
-  id_ID: "Cek konsistensi UID dengan database"
-
-author: "PrasKaa"

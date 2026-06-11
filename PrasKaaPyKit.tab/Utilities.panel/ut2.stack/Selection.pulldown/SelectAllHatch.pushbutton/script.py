@@ -1,10 +1,32 @@
-# coding: utf8
-"""Select all Filled Region (exclude Masking Region) in active view
-Show result with pyRevit forms.toast
-"""
+# -*- coding: utf-8 -*-
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Selects all Filled Region elements (excluding Masking Regions) in the
+active view. Useful for batch operations on filled regions.
+_____________________________________________________________________
+How-to:
+1. Click "Select All Filled Regions"
+2. All Filled Regions in the active view will be selected
+3. Use Revit selection commands as needed
+
+Notes:
+- Only selects Filled Regions, not Masking Regions
+- Works only in the active view
+- Displays toast notification with count of selected elements
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
 
 __title__ = "Select All Filled Regions"
 __author__ = "PrasKaa Team"
+__version__ = "1.0"
 
 from pyrevit import revit, DB, forms
 from System.Collections.Generic import List

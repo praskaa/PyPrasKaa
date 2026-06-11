@@ -1,18 +1,18 @@
 {
     "structural_framing": {
-        "enabled": false, 
         "offset_mm": 150, 
-        "tag_type_name": "M_Structural Framing Tag: Type Name"
+        "tag_type_name": "M_Structural Framing Tag: Type mark, Mark", 
+        "enabled": true
     }, 
     "structural_column": {
-        "enabled": true, 
         "offset_mm": 50, 
-        "tag_type_name": "M_Structural Column Tag_GIS: Type name, vertical"
+        "tag_type_name": "M_Structural Column Tag: Column scheme classification (graphical column schedule)", 
+        "enabled": false
     }, 
     "walls": {
-        "enabled": false, 
         "offset_mm": 500, 
-        "tag_type_name": ""
+        "tag_type_name": "", 
+        "enabled": false
     }, 
     "tag_mode": "untagged_only"
 }

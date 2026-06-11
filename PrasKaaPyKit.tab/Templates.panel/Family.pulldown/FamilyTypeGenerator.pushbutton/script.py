@@ -1,22 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Enhanced Family Type Generator from CSV
-Creates family types from CSV files with flexible parameter matching and advanced error handling.
-
-Features:
-- Flexible CSV structure support
-- Case-insensitive parameter matching
-- Type parameters only (family-level)
-- Advanced error handling and user feedback
-- Progress tracking and cancellation support
-- Unit conversion for various data types
-- Console behavior best practices (no output after commit)
-- Type name generation with format strings
+Family Type Generator from CSV
+- Single column OR combined (format string) type naming
+- Manual parameter matching UI (no assumptions)
+- MM → Revit internal feet conversion
+- StorageType-aware parameter handling
+- Type Mark supported via BuiltInParameter.ALL_MODEL_TYPE_MARK
+- No output after Transaction.Commit()
 """
 
 __title__ = "Family Type Generator"
 __author__ = "PrasKaa Team"
-__doc__ = """Generate family types from CSV with flexible parameter matching"""
+__doc__ = """Generate family types from CSV with manual parameter matching UI"""
 
 import clr
 clr.AddReference('System.Windows.Forms')
@@ -24,929 +19,859 @@ clr.AddReference('System.Drawing')
 clr.AddReference('PresentationCore')
 clr.AddReference('PresentationFramework')
 clr.AddReference('WindowsBase')
+clr.AddReference('System')
 
-from System.Windows.Forms import OpenFileDialog, DialogResult, MessageBox, MessageBoxButtons, MessageBoxIcon
-from System.Drawing import Color
+# ── WPF Imports ───────────────────────────────────────────────────────────────
+from System.Windows.Forms import OpenFileDialog, DialogResult
+from System.Windows import (
+    ResizeMode,
+    Window,
+    WindowStartupLocation,
+    HorizontalAlignment,
+    VerticalAlignment,
+    Thickness,
+    GridLength,
+    GridUnitType,
+    FontWeights,
+)
+from System.Windows.Controls import (
+    StackPanel,
+    Grid,
+    ColumnDefinition,
+    RowDefinition,
+    Label,
+    ComboBox,
+    ComboBoxItem,
+    Button,
+    ScrollViewer,
+    TextBlock,
+    TextBox,
+    DockPanel,
+    Dock,
+    Separator,
+    Orientation,
+    ScrollBarVisibility,
+    ListBox,
+    ListBoxItem,
+    Border,
+    GroupBox,
+)
+from System.Windows import TextWrapping, TextAlignment
+from System.Windows.Media import SolidColorBrush, Color as WpfColor
+
 import os
 import csv
-import json
-from collections import OrderedDict, defaultdict
-import sys
-import re
+import math
 
-# Import pyRevit modules
-from pyrevit import forms
-from pyrevit import script
-from pyrevit import revit, DB
-from pyrevit.revit import doc, uidoc
+# ── pyRevit ───────────────────────────────────────────────────────────────────
+from pyrevit import forms, script
+from pyrevit.revit import doc
 
-# Import Revit classes
+# ── Revit API ─────────────────────────────────────────────────────────────────
 from Autodesk.Revit.DB import (
-    Transaction, TransactionGroup, FilteredElementCollector,
-    ElementId, BuiltInParameter, UnitTypeId,
-    ForgeTypeId, UnitUtils, FamilySymbol, FamilyManager,
-    FamilyType, StorageType, TransactionStatus
+    Transaction,
+    StorageType,
+    TransactionStatus,
+    BuiltInParameter,
 )
 
-# Import utility classes
-import sys
-import os
 
-# Add the UpdateProfiles directory to Python path
-script_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(script_dir)
-update_profiles_dir = os.path.join(parent_dir, 'UpdateProfiles.pushbutton')
-if update_profiles_dir not in sys.path:
-    sys.path.insert(0, update_profiles_dir)
-
-from unit_converter import UnitConverter
-
-
-class TypeNameGenerator:
-    """Handles type name generation using format strings with column placeholders"""
-
-    def __init__(self, csv_headers):
-        self.csv_headers = csv_headers
-        self.format_string = ""
-
-    def set_format_string(self, format_str):
-        """Set the format string for name generation"""
-        self.format_string = format_str
-
-    def generate_name(self, csv_row):
-        """Generate type name from CSV row using format string"""
-        if not self.format_string:
-            return ""
-
-        try:
-            # Replace {column_name} placeholders with actual values
-            result = self.format_string
-
-            for header in self.csv_headers:
-                placeholder = "{" + header + "}"
-                value = str(csv_row.get(header, "")).strip()
-                result = result.replace(placeholder, value)
-
-            return result.strip()
-
-        except Exception as e:
-            return "Error: {}".format(str(e))
-
-    def validate_format_string(self):
-        """Validate that format string contains valid placeholders"""
-        if not self.format_string:
-            return False, "Format string cannot be empty"
-
-        # Check if format string contains at least one placeholder
-        has_placeholder = any("{" + header + "}" in self.format_string for header in self.csv_headers)
-        if not has_placeholder:
-            return False, "Format string must contain at least one column placeholder like {ColumnName}"
-
-        return True, "Format string is valid"
-
-    def get_available_placeholders(self):
-        """Get list of available placeholders for the UI"""
-        return ["{" + header + "}" for header in self.csv_headers]
-
-
-class TypeNamePreviewItem(object):
-    """Item for previewing generated type names"""
-
-    def __init__(self, csv_row, generated_name, original_name=""):
-        self.csv_row = csv_row
-        self.generated_name = generated_name
-        self.original_name = original_name
-        self.tooltip = "Generated from format string"
-
-    @property
-    def preview_text(self):
-        """Get preview text showing original -> generated"""
-        if self.original_name:
-            return "{} → {}".format(self.original_name, self.generated_name)
-        return self.generated_name
-
-
-class TypeNameBuilderWindow(forms.WPFWindow):
-    """WPF Window for building type name format strings"""
-
-    def __init__(self, xaml_file_name, csv_headers, csv_rows):
-        forms.WPFWindow.__init__(self, xaml_file_name)
-        self.csv_headers = csv_headers
-        self.csv_rows = csv_rows[:10]  # Preview first 10 rows
-        self.name_generator = TypeNameGenerator(csv_headers)
-        self.preview_items = []
-        self._setup_placeholders()
-        self._setup_preview()
-
-    def _setup_placeholders(self):
-        """Setup available placeholders in UI"""
-        placeholders = self.name_generator.get_available_placeholders()
-        self.placeholders_lb.ItemsSource = placeholders
-
-    def _setup_preview(self):
-        """Setup initial preview"""
-        self._refresh_preview()
-
-    def _refresh_preview(self):
-        """Refresh preview with current format string"""
-        try:
-            self.preview_items = []
-
-            for row in self.csv_rows:
-                generated_name = self.name_generator.generate_name(row)
-                original_name = row.get('Name', row.get('Type', ''))
-                preview_item = TypeNamePreviewItem(row, generated_name, original_name)
-                self.preview_items.append(preview_item)
-
-            self.preview_dg.ItemsSource = self.preview_items
-            self._refresh_preview_grid()
-        except Exception as e:
-            # Ignore preview refresh errors to prevent crashes
-            pass
-
-    def _refresh_preview_grid(self):
-        """Refresh the preview DataGrid"""
-        try:
-            if hasattr(self, 'preview_dg'):
-                self.preview_dg.Items.Refresh()
-        except:
-            pass  # Ignore DataGrid refresh errors
-
-    def on_placeholder_double_click(self, sender, args):
-        """Handle placeholder double-click to insert into format string"""
-        try:
-            if self.placeholders_lb.SelectedItem:
-                placeholder = self.placeholders_lb.SelectedItem
-                current_text = self.format_tb.Text or ""
-                self.format_tb.Text = current_text + placeholder
-        except Exception as e:
-            # Ignore double-click errors to prevent crashes
-            pass
-
-    def on_format_text_changed(self, sender, args):
-        """Handle format string text changes"""
-        try:
-            self.name_generator.set_format_string(self.format_tb.Text)
-            self._refresh_preview()
-
-            # Validate format string
-            is_valid, message = self.name_generator.validate_format_string()
-            self.validation_tb.Text = ("✅ " if is_valid else "❌ ") + message
-        except Exception as e:
-            self.validation_tb.Text = "❌ Error: {}".format(str(e))
-
-    def on_apply_format(self, sender, args):
-        """Apply the format string and close window"""
-        try:
-            is_valid, message = self.name_generator.validate_format_string()
-            if is_valid:
-                self.format_string = self.format_tb.Text
-                self.Close()
-            else:
-                forms.alert(message, title="Invalid Format")
-        except Exception as e:
-            forms.alert("Error applying format: {}".format(str(e)), title="Error")
-
-    def on_cancel(self, sender, args):
-        """Cancel and close window"""
-        try:
-            self.format_string = None
-            self.Close()
-        except Exception as e:
-            # Force close if normal close fails
-            pass
-
-
-class FlexibleParameterMatcher:
-    """Handles flexible parameter matching between CSV headers and family parameters"""
-
-    def __init__(self, family_doc):
-        self.family_doc = family_doc
-        self.family_manager = family_doc.FamilyManager
-        self.unit_converter = UnitConverter()
-        self.type_parameters = self._get_type_parameters()
-
-    def _get_type_parameters(self):
-        """Get all type parameters from the family"""
-        type_params = {}
-
-        try:
-            for param in self.family_manager.Parameters:
-                if param.IsDeterminedByFormula:
-                    continue  # Skip formula-driven parameters
-
-                param_name = param.Definition.Name
-                type_params[param_name.lower()] = {
-                    'name': param_name,
-                    'parameter': param,
-                    'storage_type': param.StorageType,
-                    'is_readonly': param.IsReadOnly
-                }
-        except Exception as e:
-            print("Warning: Error getting type parameters: {}".format(str(e)))
-
-        return type_params
-
-    def find_best_matches(self, csv_headers):
-        """Find best matches between CSV headers and family parameters"""
-        matches = {}
-        unmatched = []
-        duplicates = []
-
-        # Normalize CSV headers
-        normalized_headers = {}
-        for header in csv_headers:
-            if header.lower() == 'name':
-                continue  # Skip name column
-            normalized_headers[header.lower()] = header
-
-        # Find exact matches first
-        for norm_header, original_header in normalized_headers.items():
-            if norm_header in self.type_parameters:
-                param_info = self.type_parameters[norm_header]
-                if not param_info['is_readonly']:
-                    matches[original_header] = {
-                        'parameter': param_info['parameter'],
-                        'storage_type': param_info['storage_type'],
-                        'confidence': 'exact'
-                    }
-                else:
-                    unmatched.append(original_header)
-            else:
-                unmatched.append(original_header)
-
-        # Try fuzzy matching for unmatched headers
-        if unmatched:
-            fuzzy_matches = self._find_fuzzy_matches(unmatched)
-            for csv_header, match_info in fuzzy_matches.items():
-                if match_info:
-                    matches[csv_header] = match_info
-                    unmatched.remove(csv_header)
-
-        return matches, unmatched, duplicates
-
-    def _find_fuzzy_matches(self, csv_headers):
-        """Find fuzzy matches using various strategies"""
-        fuzzy_matches = {}
-
-        for csv_header in csv_headers:
-            best_match = self._find_single_fuzzy_match(csv_header)
-            if best_match:
-                fuzzy_matches[csv_header] = best_match
-
-        return fuzzy_matches
-
-    def _find_single_fuzzy_match(self, csv_header):
-        """Find best fuzzy match for a single CSV header"""
-        csv_lower = csv_header.lower()
-
-        # Strategy 1: Remove common separators and try partial matches
-        csv_clean = re.sub(r'[\s_-]', '', csv_lower)
-
-        for param_key, param_info in self.type_parameters.items():
-            param_clean = re.sub(r'[\s_-]', '', param_key)
-
-            # Exact match after cleaning
-            if csv_clean == param_clean:
-                return {
-                    'parameter': param_info['parameter'],
-                    'storage_type': param_info['storage_type'],
-                    'confidence': 'cleaned'
-                }
-
-            # Partial match (contains)
-            if csv_clean in param_clean or param_clean in csv_clean:
-                return {
-                    'parameter': param_info['parameter'],
-                    'storage_type': param_info['storage_type'],
-                    'confidence': 'partial'
-                }
-
-        # Strategy 2: Word-based matching
-        csv_words = set(re.findall(r'\b\w+\b', csv_lower))
-        best_score = 0
-        best_match = None
-
-        for param_key, param_info in self.type_parameters.items():
-            param_words = set(re.findall(r'\b\w+\b', param_key))
-            intersection = csv_words.intersection(param_words)
-
-            if intersection:
-                score = len(intersection) / max(len(csv_words), len(param_words))
-                if score > best_score and score > 0.3:  # Minimum 30% word overlap
-                    best_score = score
-                    best_match = {
-                        'parameter': param_info['parameter'],
-                        'storage_type': param_info['storage_type'],
-                        'confidence': 'word_match',
-                        'score': score
-                    }
-
-        return best_match
-
-
-class CSVValidator:
-    """Validates CSV structure and data"""
-
-    def __init__(self, csv_path):
-        self.csv_path = csv_path
-        self.headers = []
-        self.rows = []
-        self.validation_errors = []
-
-    def validate(self, name_column=None):
-        """Validate CSV file structure and content"""
-        try:
-            with open(self.csv_path, 'r') as file:
-                reader = csv.DictReader(file)
-                self.headers = reader.fieldnames or []
-                self.rows = list(reader)
-
-            # Basic validation
-            if not self.headers:
-                self.validation_errors.append("CSV file has no headers")
-                return False
-
-            if not self.rows:
-                self.validation_errors.append("CSV file has no data rows")
-                return False
-
-            # Check for name column (flexible)
-            if name_column:
-                if name_column not in self.headers:
-                    self.validation_errors.append("Selected name column '{}' not found in CSV".format(name_column))
-                    return False
-            else:
-                # Auto-detect name column
-                name_columns = [h for h in self.headers if h.lower() in ['name', 'type', 'typename', 'type_name']]
-                if not name_columns:
-                    self.validation_errors.append("CSV must have a column for type names (Name, Type, TypeName, etc.)")
-                    return False
-                name_column = name_columns[0]  # Use first match
-
-            # Check for data columns
-            data_columns = [h for h in self.headers if h != name_column]
-            if not data_columns:
-                self.validation_errors.append("CSV must have at least one data column")
-                return False
-
-            # Validate each row has name
-            for i, row in enumerate(self.rows):
-                if not row.get(name_column, '').strip():
-                    self.validation_errors.append("Row {}: Missing or empty '{}' value".format(i+1, name_column))
-
-            return len(self.validation_errors) == 0
-
-        except Exception as e:
-            self.validation_errors.append("Error reading CSV file: {}".format(str(e)))
-            return False
-
-    def get_validation_report(self):
-        """Get validation report"""
-        if not self.validation_errors:
-            return "✅ CSV validation passed"
-
-        report = "❌ CSV validation failed:\n"
-        for error in self.validation_errors:
-            report += "  - {}\n".format(error)
-        return report
-
-    def suggest_name_columns(self):
-        """Suggest possible columns for type names"""
-        suggestions = []
-        for header in self.headers:
-            header_lower = header.lower()
-            if any(keyword in header_lower for keyword in ['name', 'type', 'typename', 'type_name', 'id']):
-                suggestions.append(header)
-        return suggestions
-
-
-class FamilyTypeGenerator:
-    """Main class for generating family types from CSV"""
-
-    def __init__(self, family_doc):
-        self.family_doc = family_doc
-        self.family_manager = family_doc.FamilyManager
-        self.unit_converter = UnitConverter()
-        self.output = script.get_output()
-
-    def generate_types_from_csv(self, csv_path):
-        """Main method to generate family types from CSV"""
-        # Step 1: Load and analyze CSV
-        self.output.print_md("# 📄 CSV Analysis")
-        validator = CSVValidator(csv_path)
-
-        # Read CSV headers and rows
-        try:
-            with open(csv_path, 'r') as file:
-                reader = csv.DictReader(file)
-                validator.headers = reader.fieldnames or []
-                validator.rows = list(reader)
-        except Exception as e:
-            self.output.print_md("❌ Error reading CSV: {}".format(str(e)))
-            forms.alert("Error reading CSV file: {}".format(str(e)), title="File Error")
-            return
-
-        if not validator.headers:
-            self.output.print_md("❌ CSV file has no headers")
-            forms.alert("CSV file has no headers", title="Invalid CSV")
-            return
-
-        if not validator.rows:
-            self.output.print_md("❌ CSV file has no data rows")
-            forms.alert("CSV file has no data rows", title="Invalid CSV")
-            return
-
-        # Step 2: Choose naming method
-        naming_method = self._choose_naming_method()
-        if not naming_method:
-            return
-
-        # Step 3: Configure naming based on method
-        if naming_method == 'single_column':
-            name_column = self._select_name_column(validator)
-            if not name_column:
-                return
-            self.output.print_md("✅ Selected '{}' as type name column".format(name_column))
-        else:  # combined_naming
-            name_generator = self._build_naming_format(validator)
-            if not name_generator:
-                return
-            name_column = None  # Will generate names dynamically
-            self.output.print_md("✅ Using custom naming format: {}".format(name_generator.format_string))
-
-        # Step 4: Validate CSV
-        # Skip name column validation when using combined naming (names are generated)
-        if name_column and not validator.validate(name_column):
-            self.output.print_md(validator.get_validation_report())
-            forms.alert("CSV validation failed. Check the console for details.", title="Validation Error")
-            return
-        elif not name_column:
-            # For combined naming, just check basic CSV structure
-            if not validator.rows:
-                self.output.print_md("❌ CSV file has no data rows")
-                forms.alert("CSV file has no data rows", title="Invalid CSV")
-                return
-            self.output.print_md("✅ CSV structure validated for combined naming")
-
-        self.output.print_md("✅ CSV validation passed")
-        self.output.print_md("📊 Found {} rows with {} columns".format(len(validator.rows), len(validator.headers)))
-
-        # Step 5: Parameter matching
-        self.output.print_md("\n# 🔍 Parameter Matching")
-        matcher = FlexibleParameterMatcher(self.family_doc)
-        # Exclude name column from parameter matching
-        param_headers = [h for h in validator.headers if h != name_column]
-        matches, unmatched, duplicates = matcher.find_best_matches(param_headers)
-
-        # Report matching results
-        self._report_matching_results(matches, unmatched, duplicates)
-
-        if not matches:
-            forms.alert("No parameters could be matched between CSV and family.", title="No Matches")
-            return
-
-        # Step 6: Process types
-        self.output.print_md("\n# ⚙️ Processing Family Types")
-
-        results = self._process_types(validator.rows, matches, name_column, name_generator if naming_method == 'combined_naming' else None)
-
-        # Summary is now shown BEFORE commit in _process_types() to prevent console splitting
-
-    def _choose_naming_method(self):
-        """Choose between single column or combined naming"""
-        options = [
-            "Single Column - Use existing column for type names",
-            "Combined Naming - Build custom format with multiple columns"
-        ]
-
-        selected = forms.CommandSwitchWindow.show(
-            options,
-            message="Choose type naming method:",
-            title="Type Name Generation"
-        )
-
-        if selected == options[0]:
-            return 'single_column'
-        elif selected == options[1]:
-            return 'combined_naming'
-        else:
-            return None
-
-    def _select_name_column(self, validator):
-        """Let user select which column to use for type names"""
-        suggestions = validator.suggest_name_columns()
-
-        if not suggestions:
-            # No automatic suggestions, show all columns
-            options = validator.headers
-            message = "Select column for type names:"
-        else:
-            # Show suggestions first, then all columns
-            options = suggestions + ["--- Other columns ---"] + [h for h in validator.headers if h not in suggestions]
-            message = "Select column for type names (suggestions first):"
-
-        selected = forms.CommandSwitchWindow.show(
-            options,
-            message=message,
-            title="Select Type Name Column"
-        )
-
-        if selected and selected != "--- Other columns ---":
-            return selected
-        else:
-            return None
-
-    def _build_naming_format(self, validator):
-        """Build custom naming format using WPF window"""
-        try:
-            # Create XAML content for the naming builder window
-            xaml_content = self._create_naming_builder_xaml()
-
-            # Write XAML to temp file
-            import tempfile
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.xaml', delete=False) as f:
-                f.write(xaml_content)
-                xaml_file = f.name
-
-            # Show the naming builder window
-            builder_window = TypeNameBuilderWindow(xaml_file, validator.headers, validator.rows)
-            builder_window.show(modal=True)
-
-            # Clean up temp file
-            try:
-                os.unlink(xaml_file)
-            except:
-                pass
-
-            # Check if user completed the format
-            if hasattr(builder_window, 'format_string') and builder_window.format_string is not None:
-                name_generator = TypeNameGenerator(validator.headers)
-                name_generator.set_format_string(builder_window.format_string)
-                return name_generator
-            else:
-                return None
-
-        except Exception as e:
-            forms.alert("Error creating naming builder: {}".format(str(e)), title="Error")
-            return None
-
-    def _create_naming_builder_xaml(self):
-        """Create XAML content for the naming builder window"""
-        return '''<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Type Name Builder"
-        Height="500" Width="700" MinHeight="400" MinWidth="600"
-        ShowInTaskbar="False"
-        ResizeMode="CanResizeWithGrip"
-        WindowStartupLocation="CenterScreen"
-        HorizontalContentAlignment="Center">
-    <DockPanel Margin="10">
-        <StackPanel DockPanel.Dock="Top">
-            <TextBlock FontSize="14" Margin="0,0,0,10">
-                Build a custom format for type names using column placeholders
-            </TextBlock>
-            <Border Background="#f0f0f0" CornerRadius="3" Padding="10" Margin="0,0,0,10">
-                <TextBlock TextWrapping="Wrap">
-                    <Bold>How to use:</Bold>
-                    <LineBreak />
-                    1. Double-click column names below to insert placeholders
-                    <LineBreak />
-                    2. Build your format string (e.g., "{Type Plinth} - {Length}x{Width}x{Foundation Thickness (mm)}")
-                    <LineBreak />
-                    3. Preview shows how names will be generated
-                </TextBlock>
-            </Border>
-            <DockPanel Margin="0,10,0,0">
-                <TextBlock FontSize="14" Margin="0,0,10,0" Width="120" DockPanel.Dock="Left" VerticalAlignment="Center">Format String:</TextBlock>
-                <TextBox x:Name="format_tb"
-                        Height="24"
-                        FontSize="14" FontFamily="Courier New"
-                        VerticalAlignment="Center"
-                        TextChanged="on_format_text_changed"/>
-            </DockPanel>
-            <TextBlock x:Name="validation_tb"
-                      Margin="0,5,0,0"
-                      FontSize="12"
-                      Foreground="{x:Static SystemColors.GrayTextBrush}"
-                      Text="Enter a format string to see validation"/>
-        </StackPanel>
-
-        <Grid DockPanel.Dock="Bottom" Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Button x:Name="cancel_b"
-                    Margin="5,0,0,0"
-                    Grid.Column="0" Grid.Row="0"
-                    Height="24"
-                    Content="Cancel"
-                    Click="on_cancel"/>
-            <Button x:Name="apply_b"
-                    Margin="0,0,5,0"
-                    Grid.Column="1" Grid.Row="0"
-                    Height="24"
-                    Content="Apply Format"
-                    Click="on_apply_format"/>
-        </Grid>
-
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <GroupBox Header="Available Columns" Grid.Column="0" Margin="0,0,10,0">
-                <ListBox x:Name="placeholders_lb"
-                        MouseDoubleClick="on_placeholder_double_click">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding}" FontFamily="Courier New" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </GroupBox>
-
-            <GroupBox Header="Preview (First 10 Rows)" Grid.Column="1">
-                <DataGrid x:Name="preview_dg"
-                         AutoGenerateColumns="False"
-                         CanUserSortColumns="False"
-                         IsReadOnly="True">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Generated Name"
-                                          Binding="{Binding generated_name}"
-                                          MinWidth="100" Width="*" />
-                        <DataGridTextColumn Header="Original Name"
-                                          Binding="{Binding original_name}"
-                                          MinWidth="100" Width="*" />
-                    </DataGrid.Columns>
-                </DataGrid>
-            </GroupBox>
-        </Grid>
-    </DockPanel>
-</Window>'''
-
-    def _report_matching_results(self, matches, unmatched, duplicates):
-        """Report parameter matching results"""
-        if matches:
-            self.output.print_md("## ✅ Matched Parameters ({}):".format(len(matches)))
-            for csv_header, match_info in matches.items():
-                confidence_icon = {
-                    'exact': '🎯',
-                    'cleaned': '🧹',
-                    'partial': '🔍',
-                    'word_match': '📝'
-                }.get(match_info['confidence'], '❓')
-
-                score_text = ""
-                self.output.print_md("  {} **{}** → `{}`{}".format(
-                    confidence_icon, csv_header, match_info['parameter'].Definition.Name, score_text))
-
-        if unmatched:
-            self.output.print_md("\n## ⚠️ Unmatched CSV Columns ({}):".format(len(unmatched)))
-            for header in unmatched:
-                self.output.print_md("  ❌ **{}** - No matching family parameter found".format(header))
-
-        if duplicates:
-            self.output.print_md("\n## 🔄 Duplicate Matches ({}):".format(len(duplicates)))
-            for dup in duplicates:
-                self.output.print_md("  ⚠️ **{}** - Multiple possible matches".format(dup))
-
-    def _process_types(self, csv_rows, parameter_matches, name_column, name_generator=None):
-        """Process CSV rows into family types"""
-        results = {
-            'processed': 0,
-            'successful': 0,
-            'failed': 0,
-            'skipped': 0,
-            'details': []
+# =============================================================================
+# UNIT CONVERSION  (mm → Revit internal feet)
+# =============================================================================
+
+MM_TO_FEET = 1.0 / 304.8
+
+
+def mm_to_internal(value_mm):
+    return float(value_mm) * MM_TO_FEET
+
+
+def deg_to_rad(value_deg):
+    return float(value_deg) * (math.pi / 180.0)
+
+
+def get_spec_category(param):
+    """
+    Returns: 'length' | 'angle' | 'area' | 'volume' | 'number' | 'integer' | 'string'
+    """
+    st = param.StorageType
+    if st == StorageType.String:
+        return 'string'
+    if st == StorageType.Integer:
+        return 'integer'
+    try:
+        spec_id = param.Definition.GetDataType().TypeId.lower()
+        if 'length' in spec_id:
+            return 'length'
+        if 'angle' in spec_id:
+            return 'angle'
+        if 'area' in spec_id:
+            return 'area'
+        if 'volume' in spec_id:
+            return 'volume'
+    except Exception:
+        pass
+    return 'length'   # safest default for Double in structural families
+
+
+def convert_csv_value(raw_str, spec_category):
+    """Convert CSV string to proper Python value for Revit internal unit."""
+    raw_str = raw_str.strip()
+    if spec_category == 'string':
+        return raw_str
+    if spec_category == 'integer':
+        return int(float(raw_str))
+    numeric = float(raw_str)
+    if spec_category == 'length':
+        return mm_to_internal(numeric)
+    if spec_category == 'angle':
+        return deg_to_rad(numeric)
+    if spec_category == 'area':
+        return numeric * (MM_TO_FEET ** 2)
+    if spec_category == 'volume':
+        return numeric * (MM_TO_FEET ** 3)
+    return numeric
+
+
+# =============================================================================
+# FAMILY PARAMETER READER
+# =============================================================================
+
+# Built-in parameters yang di-inject manual karena tidak muncul di FamilyManager
+# Id -1001405 = ALL_MODEL_TYPE_MARK (dikonfirmasi via RevitLookup)
+BUILTIN_INJECT = {
+    "Type Mark": {
+        'param': None,
+        'storage_type': StorageType.String,
+        'spec_category': 'string',
+        'source': 'builtin',
+        'bip': BuiltInParameter.ALL_MODEL_TYPE_MARK,
+    },
+}
+
+
+def get_writable_type_parameters(family_doc):
+    result = {}
+    fm = family_doc.FamilyManager
+
+    # Pass 1: FamilyManager parameters (user-defined)
+    for p in fm.Parameters:
+        if p.IsDeterminedByFormula:
+            continue
+        name = p.Definition.Name
+        result[name] = {
+            'param': p,
+            'storage_type': p.StorageType,
+            'spec_category': get_spec_category(p),
+            'source': 'family_manager',
         }
 
-        # Use single transaction for all operations
-        with Transaction(doc, "Generate Family Types from CSV") as t:
+    # Pass 2: Inject built-in parameters manual
+    for name, info in BUILTIN_INJECT.items():
+        if name not in result:
+            result[name] = info
+
+    return result
+
+
+# =============================================================================
+# SHARED WPF HELPERS
+# =============================================================================
+
+def _lbl(text, bold=False, size=12, wrap=False):
+    lbl = Label()
+    lbl.Content = text
+    lbl.FontSize = size
+    lbl.VerticalAlignment = VerticalAlignment.Center
+    if bold:
+        lbl.FontWeight = FontWeights.Bold
+    return lbl
+
+
+def _tb(text, bold=False, size=12, wrap=False):
+    tb = TextBlock()
+    tb.Text = text
+    tb.FontSize = size
+    tb.VerticalAlignment = VerticalAlignment.Center
+    if bold:
+        tb.FontWeight = FontWeights.Bold
+    if wrap:
+        tb.TextWrapping = TextWrapping.Wrap
+    return tb
+
+
+def _col(grid, index, element):
+    Grid.SetColumn(element, index)
+    grid.Children.Add(element)
+
+
+def _row_grid(*widths):
+    """Create a Grid with given column widths (int=px, '*'=star, 'auto'=auto)."""
+    g = Grid()
+    g.Margin = Thickness(0, 1, 0, 1)
+    for w in widths:
+        cd = ColumnDefinition()
+        if w == '*':
+            cd.Width = GridLength(1, GridUnitType.Star)
+        elif w == 'auto':
+            cd.Width = GridLength.Auto
+        else:
+            cd.Width = GridLength(w)
+        g.ColumnDefinitions.Add(cd)
+    return g
+
+
+# =============================================================================
+# COMBINED NAME BUILDER WINDOW
+# =============================================================================
+
+class CombinedNameWindow(Window):
+    """
+    Lets the user build a format string like "{Size} - {b}x{h}" using
+    CSV column placeholders. Shows a live preview against first 8 rows.
+    """
+
+    def __init__(self, csv_headers, csv_rows):
+        self.csv_headers = csv_headers
+        self.preview_rows = csv_rows[:8]
+        self.format_string = None
+        self._setup_window()
+        self._build_ui()
+
+    def _setup_window(self):
+        self.Title = "Combined Type Name Builder"
+        self.Width = 680
+        self.Height = 520
+        self.MinWidth = 520
+        self.MinHeight = 380
+        self.WindowStartupLocation = WindowStartupLocation.CenterScreen
+        self.ResizeMode = ResizeMode.CanResizeWithGrip
+
+    def _build_ui(self):
+        root = DockPanel()
+        root.Margin = Thickness(12)
+        self.Content = root
+
+        # ── Header ────────────────────────────────────────────────────────────
+        hdr = StackPanel()
+        hdr.Margin = Thickness(0, 0, 0, 10)
+        DockPanel.SetDock(hdr, Dock.Top)
+        root.Children.Add(hdr)
+
+        hdr.Children.Add(_tb("Combined Type Name Builder", bold=True, size=15))
+
+        how_to = _tb(
+            "1. Double-click a column name to insert its placeholder into the format string.\n"
+            "2. Type separators, spaces, or text between placeholders.\n"
+            "   Example:  {Size} - {b}x{h}  or  L{b}x{t1}",
+            size=11, wrap=True
+        )
+        how_to.Foreground = SolidColorBrush(WpfColor.FromRgb(80, 80, 80))
+        how_to.Margin = Thickness(0, 4, 0, 0)
+        hdr.Children.Add(how_to)
+
+        # ── Format string input ───────────────────────────────────────────────
+        fmt_row = _row_grid('auto', '*')
+        fmt_row.Margin = Thickness(0, 6, 0, 4)
+        DockPanel.SetDock(fmt_row, Dock.Top)
+        root.Children.Add(fmt_row)
+
+        _col(fmt_row, 0, _lbl("Format:", bold=True, size=12))
+
+        self._fmt_tb = TextBox()
+        self._fmt_tb.FontSize = 12
+        self._fmt_tb.Height = 26
+        self._fmt_tb.Margin = Thickness(6, 0, 0, 0)
+        self._fmt_tb.VerticalContentAlignment = VerticalAlignment.Center
+        self._fmt_tb.TextChanged += self._on_format_changed
+        _col(fmt_row, 1, self._fmt_tb)
+
+        # ── Validation label ──────────────────────────────────────────────────
+        self._val_tb = TextBlock()
+        self._val_tb.FontSize = 11
+        self._val_tb.Margin = Thickness(0, 2, 0, 6)
+        self._val_tb.Text = "Enter a format string above."
+        self._val_tb.Foreground = SolidColorBrush(WpfColor.FromRgb(120, 120, 120))
+        DockPanel.SetDock(self._val_tb, Dock.Top)
+        root.Children.Add(self._val_tb)
+
+        # ── Buttons ───────────────────────────────────────────────────────────
+        btn_row = StackPanel()
+        btn_row.Orientation = Orientation.Horizontal
+        btn_row.HorizontalAlignment = HorizontalAlignment.Right
+        btn_row.Margin = Thickness(0, 8, 0, 0)
+        DockPanel.SetDock(btn_row, Dock.Bottom)
+        root.Children.Add(btn_row)
+
+        cancel_btn = Button()
+        cancel_btn.Content = "  Cancel  "
+        cancel_btn.Height = 28
+        cancel_btn.Margin = Thickness(0, 0, 8, 0)
+        cancel_btn.Click += self._on_cancel
+        btn_row.Children.Add(cancel_btn)
+
+        apply_btn = Button()
+        apply_btn.Content = "  Apply Format  "
+        apply_btn.Height = 28
+        apply_btn.Click += self._on_apply
+        btn_row.Children.Add(apply_btn)
+
+        # ── Body: columns list + preview ──────────────────────────────────────
+        body = Grid()
+        body.ColumnDefinitions.Add(ColumnDefinition())
+        body.ColumnDefinitions[0].Width = GridLength(190)
+        body.ColumnDefinitions.Add(ColumnDefinition())
+        body.ColumnDefinitions[1].Width = GridLength(1, GridUnitType.Star)
+        root.Children.Add(body)
+
+        # Left: column list
+        left = GroupBox()
+        left.Header = "Available Columns (double-click to insert)"
+        left.Margin = Thickness(0, 0, 6, 0)
+        Grid.SetColumn(left, 0)
+        body.Children.Add(left)
+
+        self._col_lb = ListBox()
+        self._col_lb.FontSize = 11
+        self._col_lb.MouseDoubleClick += self._on_col_dblclick
+        for h in self.csv_headers:
+            item = ListBoxItem()
+            item.Content = "{" + h + "}"
+            self._col_lb.Items.Add(item)
+        left.Content = self._col_lb
+
+        # Right: preview
+        right = GroupBox()
+        right.Header = "Preview (first 8 rows)"
+        Grid.SetColumn(right, 1)
+        body.Children.Add(right)
+
+        self._preview_panel = StackPanel()
+        self._preview_panel.Margin = Thickness(4)
+        scroll = ScrollViewer()
+        scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        scroll.Content = self._preview_panel
+        right.Content = scroll
+
+        self._refresh_preview()
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+
+    def _generate_name(self, fmt, row):
+        result = fmt
+        for h in self.csv_headers:
+            result = result.replace("{" + h + "}", str(row.get(h, "")).strip())
+        return result
+
+    def _validate(self, fmt):
+        if not fmt.strip():
+            return False, "Format string is empty."
+        has_placeholder = any(("{" + h + "}") in fmt for h in self.csv_headers)
+        if not has_placeholder:
+            return False, "No valid placeholder found. Use {ColumnName} syntax."
+        return True, "OK"
+
+    def _refresh_preview(self):
+        self._preview_panel.Children.Clear()
+        fmt = self._fmt_tb.Text if hasattr(self, '_fmt_tb') else ""
+        for row in self.preview_rows:
+            name = self._generate_name(fmt, row) if fmt.strip() else "(enter format above)"
+            tb = TextBlock()
+            tb.Text = name
+            tb.FontSize = 11
+            tb.Margin = Thickness(0, 1, 0, 1)
+            self._preview_panel.Children.Add(tb)
+
+    # ── events ────────────────────────────────────────────────────────────────
+
+    def _on_col_dblclick(self, sender, args):
+        sel = self._col_lb.SelectedItem
+        if sel is None:
+            return
+        placeholder = str(sel.Content)
+        pos = self._fmt_tb.SelectionStart
+        current = self._fmt_tb.Text or ""
+        self._fmt_tb.Text = current[:pos] + placeholder + current[pos:]
+        self._fmt_tb.SelectionStart = pos + len(placeholder)
+        self._fmt_tb.Focus()
+
+    def _on_format_changed(self, sender, args):
+        fmt = self._fmt_tb.Text or ""
+        valid, msg = self._validate(fmt)
+        if valid:
+            self._val_tb.Text = u"\u2705 " + msg
+            self._val_tb.Foreground = SolidColorBrush(WpfColor.FromRgb(0, 128, 0))
+        else:
+            self._val_tb.Text = u"\u274C " + msg
+            self._val_tb.Foreground = SolidColorBrush(WpfColor.FromRgb(180, 0, 0))
+        self._refresh_preview()
+
+    def _on_apply(self, sender, args):
+        fmt = self._fmt_tb.Text or ""
+        valid, msg = self._validate(fmt)
+        if not valid:
+            forms.alert(msg, title="Invalid Format")
+            return
+        self.format_string = fmt
+        self.Close()
+
+    def _on_cancel(self, sender, args):
+        self.format_string = None
+        self.Close()
+
+    def show_dialog(self):
+        self.ShowDialog()
+        return self.format_string
+
+
+# =============================================================================
+# MANUAL PARAMETER MATCHING WINDOW
+# =============================================================================
+
+class ParameterMatchingWindow(Window):
+    """
+    One row per CSV column (name column excluded).
+    Each row has a ComboBox with all writable family parameters.
+    Default is always '-- Skip --' — no assumptions made.
+    """
+
+    SKIP = "-- Skip --"
+
+    def __init__(self, csv_headers, name_column, family_params, sample_row):
+        exclude = [name_column] if name_column else []
+        self.data_headers = [h for h in csv_headers if h not in exclude]
+        self.family_params = family_params
+        self.sample_row = sample_row
+        self.result_mapping = None
+        self._combos = {}
+
+        self._setup_window()
+        self._build_ui()
+
+    def _setup_window(self):
+        self.Title = "Parameter Matching — Manual Assignment"
+        self.Width = 740
+        self.MinWidth = 580
+        self.MinHeight = 260
+        self.WindowStartupLocation = WindowStartupLocation.CenterScreen
+        self.ResizeMode = ResizeMode.CanResizeWithGrip
+
+    def _build_ui(self):
+        root = DockPanel()
+        root.Margin = Thickness(12)
+        self.Content = root
+
+        # Header
+        hdr = StackPanel()
+        hdr.Margin = Thickness(0, 0, 0, 8)
+        DockPanel.SetDock(hdr, Dock.Top)
+        root.Children.Add(hdr)
+
+        hdr.Children.Add(_tb("Manual Parameter Matching", bold=True, size=15))
+
+        hint = _tb(
+            "Assign each CSV column to a family parameter.\n"
+            "Leave '-- Skip --' to ignore that column.\n"
+            "Numeric values are assumed to be MILLIMETERS "
+            "and will be converted to Revit internal feet.",
+            size=11, wrap=True
+        )
+        hint.Foreground = SolidColorBrush(WpfColor.FromRgb(90, 90, 90))
+        hint.Margin = Thickness(0, 4, 0, 0)
+        hdr.Children.Add(hint)
+
+        # Buttons
+        btn_row = StackPanel()
+        btn_row.Orientation = Orientation.Horizontal
+        btn_row.HorizontalAlignment = HorizontalAlignment.Right
+        btn_row.Margin = Thickness(0, 10, 0, 0)
+        DockPanel.SetDock(btn_row, Dock.Bottom)
+        root.Children.Add(btn_row)
+
+        cancel_btn = Button()
+        cancel_btn.Content = "  Cancel  "
+        cancel_btn.Height = 28
+        cancel_btn.Margin = Thickness(0, 0, 8, 0)
+        cancel_btn.Click += self._on_cancel
+        btn_row.Children.Add(cancel_btn)
+
+        ok_btn = Button()
+        ok_btn.Content = "  Apply Matching  "
+        ok_btn.Height = 28
+        ok_btn.Click += self._on_apply
+        btn_row.Children.Add(ok_btn)
+
+        # Scrollable rows
+        scroll = ScrollViewer()
+        scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        root.Children.Add(scroll)
+
+        inner = StackPanel()
+        inner.Margin = Thickness(0, 2, 4, 2)
+        scroll.Content = inner
+
+        # Column header row
+        h_row = _row_grid(220, 24, '*', 180)
+        _col(h_row, 0, _lbl("CSV Column", bold=True, size=11))
+        _col(h_row, 2, _lbl("Family Parameter", bold=True, size=11))
+        _col(h_row, 3, _lbl("Sample Value", bold=True, size=11))
+        inner.Children.Add(h_row)
+
+        sep = Separator()
+        sep.Margin = Thickness(0, 2, 0, 6)
+        inner.Children.Add(sep)
+
+        param_choices = [self.SKIP] + sorted(self.family_params.keys())
+
+        for csv_h in self.data_headers:
+            row = _row_grid(220, 24, '*', 180)
+
+            _col(row, 0, _lbl(csv_h, size=12))
+
+            arr = _lbl(u"\u2192", size=12)
+            arr.HorizontalAlignment = HorizontalAlignment.Center
+            _col(row, 1, arr)
+
+            combo = ComboBox()
+            combo.FontSize = 11
+            combo.Height = 24
+            combo.Margin = Thickness(4, 0, 4, 0)
+            combo.VerticalAlignment = VerticalAlignment.Center
+            for pname in param_choices:
+                item = ComboBoxItem()
+                item.Content = pname
+                combo.Items.Add(item)
+            combo.SelectedIndex = 0
+            _col(row, 2, combo)
+            self._combos[csv_h] = combo
+
+            raw = str(self.sample_row.get(csv_h, "")).strip()
+            display = (raw[:35] + u"\u2026") if len(raw) > 35 else raw
+            s_lbl = _lbl(display, size=10)
+            s_lbl.Foreground = SolidColorBrush(WpfColor.FromRgb(110, 110, 110))
+            _col(row, 3, s_lbl)
+
+            inner.Children.Add(row)
+
+        self.Height = min(180 + len(self.data_headers) * 34 + 80, 720)
+
+    def _on_apply(self, sender, args):
+        mapping = {}
+        for csv_h, combo in self._combos.items():
+            sel = combo.SelectedItem
+            if sel is None or str(sel.Content) == self.SKIP:
+                mapping[csv_h] = None
+            else:
+                mapping[csv_h] = str(sel.Content)
+        self.result_mapping = mapping
+        self.Close()
+
+    def _on_cancel(self, sender, args):
+        self.result_mapping = None
+        self.Close()
+
+    def show_dialog(self):
+        self.ShowDialog()
+        return self.result_mapping
+
+
+# =============================================================================
+# CSV READER
+# =============================================================================
+
+def read_csv(csv_path):
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        headers = list(reader.fieldnames or [])
+        rows = list(reader)
+    return headers, rows
+
+
+# =============================================================================
+# MAIN GENERATOR
+# =============================================================================
+
+class FamilyTypeGenerator:
+
+    def __init__(self, family_doc):
+        self.family_doc = family_doc
+        self.fm = family_doc.FamilyManager
+        self.output = script.get_output()
+
+    # ── public entry point ────────────────────────────────────────────────────
+
+    def run(self, csv_path):
+        out = self.output
+        out.print_md("# 📄 Reading CSV")
+
+        try:
+            headers, rows = read_csv(csv_path)
+        except Exception as e:
+            forms.alert("Error reading CSV:\n{}".format(e), title="CSV Error")
+            return
+
+        if not headers:
+            forms.alert("CSV has no headers.", title="CSV Error")
+            return
+        if not rows:
+            forms.alert("CSV has no data rows.", title="CSV Error")
+            return
+
+        out.print_md("✅ {} columns, {} rows".format(len(headers), len(rows)))
+
+        # ── Step 1: Choose naming method ──────────────────────────────────────
+        out.print_md("\n# 🏷️ Type Naming Method")
+        naming_choice = forms.CommandSwitchWindow.show(
+            ["Single Column", "Combined (Format String)"],
+            message="How should type names be generated?",
+            title="Type Naming Method",
+        )
+        if not naming_choice:
+            out.print_md("❌ Cancelled.")
+            return
+
+        name_col = None
+        format_string = None
+
+        if naming_choice == "Single Column":
+            name_col = forms.CommandSwitchWindow.show(
+                headers,
+                message="Which column contains the TYPE NAME?",
+                title="Select Name Column",
+            )
+            if not name_col:
+                out.print_md("❌ Cancelled.")
+                return
+            out.print_md("✅ Name column: **{}**".format(name_col))
+
+        else:  # Combined
+            win = CombinedNameWindow(headers, rows)
+            format_string = win.show_dialog()
+            if format_string is None:
+                out.print_md("❌ Cancelled.")
+                return
+            out.print_md("✅ Format string: `{}`".format(format_string))
+
+        # ── Step 2: Get family parameters ─────────────────────────────────────
+        family_params = get_writable_type_parameters(self.family_doc)
+        if not family_params:
+            forms.alert("No writable type parameters found.", title="No Parameters")
+            return
+        out.print_md("✅ **{}** writable type parameters found".format(len(family_params)))
+
+        # ── Step 3: Manual matching UI ────────────────────────────────────────
+        out.print_md("\n# 🔗 Manual Parameter Matching")
+        sample_row = rows[0]
+
+        win = ParameterMatchingWindow(
+            csv_headers=headers,
+            name_column=name_col,
+            family_params=family_params,
+            sample_row=sample_row,
+        )
+        mapping = win.show_dialog()
+
+        if mapping is None:
+            out.print_md("❌ Cancelled by user.")
+            return
+
+        active = {k: v for k, v in mapping.items() if v is not None}
+        skipped = [k for k, v in mapping.items() if v is None]
+
+        out.print_md("## ✅ Active mappings ({})".format(len(active)))
+        for csv_h, param_n in active.items():
+            cat = family_params[param_n]['spec_category']
+            out.print_md("  **{}** → `{}` *[{}]*".format(csv_h, param_n, cat))
+
+        if skipped:
+            out.print_md("## ⏭️ Skipped: {}".format(", ".join(skipped)))
+
+        if not active:
+            forms.alert("No columns mapped. Nothing to do.", title="No Mapping")
+            return
+
+        # ── Step 4: Create types ──────────────────────────────────────────────
+        out.print_md("\n# ⚙️ Creating Family Types")
+        self._process_types(rows, name_col, format_string, headers, active, family_params)
+
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _resolve_name(self, row, name_col, format_string, headers):
+        if format_string:
+            result = format_string
+            for h in headers:
+                result = result.replace("{" + h + "}", str(row.get(h, "")).strip())
+            return result.strip()
+        else:
+            return str(row.get(name_col, "")).strip()
+
+    def _process_types(self, rows, name_col, format_string, headers, mapping, family_params):
+        out = self.output
+        counts = {'ok': 0, 'fail': 0, 'skip': 0}
+        existing = set(ft.Name for ft in self.fm.Types)
+
+        with Transaction(self.family_doc, "Generate Family Types from CSV") as t:
             t.Start()
 
-            # Progress bar for user feedback
-            with forms.ProgressBar(title='Creating family types...', cancellable=True) as pb:
-                for i, row in enumerate(csv_rows):
+            with forms.ProgressBar(title="Creating family types...", cancellable=True) as pb:
+                total = len(rows)
+                for i, row in enumerate(rows):
                     if pb.cancelled:
                         t.RollBack()
-                        forms.alert("Operation cancelled by user", title="Cancelled")
-                        return results
+                        forms.alert("Cancelled.", title="Cancelled")
+                        return
 
-                    result = self._create_single_type(row, parameter_matches, name_column, name_generator)
-                    results['processed'] += 1
-                    results['details'].append(result)
+                    type_name = self._resolve_name(row, name_col, format_string, headers)
 
-                    if result['success']:
-                        results['successful'] += 1
-                        self.output.print_md("  ✅ **{}**: {}".format(result['type_name'], result['message']))
+                    if not type_name:
+                        out.print_md("  ⚠️ Row {}: empty name — skipped".format(i + 1))
+                        counts['skip'] += 1
+                        pb.update_progress(i + 1, total)
+                        continue
+
+                    if type_name in existing:
+                        out.print_md("  ⏭️ **{}** already exists — skipped".format(type_name))
+                        counts['skip'] += 1
+                        pb.update_progress(i + 1, total)
+                        continue
+
+                    ok, msg = self._create_type(row, type_name, mapping, family_params)
+                    existing.add(type_name)
+
+                    if ok:
+                        counts['ok'] += 1
+                        out.print_md("  ✅ **{}**: {}".format(type_name, msg))
                     else:
-                        results['failed'] += 1
-                        self.output.print_md("  ❌ **{}**: {}".format(result['type_name'], result['message']))
+                        counts['fail'] += 1
+                        out.print_md("  ❌ **{}**: {}".format(type_name, msg))
 
-                    # Update progress
-                    pb.update_progress(i + 1, len(csv_rows))
+                    pb.update_progress(i + 1, total)
 
-            # Print summary BEFORE commit (CRITICAL - prevents console splitting)
-            self.output.print_md("\\n## 📊 **Results Summary**")
-            self.output.print_md("---")
-            self.output.print_md("📈 **Total processed:** {}".format(results['processed']))
-            self.output.print_md("✅ **Successful:** {}".format(results['successful']))
-            self.output.print_md("❌ **Failed:** {}".format(results['failed']))
+            # Summary BEFORE commit
+            done = counts['ok'] + counts['fail'] + counts['skip']
+            rate = int(counts['ok'] / done * 100) if done else 0
+            out.print_md("\n## 📊 Results")
+            out.print_md("✅ Created : **{}**".format(counts['ok']))
+            out.print_md("⏭️ Skipped : **{}**".format(counts['skip']))
+            out.print_md("❌ Failed  : **{}**".format(counts['fail']))
+            out.print_md("🎯 Success : **{}%**".format(rate))
+            out.print_md("\n💾 Saving…")
 
-            if results['failed'] > 0:
-                self.output.print_md("⚠️  **Warning:** {} types failed processing".format(results['failed']))
-
-            success_rate = (results['successful'] / results['processed'] * 100) if results['processed'] > 0 else 0
-            self.output.print_md("🎯 **Success rate:** {}%".format(int(success_rate)))
-            self.output.print_md("\\n💾 **Saving changes...**")
-
-            # Commit transaction (NO OUTPUT AFTER THIS!)
             status = t.Commit()
 
-            if status != TransactionStatus.Committed:
-                forms.alert("❌ Transaction failed! Changes not saved.", exitscript=True)
-                return results
+        if status != TransactionStatus.Committed:
+            forms.alert("Transaction failed! Changes NOT saved.", title="Error")
+            return
 
-            # Show completion dialog (safe - after commit)
-            forms.alert(
-                "Family type generation complete!\\n\\n"
-                "Processed: {}\\n"
-                "Successful: {}\\n"
-                "Failed: {}\\n"
-                "Success Rate: {}%".format(
-                    results['processed'],
-                    results['successful'],
-                    results['failed'],
-                    int(success_rate)
-                ),
-                title="Generation Complete",
-                ok=True
-            )
+        forms.alert(
+            "Done!\n\nCreated : {}\nSkipped : {}\nFailed  : {}\nSuccess : {}%".format(
+                counts['ok'], counts['skip'], counts['fail'], rate
+            ),
+            title="Family Type Generator",
+        )
 
-        return results
-
-    def _create_single_type(self, csv_row, parameter_matches, name_column, name_generator=None):
-        """Create a single family type from CSV row"""
+    def _create_type(self, row, type_name, mapping, family_params):
         try:
-            # Generate type name
-            if name_generator:
-                type_name = name_generator.generate_name(csv_row)
-            else:
-                type_name = csv_row.get(name_column, '').strip()
+            new_type = self.fm.NewType(type_name)
+            self.fm.CurrentType = new_type
 
-            if not type_name:
-                return {
-                    'success': False,
-                    'type_name': 'Unknown',
-                    'message': 'Missing type name'
-                }
+            ok_n = 0
+            errors = []
 
-            # Check if type already exists
-            existing_types = [ft.Name for ft in self.family_manager.Types]
-            if type_name in existing_types:
-                return {
-                    'success': False,
-                    'type_name': type_name,
-                    'message': 'Type already exists'
-                }
+            for csv_h, param_n in mapping.items():
+                raw = str(row.get(csv_h, "")).strip()
+                if not raw:
+                    continue  # empty cell → keep parameter default
 
-            # Create new type
-            new_type = self.family_manager.NewType(type_name)
-            self.family_manager.CurrentType = new_type
+                pinfo = family_params[param_n]
+                source = pinfo.get('source', 'family_manager')
+                spec_cat = pinfo['spec_category']
+                st = pinfo['storage_type']
 
-            # Set parameters
-            params_set = 0
-            params_failed = 0
+                try:
+                    value = convert_csv_value(raw, spec_cat)
 
-            for csv_header, value in csv_row.items():
-                if (name_column and csv_header == name_column) or (not value or not value.strip()):
-                    continue
-
-                if csv_header in parameter_matches:
-                    match_info = parameter_matches[csv_header]
-                    param = match_info['parameter']
-                    storage_type = match_info['storage_type']
-
-                    try:
-                        success = self._set_parameter_value(param, value, storage_type)
-                        if success:
-                            params_set += 1
+                    if source == 'family_manager':
+                        param = pinfo['param']  # FamilyParameter
+                        if st == StorageType.Double:
+                            self.fm.Set(param, float(value))
+                        elif st == StorageType.Integer:
+                            self.fm.Set(param, int(value))
+                        elif st == StorageType.String:
+                            self.fm.Set(param, str(value))
                         else:
-                            params_failed += 1
-                    except Exception as e:
-                        params_failed += 1
-                        print("    ⚠️ Failed to set {}: {}".format(csv_header, str(e)))
+                            errors.append("{}: unsupported StorageType".format(csv_h))
+                            continue
 
-            message = "Created with {}/{} parameters set".format(params_set, params_set + params_failed)
-            return {
-                'success': True,
-                'type_name': type_name,
-                'message': message,
-                'params_set': params_set,
-                'params_failed': params_failed
-            }
+                    elif source == 'builtin':
+                        bip = pinfo['bip']
+                        elem_param = new_type.get_Parameter(bip)
+                        if elem_param and not elem_param.IsReadOnly:
+                            if st == StorageType.Double:
+                                elem_param.Set(float(value))
+                            elif st == StorageType.Integer:
+                                elem_param.Set(int(value))
+                            elif st == StorageType.String:
+                                elem_param.Set(str(value))
+                            else:
+                                errors.append("{}: unsupported StorageType".format(csv_h))
+                                continue
+                        else:
+                            errors.append("{}: builtin param not settable".format(csv_h))
+                            continue
+
+                    ok_n += 1
+
+                except ValueError as e:
+                    errors.append("{}: bad value '{}' ({})".format(csv_h, raw, e))
+                except Exception as e:
+                    errors.append("{}: {}".format(csv_h, e))
+
+            msg = "{} params set".format(ok_n)
+            if errors:
+                msg += " | " + "; ".join(errors)
+            return True, msg
 
         except Exception as e:
-            type_name = 'Unknown'
-            if name_generator:
-                type_name = name_generator.generate_name(csv_row) or 'Unknown'
-            elif name_column:
-                type_name = csv_row.get(name_column, 'Unknown')
-
-            return {
-                'success': False,
-                'type_name': type_name,
-                'message': 'Error: {}'.format(str(e))
-            }
-
-    def _set_parameter_value(self, parameter, value_str, storage_type):
-        """Set parameter value with proper type conversion"""
-        try:
-            if storage_type == StorageType.Double:
-                # Convert to float and then to Revit internal units
-                numeric_value = float(value_str)
-                # Assume LENGTH unit type for now (can be extended)
-                converted_value = self.unit_converter.convert_value(numeric_value, 'LENGTH')
-                self.family_manager.Set(parameter, converted_value)
-                return True
-
-            elif storage_type == StorageType.Integer:
-                int_value = int(float(value_str))
-                self.family_manager.Set(parameter, int_value)
-                return True
-
-            elif storage_type == StorageType.String:
-                self.family_manager.Set(parameter, value_str)
-                return True
-
-            else:
-                print("    ⚠️ Unsupported storage type: {}".format(storage_type))
-                return False
-
-        except (ValueError, TypeError) as e:
-            print("    ⚠️ Value conversion error for {}: {}".format(parameter.Definition.Name, str(e)))
-            return False
-        except Exception as e:
-            print("    ⚠️ Error setting parameter {}: {}".format(parameter.Definition.Name, str(e)))
-            return False
-
-    def _show_summary(self, results):
-        """Show processing summary - REMOVED to prevent console splitting"""
-        # Summary is now shown BEFORE commit in _process_types()
-        # This prevents the dreaded console splitting issue
-        pass
+            return False, "Exception: {}".format(e)
 
 
-def get_family_document():
-    """Get the current family document"""
-    if doc.IsFamilyDocument:
-        return doc
-    else:
-        forms.alert("Please open a family document to use this tool.")
-        return None
-
+# =============================================================================
+# ENTRY POINT
+# =============================================================================
 
 def main():
-    """Main execution function"""
     output = script.get_output()
-
     output.print_md("# 🚀 FAMILY TYPE GENERATOR")
     output.print_md("---")
 
     try:
-        # Get family document
-        family_doc = get_family_document()
-        if not family_doc:
+        if not doc.IsFamilyDocument:
+            forms.alert("Please open a Family (.rfa) document first.", title="Not a Family")
             return
 
-        output.print_md("✅ Family document: **{}**".format(family_doc.Title))
+        output.print_md("✅ Family: **{}**".format(doc.Title))
 
-        # File selection
-        file_dialog = OpenFileDialog()
-        file_dialog.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*"
-        file_dialog.Title = "Select CSV file for family type generation"
+        dlg = OpenFileDialog()
+        dlg.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*"
+        dlg.Title = "Select CSV file"
 
-        if file_dialog.ShowDialog() == DialogResult.OK:
-            csv_path = file_dialog.FileName
-            output.print_md("✅ Selected CSV: **{}**".format(os.path.basename(csv_path)))
+        if dlg.ShowDialog() != DialogResult.OK:
+            output.print_md("❌ No file selected.")
+            return
 
-            # Generate types
-            generator = FamilyTypeGenerator(family_doc)
-            generator.generate_types_from_csv(csv_path)
+        csv_path = dlg.FileName
+        output.print_md("✅ CSV: **{}**".format(os.path.basename(csv_path)))
 
-        else:
-            output.print_md("❌ No CSV file selected.")
+        FamilyTypeGenerator(doc).run(csv_path)
 
     except Exception as e:
         output.print_md("❌ **Error:** {}".format(str(e)))
         import traceback
         traceback.print_exc()
-        forms.alert("Error: {}".format(str(e)), title="Script Error")
+        forms.alert("Error:\n{}".format(str(e)), title="Script Error")
 
 
-# Entry point
 if __name__ == '__main__':
     main()

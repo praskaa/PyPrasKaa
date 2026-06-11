@@ -2,7 +2,6 @@
 
 title:
   en_us: Views
-  id_ID: Tampilan
 
 tooltip:
   en_us: |
@@ -26,34 +25,13 @@ tooltip:
     • Documentation consistency
 
     Version: 2.0 | Author: PrasKaa Team
-  id_ID: |
-    Alat Manajemen Tampilan - Konfigurasi & Visualisasi
-
-    Alat canggih untuk mengelola tampilan Revit, crop box, dan view range.
-    Kontrol properti tampilan dan visualisasikan kedalaman tampilan untuk
-    kontrol dokumentasi yang lebih baik.
-
-    FITUR:
-    • Set Crop View Standard - Manajemen berat garis crop box
-    • View Range - Visualisasi 3D kedalaman tampilan
-    • Create Filter by Subcategory - Alat filter canggih
-    • Set View Title on Sheet - Salin nama tampilan ke parameter judul
-    • Operasi Multi-tampilan - Modifikasi tampilan batch
-
-    DUKUNGAN ALUR KERJA:
-    • Standardisasi properti tampilan
-    • Analisis range visual
-    • Kontrol tampilan berbasis filter
-    • Konsistensi dokumentasi
-
-    Versi: 2.0 | Penulis: Tim PrasKaa
 
 author: PrasKaa Team
 help_url: https://github.com/praskaa/pyrevit-tools/wiki/View-Tools
 
 # Pulldown Layout Configuration
 layout:
-  - SetCropViewToSectionStandard
+  - OverrideCropSectionView
   - ViewRange
   - CreateFilterSectionBySubcategory
   - SetViewTitleOnSheet

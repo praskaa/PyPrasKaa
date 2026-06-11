@@ -1,16 +1,39 @@
 # -*- coding: utf-8 -*-
-"""Toggle 2D/3D Extents for Grids in Active View
-Works on selected Grids (if any), else all visible Grids in the active view.
-"""
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Toggles grid extent mode between 2D (ViewSpecific) and 3D (Model) for
+selected grids or all visible grids in the active view. If any end is 2D,
+it switches to 3D; otherwise it switches to 2D.
+_____________________________________________________________________
+How-to:
+1. Click "Toggle Grid 2D/3D Extents"
+2. Select grids (or uses all visible grids in active view)
+3. Grid extent mode will toggle between 2D and 3D
+
+Notes:
+- Works on selected grids or all visible grids in active view
+- Toggles from 2D to 3D or vice versa based on current state
+- Shows toast with count of grids changed to each mode
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
 
 __title__ = "Toggle Grid 2D/3D Extents"
 __author__ = "PrasKaa Team"
+__version__ = "1.0"
 
 from pyrevit import revit, DB, forms
 
-uidoc = __revit__.ActiveUIDocument
-doc = uidoc.Document
-aview = uidoc.ActiveView
+uidoc = revit.uidoc
+doc = revit.doc
+aview = doc.ActiveView
 
 def get_target_grids():
     sel_ids = list(uidoc.Selection.GetElementIds())

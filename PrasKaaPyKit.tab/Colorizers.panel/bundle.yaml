@@ -1,0 +1,10 @@
+collapse: True
+
+layout:
+  - LineColor
+  - Colorizers1
+  - Colorizers2
+  - Colors1
+  - Colors2
+  - Colors3
+  - Colors4

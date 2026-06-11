@@ -21,52 +21,107 @@ releasedVersion = "1.0.0"
 snapshot = "PrasKaa PyKit"
 
 def get_extension_path():
-    """Get the current extension path"""
+    """
+    Get the current extension path dynamically.
+    
+    This function searches for the extension root by looking for
+    the 'config' folder in parent directories.
+    
+    Returns:
+        str: Path to the extension root directory
+    """
     try:
         # Get the directory where this script is located
         script_dir = os.path.dirname(os.path.abspath(__file__))
         # Go up one level to get the extension root
         extension_path = os.path.dirname(script_dir)
+        
+        # Verify the path contains config folder
+        config_path = os.path.join(extension_path, "config")
+        if os.path.exists(config_path):
+            return extension_path
+        
+        # If not found at immediate parent, search upward for config folder
+        parent = os.path.dirname(extension_path)
+        while parent and parent != os.path.dirname(parent):
+            test_path = os.path.join(parent, "config")
+            if os.path.exists(test_path):
+                return parent
+            parent = os.path.dirname(parent)
+        
+        # Fallback: return the immediate parent
         return extension_path
-    except:
-        return r"F:\1_STUDI\_PrasKaa Python Kit\PrasKaaPyKit.extension"
+    except Exception:
+        # Last resort fallback - return workspace directory
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def hookTurnOff(function, hook_id):
     """
-    Check if hook should be turned off based on config file
+    Check if hook should be turned off based on config file.
+    
+    This function reads the hooksConfig.txt file to determine whether
+    a specific hook should be enabled or disabled. The config file uses
+    a position-based system where each character represents a hook:
+    
+    Position mapping:
+        1 = In Place Family
+        2 = Import CAD
+        3 = Link CAD
+        4 = Link CAD in 3D
+        5 = Architectural Column
+        6 = Ramp
+        7 = Large Family
+        8 = Roof by Extrusion
+        9 = Shared Parameters
+        10 = Unpin
+        11 = View/Schedule/Sheet Deletion
+        12 = Save List Of Opened Views
+    
     Args:
         function: The function to execute if hook is enabled
-        hook_id: The ID of the hook to check
+        hook_id: The ID/position of the hook to check (1-based index)
+    
+    Returns:
+        None: Function is executed directly if enabled
     """
     try:
         extension_path = get_extension_path()
         config_file_path = os.path.join(extension_path, "config", "hooksConfig.txt")
         
         # Check if config file exists
-        if os.path.exists(config_file_path):
-            with open(config_file_path, 'r') as config_file:
-                content = config_file.read()
-                # Read the first line which contains the hook enable/disable flags
-                lines = content.split('\n')
-                if len(lines) > 0:
-                    hook_flags = lines[0].strip()
-                    # Check if the hook_id position has '1' (enabled) or '0' (disabled)
-                    if len(hook_flags) > hook_id - 1:
-                        if hook_flags[hook_id - 1] == '1':
-                            # Hook is enabled, execute the function
-                            function()
-                        # If '0', hook is disabled, do nothing
-                    else:
-                        # If config is shorter than expected, enable by default
-                        function()
-                else:
-                    # If config file is empty, enable by default
-                    function()
-        else:
-            # If config file doesn't exist, enable by default
+        if not os.path.exists(config_file_path):
+            # If config file doesn't exist, enable hook by default
             function()
+            return
+            
+        with open(config_file_path, 'r') as config_file:
+            lines = [l.strip() for l in config_file.readlines() 
+                    if l.strip() and not l.strip().startswith('#')]
+            
+            if not lines or len(lines[0].strip()) == 0:
+                # If config file is empty, enable by default
+                function()
+                return
+            
+            hook_flags = lines[0].strip()
+            
+            # Validate hook_id is within range
+            if hook_id < 1 or hook_id > len(hook_flags):
+                # If hook_id is out of range, enable by default
+                function()
+                return
+            
+            # Check if the hook is enabled (1) or disabled (0)
+            if hook_flags[hook_id - 1] == '1':
+                # Hook is enabled, execute the function
+                function()
+            # If '0', hook is disabled - do nothing (don't show warning)
+            
+    except IOError as e:
+        # If file read error, enable by default to avoid breaking functionality
+        function()
     except Exception as e:
-        # If any error occurs, enable by default to avoid breaking functionality
+        # If any unexpected error occurs, enable by default
         function()
 
 def hooksLogger(message, doc):

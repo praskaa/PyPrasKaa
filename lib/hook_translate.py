@@ -1,124 +1,124 @@
 # -*- coding: UTF-8 -*-
-"""
-hook_translate.py - PrasKaa PyKit Hook Translation Module
-Adapted from CustomTools for PrasKaa PyKit extension
-"""
+"""Translation module for PrasKaaPyKit hooks."""
 
 from pyrevit.userconfig import user_config
 
+
 def lang():
-    """
-    Get the current language setting
+    """Get current language setting from user config.
+    
     Returns:
-        int: Language code (0 for English, 1 for other languages)
+        str: Language code (e.g., 'EN', 'SK', 'ID')
     """
     try:
-        return user_config.PrasKaaToolsSettings.language
+        lang_value = user_config.PrasKaaToolsSettings.language
+        
+        # Handle integer values (legacy config)
+        if isinstance(lang_value, int):
+            lang_map = {0: 'EN', 1: 'SK', 2: 'ID'}
+            return lang_map.get(lang_value, 'EN')
+        
+        # Handle string values
+        return str(lang_value)
     except:
-        return 0  # Default to English
+        return 'EN'
 
-# Translation dictionary for hook messages
+
 hook_texts = {
-    0: {  # English
-        "Load Family": {
-            "text": "You are trying to load a family larger than 1 MB.\n\nLarge families can slow down your project significantly.\n\nDo you want to continue?",
-            "buttons": ["Cancel", "Load", "More Info"]
+    'EN': {
+        'Link CAD': {
+            'text': 'This CAD file will be linked in 3D.\n\n'
+                    'For better performance, link CAD files in 2D (wire frame).\n\n'
+                    'Do you want to continue?',
+            'buttons': ['Cancel', 'Continue', 'More info']
         },
-        "Link CAD file in 3D": {
-            "text": "You are trying to link a CAD file in 3D view.\n\nThis can cause performance issues and is not recommended.\n\nDo you want to continue?",
-            "buttons": ["Cancel", "Continue", "More Info"]
+        'Link CAD file in 3D': {
+            'text': 'This CAD file will be linked in 3D.\n\n'
+                    'For better performance, link CAD files in 2D (wire frame).\n\n'
+                    'Do you want to continue?',
+            'buttons': ['Cancel', 'Continue', 'More info']
         },
-        "Link CAD file": {
-            "text": "You are trying to link a CAD file.\n\nDo you want to continue?",
-            "buttons": ["Cancel", "Continue", "More Info"]
+        'In-Place Component': {
+            'text': 'You are about to create an In-Place Component.\n\n'
+                    'In-Place families can cause performance issues and difficulty in editing.\n\n'
+                    'Do you want to continue?',
+            'buttons': ['Cancel', 'Continue', 'More info']
         },
-        "Link CAD": {
-            "text": "You are trying to link a CAD file.\n\nDo you want to continue?",
-            "buttons": ["Continue", "Cancel", "More Info"]
+        'External Parameters': {
+            'text': 'You are about to create External Parameters.\n\n'
+                    'This is a legacy feature. Consider using Shared Parameters instead.\n\n'
+                    'Do you want to continue?',
+            'buttons': ['Cancel', 'Continue', 'More info']
         },
-        "Project Parameters": {
-            "text": "You are about to modify Project Parameters.\n\nThis can affect the entire project and all users.\n\nWhat would you like to do?",
-            "buttons": ["View Shared Parameters", "Edit Parameters", "Cancel"]
-        },
-        "Save List Of Opened Views": {
-            "text": "You have multiple views open.\n\nWould you like to save a list of currently opened views before closing?",
-            "buttons": ["Save List", "Skip", "More Info"]
-        },
-        "In Place Family": {
-            "text": "You are about to create an In-Place Family.\n\nIn-Place Families can cause performance issues and are generally not recommended for production work.\n\nDo you want to continue?",
-            "buttons": ["Create", "Cancel", "More Info"]
+        'Project Parameters': {
+            'text': 'You are about to create Project Parameters.\n\n'
+                    'Project Parameters are shared across all categories and cannot be scheduled individually.\n\n'
+                    'Do you want to continue?',
+            'buttons': ['Cancel', 'Continue', 'More info']
         }
     },
-    1: {  # Indonesian/Other language
-        "Load Family": {
-            "text": "Anda mencoba memuat family yang berukuran lebih dari 1 MB.\n\nFamily besar dapat memperlambat proyek Anda secara signifikan.\n\nApakah Anda ingin melanjutkan?",
-            "buttons": ["Batal", "Muat", "Info Lebih Lanjut"]
+    'SK': {
+        'Link CAD': {
+            'text': 'Tento CAD súbor bude prepojený v 3D.\n\n'
+                    'Pre lepší výkon, prepojte CAD súbory v 2D (drôtený model).\n\n'
+                    'Chcete pokračovať?',
+            'buttons': ['Zrušiť', 'Pokračovať', 'Viac info']
         },
-        "Link CAD file in 3D": {
-            "text": "Anda mencoba menghubungkan file CAD dalam tampilan 3D.\n\nHal ini dapat menyebabkan masalah performa dan tidak disarankan.\n\nApakah Anda ingin melanjutkan?",
-            "buttons": ["Batal", "Lanjutkan", "Info Lebih Lanjut"]
+        'Link CAD file in 3D': {
+            'text': 'Tento CAD súbor bude prepojený v 3D.\n\n'
+                    'Pre lepší výkon, prepojte CAD súbory v 2D (drôtený model).\n\n'
+                    'Chcete pokračovať?',
+            'buttons': ['Zrušiť', 'Pokračovať', 'Viac info']
         },
-        "Link CAD file": {
-            "text": "Anda mencoba menghubungkan file CAD.\n\nApakah Anda ingin melanjutkan?",
-            "buttons": ["Lanjutkan", "Batal", "Info Lebih Lanjut"]
+        'In-Place Component': {
+            'text': 'Chystáte sa vytvoriť komponent na mieste (In-Place).\n\n'
+                    'Rodiny na mieste môžu spôsobiť problémy s výkonom a úpravou.\n\n'
+                    'Chcete pokračovať?',
+            'buttons': ['Zrušiť', 'Pokračovať', 'Viac info']
         },
-        "Link CAD": {
-            "text": "Anda mencoba menghubungkan file CAD.\n\nApakah Anda ingin melanjutkan?",
-            "buttons": ["Batal", "Lanjutkan", "Info Lebih Lanjut"]
+        'External Parameters': {
+            'text': 'Chystáte sa vytvoriť externé parametre.\n\n'
+                    'Toto je staršia funkcia. Zvážte použitie zdieľaných parametrov.\n\n'
+                    'Chcete pokračovať?',
+            'buttons': ['Zrušiť', 'Pokračovať', 'Viac info']
         },
-        "Project Parameters": {
-            "text": "Anda akan memodifikasi Parameter Proyek.\n\nHal ini dapat mempengaruhi seluruh proyek dan semua pengguna.\n\nApa yang ingin Anda lakukan?",
-            "buttons": ["Lihat Shared Parameters", "Edit Parameters", "Batal"]
+        'Project Parameters': {
+            'text': 'Chystáte sa vytvoriť projektové parametre.\n\n'
+                    'Projektové parametre sú zdieľané medzi všetkými kategóriami a nemožno ich individuálne plánovať.\n\n'
+                    'Chcete pokračovať?',
+            'buttons': ['Zrušiť', 'Pokračovať', 'Viac info']
+        }
+    },
+    'ID': {
+        'Link CAD': {
+            'text': 'File CAD ini akan ditautkan dalam 3D.\n\n'
+                    'Untuk performa lebih baik, tautkan file CAD dalam 2D (wire frame).\n\n'
+                    'Apakah Anda ingin melanjutkan?',
+            'buttons': ['Batal', 'Lanjutkan', 'Info lainnya']
         },
-        "Save List Of Opened Views": {
-            "text": "Anda memiliki beberapa view yang terbuka.\n\nApakah Anda ingin menyimpan daftar view yang sedang terbuka sebelum menutup?",
-            "buttons": ["Simpan Daftar", "Lewati", "Info Lebih Lanjut"]
+        'Link CAD file in 3D': {
+            'text': 'File CAD ini akan ditautkan dalam 3D.\n\n'
+                    'Untuk performa lebih baik, tautkan file CAD dalam 2D (wire frame).\n\n'
+                    'Apakah Anda ingin melanjutkan?',
+            'buttons': ['Batal', 'Lanjutkan', 'Info lainnya']
         },
-        "In Place Family": {
-            "text": "Anda akan membuat In-Place Family.\n\nIn-Place Family dapat menyebabkan masalah performa dan umumnya tidak disarankan untuk pekerjaan produksi.\n\nApakah Anda ingin melanjutkan?",
-            "buttons": ["Buat", "Batal", "Info Lebih Lanjut"]
+        'In-Place Component': {
+            'text': 'Anda akan membuat Komponen In-Place.\n\n'
+                    'Famili In-Place dapat menyebabkan masalah performa dan kesulitan dalam pengeditan.\n\n'
+                    'Apakah Anda ingin melanjutkan?',
+            'buttons': ['Batal', 'Lanjutkan', 'Info lainnya']
+        },
+        'External Parameters': {
+            'text': 'Anda akan membuat Parameter Eksternal.\n\n'
+                    'Ini adalah fitur lawas. Pertimbangkan menggunakan Shared Parameters.\n\n'
+                    'Apakah Anda ingin melanjutkan?',
+            'buttons': ['Batal', 'Lanjutkan', 'Info lainnya']
+        },
+        'Project Parameters': {
+            'text': 'Anda akan membuat Project Parameters.\n\n'
+                    'Project Parameters dibagikan ke semua kategori dan tidak dapat dijadwalkan secara individual.\n\n'
+                    'Apakah Anda ingin melanjutkan?',
+            'buttons': ['Batal', 'Lanjutkan', 'Info lainnya']
         }
     }
 }
-
-def get_hook_text(hook_name, language=None):
-    """
-    Get translated text for a specific hook
-    Args:
-        hook_name (str): Name of the hook
-        language (int): Language code (optional, will use config if not provided)
-    Returns:
-        dict: Dictionary containing text and buttons for the hook
-    """
-    if language is None:
-        language = lang()
-    
-    try:
-        return hook_texts[language][hook_name]
-    except KeyError:
-        # Fallback to English if translation not found
-        try:
-            return hook_texts[0][hook_name]
-        except KeyError:
-            # Ultimate fallback
-            return {
-                "text": "Hook message not found",
-                "buttons": ["OK"]
-            }
-
-def add_hook_translation(hook_name, language, text, buttons):
-    """
-    Add or update a hook translation
-    Args:
-        hook_name (str): Name of the hook
-        language (int): Language code
-        text (str): The translated text
-        buttons (list): List of button texts
-    """
-    if language not in hook_texts:
-        hook_texts[language] = {}
-    
-    hook_texts[language][hook_name] = {
-        "text": text,
-        "buttons": buttons
-    }

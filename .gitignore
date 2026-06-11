@@ -14,7 +14,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -148,3 +147,12 @@ config/secrets.py
 mass_message/mass_message.html
 plans/PLAN_TransferMarkWithRevitModel.md
 lib/smart_tag_config.json
+
+# Folder
+plans/
+logic-library/
+.axon/
+# Development
+PrasKaaPyKit.tab/Rebar.panel/WIP.pulldown/Dev Diary.pushbutton/
+unused-scripts/
+bin/

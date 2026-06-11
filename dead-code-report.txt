@@ -1,0 +1,1026 @@
+Dead Code Report (654 symbols)
+----------------------------------------
+
+  PrasKaaPyKit.tab\CAD.panel\DWG.pulldown\Linestyles CAD 
+Manager.pushbutton\script.py:
+    - _on_filter_changed (line 551)
+    - _clear_filters (line 566)
+    - _select_all_visible (line 570)
+    - _on_selection_changed (line 573)
+    - _apply_preset (line 586)
+    - _clear_all_changes (line 671)
+    - _apply_all_changes (line 676)
+
+  PrasKaaPyKit.tab\Colorizers.panel\Colorizers1.stack\3D by 
+Type.pushbutton\threedconfig.py:
+    - get_overrides_config (line 7)
+
+  PrasKaaPyKit.tab\Colorizers.panel\Colorizers1.stack\Colour by 
+Type.pushbutton\inviewconfig.py:
+    - get_overrides_config (line 7)
+
+  PrasKaaPyKit.tab\Colorizers.panel\Colorizers2.stack\Colorize by 
+Value.pushbutton\colorizebyvalueconfig.py:
+    - get_overrides_config (line 7)
+
+  PrasKaaPyKit.tab\Colorizers.panel\Colorizers2.stack\Colorize by 
+Value.pushbutton\script.py:
+    - ParameterOption (line 24)
+    - param_is_bip (line 63)
+
+  PrasKaaPyKit.tab\Colorizers.panel\Colorizers2.stack\Filters by 
+Value.pushbutton\filterbyvalueconfig.py:
+    - get_overrides_config (line 7)
+
+  PrasKaaPyKit.tab\Colorizers.panel\Colorizers2.stack\Filters by 
+Value.pushbutton\script.py:
+    - ParameterOption (line 62)
+    - get_element_id_value (line 44)
+    - match_bip_by_id (line 74)
+    - get_multicat_param_storage_type (line 92)
+    - add_param_value (line 108)
+
+  PrasKaaPyKit.tab\Colorizers.panel\LineColor.splitpushbutton\Line&PatternColor
+.pushbutton\script.py:
+    - pick_color (line 34)
+    - read_color (line 48)
+
+  PrasKaaPyKit.tab\Colorizers.panel\LineColor.splitpushbutton\LineColor.pushbut
+ton\script.py:
+    - pick_color (line 32)
+    - read_color (line 46)
+
+  PrasKaaPyKit.tab\Development.panel\DevDiary.pulldown\12SharedParameterBinding
+.pushbutton\script.py:
+    - _get_current_binding (line 36)
+    - _bound_cat_ids (line 50)
+    - _target_cat_ids (line 53)
+
+  PrasKaaPyKit.tab\Development.panel\DevDiary.pulldown\13ExportViewTemplate.pus
+hbutton\script.py:
+    - export_categories (line 176)
+    - export_filters (line 209)
+
+  PrasKaaPyKit.tab\Development.panel\DevDiary.pulldown\14ImportViewTemplate.pus
+hbutton\script.py:
+    - apply_categories (line 231)
+    - apply_filters (line 260)
+    - create_new_template (line 287)
+
+  PrasKaaPyKit.tab\Development.panel\DevDiary.pulldown\1TryMakeSomeScript.pushb
+utton\script.py:
+    - has_instance (line 76)
+
+  PrasKaaPyKit.tab\Development.panel\DevDiary.pulldown\2GeometryMatchingTest.pu
+shbutton\GeometryMatchingConfig.py:
+    - get_filter_checkboxes (line 333)
+    - FilterList_SelectionChanged (line 440)
+    - MoveUp_Click (line 451)
+    - MoveDown_Click (line 461)
+    - PresetComboBox_SelectionChanged (line 472)
+    - SavePreset_Click (line 494)
+    - SaveAsPreset_Click (line 525)
+    - DeletePreset_Click (line 600)
+    - ok_click (line 637)
+    - cancel_click (line 648)
+    - cancelled (line 653)
+    - show_dialog (line 659)
+
+  PrasKaaPyKit.tab\Development.panel\DevDiary.pulldown\2GeometryMatchingTest.pu
+shbutton\script.py:
+    - create_test_pipeline (line 136)
+
+  PrasKaaPyKit.tab\Development.panel\DevDiary.pulldown\3MaterialMerger.pushbutt
+on\script.py:
+    - get_elements_with_material (line 51)
+
+  PrasKaaPyKit.tab\Development.panel\DevDiary.pulldown\5DetailItemBalok.pushbut
+ton\script.py:
+    - safe_name (line 21)
+    - exact_beam_match (line 27)
+
+  PrasKaaPyKit.tab\Development.panel\DevDiary.pulldown\9copycropview.pushbutton
+\script.py:
+    - get_source_view (line 42)
+    - copy_crop_and_split (line 167)
+
+  PrasKaaPyKit.tab\Development.panel\col3.stack\CopyPasteTags.pulldown\Paste.pu
+shbutton\script.py:
+    - find_tag_type (line 58)
+
+  PrasKaaPyKit.tab\Development.panel\col3.stack\LoadPlan.pulldown\LegendLoadPla
+n.pushbutton\script.py:
+    - sort_key (line 278)
+
+  PrasKaaPyKit.tab\Development.panel\col3.stack\LoadPlan.pulldown\LoadPlanManag
+er.pushbutton\script.py:
+    - NavAreas_Checked (line 209)
+    - NavCreate_Checked (line 210)
+    - NavSetLoads_Checked (line 211)
+    - NavExport_Checked (line 212)
+    - NavRandomize_Checked (line 213)
+    - BtnRefresh_Click (line 260)
+    - BtnSyncNumbers_Click (line 300)
+    - BtnBrowseCreate_Click (line 316)
+    - BtnCreateAreas_Click (line 335)
+    - BtnBrowseLoads_Click (line 372)
+    - BtnSetLoads_Click (line 378)
+    - ExportMode_Changed (line 413)
+    - BtnBrowseExisting_Click (line 417)
+    - BtnExport_Click (line 423)
+    - SliderCandidates_Changed (line 490)
+    - BtnRandomize_Click (line 493)
+    - LoadPlanManager (line 151)
+    - pivot (line 113)
+
+  PrasKaaPyKit.tab\Documentation.panel\Export.pulldown\EditNamingFormats.py:
+    - printer_selection_changed (line 96)
+    - dwg_refresh_setups (line 139)
+    - dwg_setting_changed (line 145)
+    - start_drag (line 265)
+    - preview_drag (line 271)
+    - stop_drag (line 282)
+    - namingformat_changed (line 291)
+    - duplicate_namingformat (line 294)
+    - delete_namingformat (line 300)
+    - set_active_format (line 307)
+    - save_formats (line 314)
+    - cancelled (line 328)
+    - show_dialog (line 332)
+
+  PrasKaaPyKit.tab\Documentation.panel\col1.stack\Revision.pulldown\removeallre
+visionbyprintset.pushbutton\script.py:
+    - _select_all (line 209)
+    - _select_none (line 213)
+
+  PrasKaaPyKit.tab\Documentation.panel\col1.stack\Sheets.pulldown\ReNumberFromP
+rintOrder.pushbutton\script.py:
+    - _get_attr (line 41)
+
+  PrasKaaPyKit.tab\Documentation.panel\col1.stack\Sheets.pulldown\SheetsCsv.pus
+hbutton\script.py:
+    - createSheet (line 55)
+
+  PrasKaaPyKit.tab\Documentation.panel\col1.stack\Sheets.pulldown\appearssetpar
+am.pushbutton\script.py:
+    - _select_all (line 181)
+    - _select_none (line 185)
+
+  PrasKaaPyKit.tab\Documentation.panel\col1.stack\Views.pulldown\CreateFilterSe
+ctionBySubcategory.pushbutton\script.py:
+    - find_parameter_element (line 42)
+    - get_parameter_type_info (line 75)
+    - build_filter_rule_for_text_param (line 118)
+    - build_filter_rule_for_builtin_param (line 140)
+
+  PrasKaaPyKit.tab\Documentation.panel\col1.stack\Views.pulldown\OverrideCropSe
+ctionView.pushbutton\script.py:
+    - update_message (line 56)
+    - display_results (line 232)
+
+  PrasKaaPyKit.tab\Documentation.panel\col1.stack\Views.pulldown\ViewRange.push
+button\script.py:
+    - Execute (line 38)
+    - Execute (line 54)
+    - GetName (line 66)
+    - window_closed (line 878)
+    - apply_changes_click (line 883)
+    - reset_values_click (line 932)
+    - close_window_click (line 1011)
+    - SimpleEventHandler (line 30)
+    - UpdateViewRangeEventHandler (line 48)
+    - Context (line 70)
+    - MainViewModel (line 669)
+    - MainWindow (line 867)
+    - unsubscribe (line 1024)
+    - refresh_active_view (line 1033)
+    - view_activated (line 1046)
+    - selection_changed (line 1053)
+    - doc_changed (line 1070)
+
+  PrasKaaPyKit.tab\Documentation.panel\col1.stack\Views.pulldown\VisibilityLink
+Revit.pushbutton\script.py:
+    - get_override_target (line 128)
+
+  PrasKaaPyKit.tab\Documentation.panel\col4.stack\Annotation.pulldown\SmartTag.
+pushbutton\script.py:
+    - on_select_all (line 225)
+    - on_deselect_all (line 230)
+    - on_settings_click (line 235)
+    - on_search_text_changed (line 245)
+    - on_clear_search (line 270)
+    - on_execute_click (line 275)
+
+  PrasKaaPyKit.tab\Documentation.panel\col4.stack\Annotation.pulldown\SmartTag.
+pushbutton\settings.py:
+    - on_save_click (line 264)
+    - on_cancel_click (line 312)
+
+  PrasKaaPyKit.tab\Documentation.panel\col4.stack\Stairs.pulldown\Stair Plan 
+Generator.pushbutton\script.py:
+    - get_level_visibility (line 189)
+    - _find_stairs_for_level (line 466)
+    - _create_floor_plan_view (line 490)
+    - _apply_hardcoded_view_range (line 524)
+    - batch_create_stair_plans (line 646)
+    - get_applicable_levels (line 702)
+    - AllowElement (line 783)
+    - AllowReference (line 790)
+    - StairPlanGenerator (line 284)
+    - StairSelectionFilter (line 780)
+
+  PrasKaaPyKit.tab\Documentation.panel\col4.stack\Wall.pulldown\Wall Detail 
+Generator.pushbutton\level_selector.py:
+    - select_target_levels (line 27)
+    - get_levels_info (line 135)
+    - find_level_by_elevation (line 158)
+    - find_level_by_name (line 177)
+    - get_all_levels_sorted (line 195)
+    - create_level_at_elevation (line 205)
+    - LevelSelector (line 13)
+
+  PrasKaaPyKit.tab\Documentation.panel\col4.stack\Wall.pulldown\Wall Detail 
+Generator.pushbutton\script.py:
+    - debug_log (line 80)
+    - display_generation_results (line 203)
+    - wall_plan_generator_main (line 251)
+
+  PrasKaaPyKit.tab\Documentation.panel\col4.stack\Wall.pulldown\Wall Detail 
+Generator.pushbutton\utils.py:
+    - AllowElement (line 33)
+    - flatten_list (line 59)
+    - ensure_unique_name (line 78)
+    - get_parameter_value_safe (line 106)
+    - calculate_distance (line 136)
+    - format_length (line 153)
+    - validate_document (line 172)
+    - get_wall_type_name (line 194)
+    - create_progress_title (line 211)
+    - handle_transaction_error (line 249)
+
+  PrasKaaPyKit.tab\Documentation.panel\col4.stack\Wall.pulldown\Wall Detail 
+Generator.pushbutton\wall_classifier.py:
+    - get_classification_summary (line 146)
+    - get_walls_by_classification (line 268)
+    - get_unique_classifications (line 283)
+    - extract_parameter_by_name (line 13)
+
+  PrasKaaPyKit.tab\Documentation.panel\col4.stack\Wall.pulldown\Wall Detail 
+Generator.pushbutton\wall_plan_generator.py:
+    - create_plan_view_for_wall_group (line 27)
+    - calculate_wall_group_elevation (line 88)
+    - get_or_create_level_at_elevation (line 242)
+    - ensure_unique_level_name (line 394)
+    - WallPlanGenerator (line 13)
+
+  PrasKaaPyKit.tab\Documentation.panel\col5.stack\Symbol.pulldown\CollectViewTi
+tle.pushbutton\script.py:
+    - collect_views (line 16)
+
+  PrasKaaPyKit.tab\Documentation.panel\col5.stack\Symbol.pulldown\PlaceDetailAt
+PileCenter.pushbutton\script.py:
+    - pile_appears_in_view (line 82)
+
+  PrasKaaPyKit.tab\EXR.panel\EXR_Column.pulldown\TransferTypeMarkAndMark_v2.pus
+hbutton\lib.py:
+    - set_preview_examples (line 112)
+    - get_debug_mode (line 116)
+    - set_debug_mode (line 120)
+    - get_csv_output_enabled (line 124)
+    - set_csv_output_enabled (line 128)
+    - get_all_config (line 153)
+    - on_test_pattern (line 362)
+    - on_example_selected (line 382)
+    - on_save (line 398)
+    - on_cancel (line 437)
+    - on_test_pattern (line 576)
+    - on_example_selected (line 596)
+    - on_save (line 612)
+    - on_cancel (line 651)
+    - OptimizationLevel (line 42)
+    - show_configuration_dialog (line 657)
+
+  PrasKaaPyKit.tab\EXR.panel\EXR_Framing.pulldown\TransferETABSGUIDManual.pushb
+utton\script.py:
+    - get_solid (line 58)
+
+  PrasKaaPyKit.tab\EXR.panel\EXR_Framing.pulldown\TransferMark.pushbutton\scrip
+t.py:
+    - transform_point (line 145)
+    - transform_solid_vertices (line 152)
+
+  PrasKaaPyKit.tab\EXR.panel\EXR_Framing.pulldown\TransferMarkManual.pushbutton
+\script.py:
+    - get_solid (line 67)
+
+  PrasKaaPyKit.tab\Modeling.panel\Dimension.pulldown\AutoDimensionColumnv2.push
+button\script.py:
+    - PreprocessFailures (line 91)
+
+  PrasKaaPyKit.tab\Modeling.panel\Dimension.pulldown\DimensionLevel.pushbutton\
+script.py:
+    - get_element_id_value (line 67)
+    - ft_to_mm (line 85)
+    - get_grid_ref (line 101)
+    - sort_grids (line 167)
+    - compute_dimension_line (line 197)
+    - _grid_sort_coord (line 301)
+
+  PrasKaaPyKit.tab\Modeling.panel\Framing.pulldown\DisallowAllowJoin.pushbutton
+\script.py:
+    - disallow_allow_join (line 56)
+
+  PrasKaaPyKit.tab\Modeling.panel\Framing.pulldown\Set Slope 
+Beam.pushbutton\script.py:
+    - AllowElement (line 26)
+    - AllowReference (line 34)
+    - StructuralFramingFilter (line 21)
+    - classify_and_process_beams (line 121)
+
+  PrasKaaPyKit.tab\Modeling.panel\Join.pulldown\Join Regular 
+Wall.pushbutton\script.py:
+    - id_val (line 34)
+    - join_wall_with_structure (line 74)
+
+  PrasKaaPyKit.tab\Modeling.panel\Join.pulldown\Join Shearwall & 
+Corewall.pushbutton\script.py:
+    - id_val (line 34)
+    - join_shearwall_with_structure (line 74)
+
+  PrasKaaPyKit.tab\QualityControl.panel\ElementID.pulldown\IsolateElementbyModi
+fiedDate.pushbutton\script.py:
+    - _on_filter (line 523)
+    - _on_create (line 608)
+    - hex_to_color (line 146)
+
+  PrasKaaPyKit.tab\QualityControl.panel\Validation.pulldown\AutoLoadMissingType
+s.pushbutton\script.py:
+    - OnFamilyFound (line 240)
+    - OnSharedFamilyFound (line 243)
+
+  PrasKaaPyKit.tab\Templates.panel\Family.pulldown\FamilyTypeGenerator.pushbutt
+on\script.py:
+    - _on_col_dblclick (line 367)
+    - _on_format_changed (line 378)
+    - _on_apply (line 389)
+    - _on_cancel (line 398)
+    - _on_apply (line 539)
+    - _on_cancel (line 550)
+    - show_dialog (line 554)
+
+  PrasKaaPyKit.tab\Templates.panel\Family.pulldown\TemplateFamily.pushbutton\sc
+ript.py:
+    - header_drag (line 245)
+    - button_close (line 249)
+    - UIe_btn_select_all (line 253)
+    - UIe_btn_select_none (line 259)
+    - UIe_text_filter_updated (line 265)
+    - UIe_btn_sync (line 277)
+    - UIe_btn_publish (line 326)
+    - UIe_checkbox_clicked (line 330)
+
+  PrasKaaPyKit.tab\Templates.panel\Family.pulldown\UpdateProfiles.pushbutton\de
+bug_example.py:
+    - create_sample_csv (line 35)
+    - debug_parameter_mapping (line 50)
+
+  PrasKaaPyKit.tab\Templates.panel\Family.pulldown\UpdateProfiles.pushbutton\pa
+rameter_mapper.py:
+    - parse_parameter_with_conversion (line 53)
+    - validate_mappings (line 102)
+    - get_conversion_summary (line 116)
+    - get_csv_headers (line 223)
+
+  PrasKaaPyKit.tab\Templates.panel\Family.pulldown\UpdateProfiles.pushbutton\un
+it_converter.py:
+    - extract_prefix_and_name (line 107)
+
+  PrasKaaPyKit.tab\Templates.panel\ViewTemplateRepository.pushbutton\repository
+_manager.py:
+    - update_template_status (line 117)
+
+  PrasKaaPyKit.tab\Templates.panel\ViewTemplateRepository.pushbutton\script.py:
+    - header_drag (line 171)
+    - button_close (line 178)
+    - UIe_btn_select_all (line 185)
+    - UIe_btn_select_none (line 194)
+    - UIe_text_filter_updated (line 203)
+    - UIe_btn_sync (line 217)
+    - UIe_btn_publish (line 270)
+    - UIe_checkbox_clicked (line 275)
+
+  PrasKaaPyKit.tab\Utilities.panel\ut1.stack\Detail 
+Item.pulldown\DetailItemParameterLister.pushbutton\script.py:
+    - convert_feet_to_cm (line 38)
+
+  PrasKaaPyKit.tab\Utilities.panel\ut1.stack\Filled 
+Region.pulldown\BakeHatchColor.pushbutton\script.py:
+    - AllowElement (line 54)
+    - ISelectionFilter_Classes (line 47)
+
+  PrasKaaPyKit.tab\Utilities.panel\ut2.stack\Grid.pulldown\CopyStateViewGrid.pu
+shbutton\script.py:
+    - candidate_views (line 48)
+    - get_visible_grids_in_view (line 52)
+    - ensure_grid_category_visible (line 59)
+    - hide_in_view (line 77)
+    - unhide_in_view (line 87)
+
+  PrasKaaPyKit.tab\Utilities.panel\ut2.stack\Grid.pulldown\FlipBubbleGrid.pushb
+utton\script.py:
+    - AllowElement (line 41)
+    - AllowReference (line 43)
+
+  PrasKaaPyKit.tab\Utilities.panel\ut2.stack\Grid.pulldown\GridViewLocator.push
+button\script.py:
+    - run_grid_view_locator (line 257)
+
+  hooks\.unused\command-before-exec[ID_FILE_IMPORT].py:
+    - dialogBox (line 12)
+
+  hooks\.unused\command-before-exec[ID_ROOF_EXTRUSION].py:
+    - dialogBox (line 19)
+
+  hooks\.unused\command-before-exec[ID_UNLOCK_ELEMENTS].py:
+    - dialogBox (line 7)
+
+  hooks\.unused\doc-updater.py:
+    - door_swing_setter (line 48)
+    - win_swing_setter (line 64)
+
+  hooks\command-before-exec[ID_FILE_CADFORMAT_LINK].py:
+    - dialogBox (line 18)
+
+  hooks\command-before-exec[ID_FILE_EXTERNAL_PARAMETERS].py:
+    - dialogBox (line 18)
+
+  hooks\command-before-exec[ID_INPLACE_COMPONENT].py:
+    - dialogBox (line 18)
+
+  hooks\command-before-exec[ID_SETTINGS_PROJECT_PARAMETERS].py:
+    - dialogBox (line 18)
+
+  hooks\doc-opened.py:
+    - ensure_last_modified_by (line 163)
+
+  hooks\family-loading.py:
+    - dialogBox (line 140)
+
+  hooks\file-imported.py:
+    - dialogBox (line 21)
+
+  lib\FamilyProfileUpdater\ui\main_dialog.py:
+    - profile_type_changed (line 38)
+    - browse_for_csv (line 54)
+    - process_data (line 65)
+    - close_dialog (line 109)
+    - MainDialog (line 21)
+
+  lib\GUI\FindReplace.py:
+    - find_replace (line 58)
+    - button_close (line 86)
+    - Hyperlink_RequestNavigate (line 91)
+    - header_drag (line 95)
+    - button_run (line 100)
+    - FindReplace (line 41)
+
+  lib\GUI\SelectFromDict.py:
+    - text_filter_updated (line 104)
+    - UIe_ItemChecked (line 124)
+    - button_select_all (line 150)
+    - button_select_none (line 154)
+    - button_select (line 158)
+
+  lib\GUI\Tools\CreateFromRooms.py:
+    - text_filter_updated (line 101)
+    - UIe_ItemChecked (line 123)
+    - NumberValidationTextBox (line 131)
+    - button_close (line 142)
+    - button_run (line 147)
+    - CreateFromRooms (line 45)
+
+  lib\GUI\WPF_Base.py:
+    - button_close (line 45)
+    - header_drag (line 49)
+    - Hyperlink_RequestNavigate (line 54)
+    - my_WPF (line 27)
+
+  lib\GUI\forms.py:
+    - ListItem (line 6)
+
+  lib\Samples\Parameters.py:
+    - get_param_value (line 42)
+    - check_loaded_params (line 98)
+
+  lib\Samples\Selection.py:
+    - AllowElement (line 80)
+    - ISF_wall_filter (line 79)
+
+  lib\Samples\TemplatePyRevitSafe.py:
+    - safe_file_write (line 43)
+    - safe_csv_write (line 56)
+    - show_file_dialog (line 81)
+
+  lib\Samples\TranslateCSharp.py:
+    - my_function (line 151)
+    - CreateWallUsingCurve1 (line 176)
+    - CreateCeilingAtElevation (line 219)
+    - ElementOverride (line 278)
+
+  lib\Snippets\_annotations.py:
+    - create_text_note (line 27)
+    - create_horizontal_line (line 89)
+
+  lib\Snippets\_boundingbox.py:
+    - is_point_in_BB_2D (line 16)
+
+  lib\Snippets\_convert.py:
+    - convert_m_to_feet (line 79)
+    - convert_internal_to_m (line 95)
+    - convert_internal_to_cm (line 111)
+    - convert_internal_to_m2 (line 128)
+
+  lib\Snippets\_elements.py:
+    - dict_name_element (line 8)
+
+  lib\Snippets\_excel.py:
+    - write_data (line 40)
+    - ExcelWriter (line 1)
+
+  lib\Snippets\_filter_examples.py:
+    - create_string_filter (line 15)
+
+  lib\Snippets\_filters.py:
+    - create_filter (line 21)
+    - get_family_types (line 34)
+
+  lib\Snippets\_groups.py:
+    - select_group_types (line 21)
+    - select_attached_groups (line 54)
+    - show_attached_group (line 84)
+
+  lib\Snippets\_lines.py:
+    - get_points_along_a_curve (line 27)
+    - get_line_styles (line 57)
+
+  lib\Snippets\_overrides.py:
+    - override_graphics_line (line 43)
+
+  lib\Snippets\_revisions.py:
+    - create_revision (line 19)
+    - add_revision_to_sheet (line 44)
+    - revision_data (line 66)
+    - revision_cloud_data (line 81)
+
+  lib\Snippets\_selection.py:
+    - AllowElement (line 236)
+    - AllowElement (line 248)
+    - AllowElement (line 260)
+    - get_selected_elements (line 40)
+    - get_selected_rooms (line 60)
+    - get_selected_views (line 95)
+    - get_selected_sheets (line 122)
+    - get_selected_walls (line 146)
+    - select_title_block (line 184)
+    - select_region_type (line 207)
+    - select_floor_type (line 217)
+    - pick_wall (line 272)
+    - pick_curve (line 278)
+    - pick_by_category (line 292)
+    - pick_by_class (line 325)
+
+  lib\Snippets\_sheets.py:
+    - get_views_on_sheet (line 9)
+    - get_titleblock_on_sheet (line 19)
+    - get_titleblocks_from_sheet (line 43)
+
+  lib\Snippets\_views.py:
+    - get_sheet_from_view (line 34)
+    - create_3D_view (line 45)
+
+  lib\Snippets\_worksharing.py:
+    - is_workshared (line 33)
+    - is_element_owned_by_current_user (line 79)
+    - is_element_not_owned (line 109)
+    - get_checkout_status_name (line 124)
+    - get_ownership_summary (line 143)
+    - filter_editable_elements (line 184)
+    - filter_owned_by_other (line 202)
+    - get_editable_and_non_editable (line 220)
+    - print_ownership_report (line 243)
+    - batch_modify_with_worksharing_check (line 298)
+
+  lib\Snippets\smart_selection.py:
+    - filter_func (line 126)
+    - create_wall_filter (line 134)
+    - create_structural_filter (line 144)
+
+  lib\colorize.py:
+    - random_colour_hsv (line 115)
+    - get_colours (line 127)
+    - get_colorize_only_categories_config (line 183)
+    - config_overrides (line 229)
+    - config_category_overrides (line 244)
+    - set_colour_overrides_by_option (line 260)
+
+  lib\configparser_ironpython.py:
+    - read (line 14)
+    - has_section (line 64)
+    - has_option (line 67)
+    - ConfigParser (line 9)
+
+  lib\csv_utils.py:
+    - csvUtils_import (line 12)
+    - csvUtils (line 7)
+
+  lib\customOutput.py:
+    - get_safe_log_path (line 7)
+    - company_conf (line 106)
+    - hmsTimer (line 152)
+    - file_name_getter (line 174)
+    - ct_icon (line 187)
+    - mass_message_url (line 200)
+    - text_highligter (line 223)
+    - mailto (line 229)
+    - linkMaker (line 236)
+    - imageViewer (line 242)
+    - heading (line 247)
+
+  lib\customOutput_backup.py:
+    - company_conf (line 55)
+    - hmsTimer (line 92)
+    - file_name_getter (line 114)
+    - ct_icon (line 127)
+    - mass_message_url (line 140)
+    - text_highligter (line 163)
+    - mailto (line 169)
+    - linkMaker (line 176)
+    - imageViewer (line 182)
+    - heading (line 187)
+
+  lib\database.py:
+    - get_alphabetic_labels (line 15)
+    - any_fill_type (line 33)
+    - invis_style (line 38)
+    - get_fam_types (line 91)
+    - get_fam_any_type (line 107)
+    - param_set_by_cat (line 132)
+    - add_material_parameter (line 145)
+    - create_sheet (line 160)
+    - set_anno_crop (line 173)
+    - apply_vt (line 179)
+    - create_parallel_bbox (line 189)
+    - char_series (line 227)
+    - char_i (line 235)
+    - get_view_family_types (line 240)
+    - fam_template_name_by_lang_and_cat (line 255)
+    - get_generic_family_template_name (line 319)
+    - get_mass_template_path (line 368)
+    - vt_name_match (line 401)
+    - vp_name_match (line 411)
+    - tb_name_match (line 423)
+    - unique_view_name (line 434)
+    - shift_list (line 441)
+    - get_viewport_types (line 445)
+    - get_vp_by_name (line 460)
+    - get_3Dviewtype_id (line 485)
+    - delete_existing_view (line 490)
+    - remove_viewtemplate (line 503)
+    - family_and_type_names (line 514)
+    - create_filter_from_rules (line 520)
+    - check_filter_exists (line 529)
+    - create_filter (line 537)
+    - filter_from_rules (line 543)
+    - get_param_value_as_string (line 555)
+    - get_parameter_from_name (line 597)
+    - create_filter_by_name_bics (line 608)
+    - shared_param_id_from_guid (line 613)
+
+  lib\doc_updater_lib.py:
+    - Execute (line 48)
+    - GetAdditionalInformation (line 113)
+    - GetUpdaterName (line 119)
+    - GetUpdaterDescription (line 122)
+    - register_updater (line 129)
+    - unregister_updater (line 184)
+
+  lib\element_properties.py:
+    - get_bounding_box_2d (line 246)
+    - get_mid_height_elevation (line 267)
+    - ElementProperties (line 13)
+
+  lib\expUtils.py:
+    - expUtils_applyPrinter (line 51)
+    - expUtils_restorePrinter (line 66)
+    - expUtils_getNamingFormat (line 85)
+    - expUtils_getDir (line 116)
+    - expUtils_getFolder (line 121)
+    - expUtils_ensureDir (line 127)
+    - expUtils_openDir (line 133)
+    - expUtils_canPrint (line 141)
+    - expUtils_pdfOpts (line 308)
+    - expUtils_dwgOpts (line 483)
+    - expUtils_exportSheetPdf (line 331)
+    - expUtils_exportSheetDwg (line 347)
+    - expUtils_exportViewDwg (line 362)
+    - expUtils_exportSheetPdfDwg (line 373)
+    - expUtils_updateSheetsIssueDate (line 419)
+
+  lib\geometry_matching.py:
+    - remove_filter (line 995)
+    - get_filter (line 999)
+    - apply (line 1006)
+    - get_stats (line 1031)
+    - reset_stats (line 1035)
+    - get_enabled_filters (line 1040)
+    - BaseFilter (line 553)
+    - feet_to_mm (line 176)
+    - feet3_to_mm3 (line 326)
+    - create_geometry_options_with_view (line 339)
+    - get_column_dimensions (line 507)
+
+  lib\graphicOverrides.py:
+    - setProjLines (line 208)
+    - setProjPatternOnly (line 274)
+    - setProjLinesDiagonalCrossHatch (line 340)
+    - setProjLinesConcrete (line 404)
+
+  lib\hooksScripts.py:
+    - hookTurnOff (line 58)
+    - versionLogger (line 175)
+    - ensure_log_directories (line 235)
+
+  lib\join_columns.py:
+    - join_column_with_nearby_elements (line 91)
+
+  lib\join_utils.py:
+    - process_elements_with_join_logic (line 108)
+
+  lib\linked_elements.py:
+    - select_untagged_linked_elements (line 348)
+    - find_missing_tags (line 480)
+
+  lib\linked_model_utils.py:
+    - select_linked_model (line 25)
+    - get_linked_beams (line 75)
+    - get_linked_columns (line 93)
+    - validate_linked_model (line 111)
+    - get_link_by_name (line 175)
+
+  lib\log_sender.py:
+    - send_log (line 117)
+
+  lib\modeling.py:
+    - rs2wallWithDoors (line 3)
+
+  lib\parameters\exceptions.py:
+    - ParameterSettingError (line 6)
+    - ValidationError (line 10)
+    - TransactionError (line 14)
+    - StrategyError (line 18)
+
+  lib\parameters\framework.py:
+    - clear_caches (line 235)
+
+  lib\parameters\gis_categories.py:
+    - get_categories_dict (line 40)
+    - get_category_by_name (line 50)
+    - get_all_category_enums (line 63)
+    - get_uid_prefix (line 73)
+
+  lib\parameters\strategies.py:
+    - _get_element_type_cached (line 215)
+    - BasicParameterStrategy (line 83)
+    - BatchParameterStrategy (line 129)
+    - OptimizedParameterStrategy (line 195)
+
+  lib\parameters\tests.py:
+    - HasValue (line 39)
+    - setUp (line 124)
+    - setUp (line 181)
+    - setUp (line 221)
+    - setUp (line 255)
+    - MockStorageType (line 15)
+    - MockTransaction (line 77)
+
+  lib\parameters\validators.py:
+    - InvalidElementId (line 29)
+    - ValidationError (line 11)
+    - MockStorageType (line 18)
+    - MockElementId (line 25)
+    - ParameterValidator (line 33)
+
+  lib\pykostik\exceptions.py:
+    - PyKostikException (line 3)
+    - FailedAttempt (line 7)
+    - ParameterError (line 52)
+    - ObjectNotFoundError (line 60)
+    - PkElementNotFoundError (line 65)
+
+  lib\pykostik\revit\db\failure.py:
+    - preprocess_specific_failures (line 23)
+
+  lib\pykostik\utils\callables.py:
+    - call_cmp_to_k (line 82)
+    - cmp_to_k_by_getter (line 80)
+    - natural_cmp_to_k (line 87)
+
+  lib\pykostik\utils\iterables.py:
+    - pairwise (line 15)
+    - natural_sort (line 39)
+    - natural_sort_by_attr (line 48)
+    - natural_sort_by_attrs (line 57)
+
+  lib\pykostik\utils\table.py:
+    - from_csv (line 97)
+    - from_matrix (line 106)
+    - lookup (line 151)
+    - write_to_csv (line 243)
+    - TableError (line 10)
+    - Table (line 90)
+
+  lib\pykostik\wrappers\__init__.py:
+    - _validate_type (line 33)
+
+  lib\pykostik\wrappers\abstracts.py:
+    - AbstractRevitObject (line 3)
+
+  lib\pykostik\wrappers\creation.py:
+    - by_point_symbol_lvl (line 18)
+    - new_model_curve (line 46)
+    - new_detail_circle (line 62)
+    - new_family_instance (line 74)
+    - FamilyInstanceCreationOption (line 13)
+    - PkItemFactoryBase (line 35)
+
+  lib\pykostik\wrappers\db\__init__.py:
+    - _validate_diagonal_corners (line 2950)
+
+  lib\pykostik\wrappers\db\electrical.py:
+    - create_by_connector (line 33)
+    - select_panel (line 42)
+    - disconnect_panel (line 46)
+    - get_electrical_systems (line 62)
+    - get_panel (line 97)
+    - set_lock_slot (line 106)
+    - is_row_in_ckt_table (line 110)
+    - PkWire (line 7)
+    - PkElectricalEquipment (line 50)
+    - PkPanelScheduleView (line 82)
+
+  lib\pykostik\wrappers\db\mechanical.py:
+    - PkDuct (line 7)
+
+  lib\pykostik\wrappers\db\plumbing.py:
+    - PkPipe (line 7)
+
+  lib\pykostik\wrappers\ui\selection.py:
+    - AllowElement (line 24)
+    - AllowReference (line 28)
+    - get_element_id (line 90)
+    - get_elements (line 107)
+    - get_element_ids (line 111)
+    - AllowElement (line 144)
+    - AllowElement (line 160)
+    - AllowElement (line 176)
+    - pick_elem (line 249)
+    - pick_elem_by_bic (line 253)
+    - pick_elem_by_cls (line 261)
+    - pick_elem_by_cat (line 277)
+    - pick_elems (line 285)
+    - pick_elems_by_cat (line 289)
+    - pick_elems_by_bic (line 297)
+    - pick_elems_by_cls (line 305)
+    - pick_linked_elem_ref (line 321)
+    - pick_linked_elem_refs (line 328)
+    - pick_objs_by_filter_and_preselected (line 377)
+    - pick_point (line 402)
+    - get_element_ids (line 418)
+    - get_elems_of_cat (line 433)
+    - get_elems_of_cls (line 438)
+    - get_elems_of_classes (line 443)
+    - set_element_ids (line 448)
+    - BasePkPickResult (line 33)
+
+  lib\rebar_selection.py:
+    - AllowElement (line 342)
+    - AllowElement (line 353)
+    - AllowElement (line 413)
+    - CustomISelectionFilter (line 408)
+    - select_rebar_bar_type (line 40)
+    - select_rebar_bar_types_multiple (line 124)
+    - select_rebar_bar_type_by_diameter_range (line 195)
+    - get_preselected_rebar_bar_types (line 278)
+    - pick_rebar_elements (line 301)
+    - pick_rebar_bar_type (line 362)
+    - pick_rebar_element (line 383)
+
+  lib\section_generator.py:
+    - create_plan_view (line 27)
+    - create_elevation_view (line 70)
+    - create_cross_section_view (line 110)
+    - create_all_views (line 150)
+    - SectionGeneratorWrapper (line 13)
+
+  lib\smart_tag_engine.py:
+    - reset_statistics (line 496)
+    - get_element_top_level (line 534)
+
+  lib\stringFormating.py:
+    - accents2ascii (line 4)
+    - listFromString (line 19)
+    - zeroAdder (line 45)
+
+  lib\structural_utils.py:
+    - get_beam_dimensions (line 38)
+    - get_column_dimensions (line 41)
+    - collect_structural_columns (line 86)
+    - get_type_info (line 126)
+    - get_family_symbol (line 183)
+    - extract_mark_from_type_name (line 203)
+    - check_family_type_exists (line 229)
+
+  lib\ui\base_window.py:
+    - header_drag (line 129)
+    - button_close (line 142)
+    - load_items (line 216)
+    - UIe_text_filter_updated (line 257)
+    - UIe_btn_select_all (line 265)
+    - UIe_btn_select_none (line 272)
+    - UIe_checkbox_clicked (line 279)
+    - validate_inputs (line 335)
+    - get_dialog_state (line 339)
+
+  lib\ui\dialog_ui.py:
+    - button_run_click (line 197)
+    - get_available_settings (line 324)
+    - button_apply_click (line 372)
+    - button_reset_click (line 376)
+    - button_cancel_click (line 381)
+    - BaseSettingsDialog (line 269)
+    - create_align_viewports_ui (line 251)
+
+  lib\ui\repository_ui.py:
+    - sync_selected_items (line 106)
+    - sync_selected_items (line 257)
+    - create_family_repository_ui (line 327)
+    - create_view_template_repository_ui (line 350)
+
+  lib\ui\ui_items.py:
+    - create_sheet_item (line 344)
+
+  lib\ui\ui_styles.py:
+    - get_common_resources (line 68)
+    - create_color_brush (line 281)
+
+  lib\ui\ui_utils.py:
+    - create_modern_button (line 21)
+    - create_icon_button (line 57)
+    - create_filter_textbox (line 121)
+    - create_modern_checkbox (line 144)
+    - create_header_text (line 174)
+    - create_body_text (line 195)
+    - setup_window_properties (line 224)
+    - center_window_on_screen (line 248)
+    - validate_text_input (line 268)
+    - validate_numeric_input (line 292)
+    - log_ui_action (line 322)
+    - safe_ui_operation (line 336)
+
+  lib\units.py:
+    - convert_length_to_display (line 11)
+    - degree_conv (line 28)
+    - correct_input_units (line 43)
+    - round_metric_or_imperial (line 58)
+    - convert_length_to_display_string (line 67)
+    - convert_display_string_to_internal (line 76)
+
+  lib\utilities\parameters.py:
+    - get_param_value_as_string (line 11)
+    - get_param_value_by_storage_type (line 37)
+    - get_parameter_from_name (line 73)
+
+  lib\utilities\revit_database.py:
+    - get_solid_fill_pat (line 19)
+    - create_filter_by_name_bics (line 34)
+    - filter_from_rules (line 51)
+    - check_filter_exists (line 73)
+    - shared_param_id_from_guid (line 91)
+    - frequent_category_labels (line 172)
+    - category_labels_to_bic (line 199)
+    - delete_existing_view (line 216)
+    - remove_viewtemplate (line 238)
+    - get_3Dviewtype_id (line 256)
+
+  lib\view_generator.py:
+    - create_plan_view_for_elements (line 27)
+    - create_elevation_view_for_elements (line 73)
+    - create_cross_section_view_for_elements (line 117)
+
+  lib\visualization\colorize.py:
+    - random_colour_hsv (line 119)
+    - get_colours (line 131)
+    - get_categories_config (line 171)
+    - config_overrides (line 194)
+    - config_category_overrides (line 209)
+    - set_colour_overrides_by_option (line 224)

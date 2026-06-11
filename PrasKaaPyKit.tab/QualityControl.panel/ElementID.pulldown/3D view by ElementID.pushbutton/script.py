@@ -15,6 +15,41 @@ Supported input formats:
 CONTEXT: PyRevit UI tool - only runs from Revit interface
 """
 
+__title__ = '3D View by ElementID'
+__author__ = 'PrasKaa Team'
+__version__ = '1.0'
+__doc__ = """Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Creates a 3D isometric view and isolates specific elements by Element ID.
+Useful for inspecting specific elements from error/warning lists or for
+focused element review.
+
+Supports multiple input formats:
+- Newline separated: 2687043, 2687049, 2687057
+- Comma separated: 2687043, 2687049, 2687057
+- Space separated: 2687043 2687049 2687057
+- Mixed formats
+
+How-to:
+1. Click the tool button to open the input dialog
+2. Enter Element IDs (one per line or comma/space separated)
+3. Click OK to create the isolated 3D view
+4. The tool creates a new 3D view showing only selected elements
+
+Notes:
+- Element IDs must be valid integers
+- Levels, grids, and other interfering categories are automatically hidden
+- The new 3D view is automatically activated
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+"""
+
 import clr
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Drawing')

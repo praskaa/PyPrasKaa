@@ -1,12 +1,34 @@
 # -*- coding: utf-8 -*-
-"""Bake Filled Region Color Override to New Type
-Creates new FilledRegionTypes with overridden colors from selected filled regions.
-Supports both single and multiple selections with automatic numbering.
-"""
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Creates new FilledRegionTypes with overridden foreground colors from selected
+filled regions. Useful for baking view-specific color overrides into permanent types.
+_____________________________________________________________________
+How-to:
+1. Click "Bake Hatch Color"
+2. Select filled regions with color overrides in the view
+3. Enter a prefix name for the new types
+4. New types will be created with the override colors baked in
+5. Optionally apply new types to selected elements
 
+Notes:
+- Groups filled regions by their override colors
+- Creates unique type names with automatic numbering
+- Can apply new types to selected elements after creation
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
 
 __title__ = "Bake Hatch Color"
 __author__ = "PrasKaa Team"
+__version__ = "1.0"
 
 # pyRevit imports
 from pyrevit import revit, DB, forms, script

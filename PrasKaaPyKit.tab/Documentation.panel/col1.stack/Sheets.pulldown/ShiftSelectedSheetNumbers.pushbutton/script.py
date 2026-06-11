@@ -1,4 +1,31 @@
 #pylint: disable=W0703,E0401,C0103,C0111
+__title__ = "Increment Sheet\nNumbers"
+__author__ = "PrasKaa"
+__doc__ = """
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Shifts (increments or decrements) sheet numbers for selected sheets.
+Uses string increment/decrement logic to preserve alphanumeric patterns.
+_____________________________________________________________________
+How-to:
+1. Click "Shift Sheet Numbers"
+2. Enter shift amount (positive to increment, negative to decrement)
+3. Select sheets to shift
+4. Sheet numbers will be updated
+
+Notes:
+- Uses intelligent string increment (e.g., A01 -> A02)
+- Sheets are sorted before shifting for consistent results
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+"""
+
 from pyrevit import coreutils
 from pyrevit import revit, DB
 from pyrevit import forms

@@ -1,7 +1,0 @@
-title: Add Running Number to Sheet List
-tooltip: "Add a running number to the list of sheets by parameter name Number"
-author: "Steven Limanto"
-references: v2.0.0
-engine:
-  clean: true
-  automate: true

@@ -1,0 +1,9 @@
+# pyRevit Bundle Configuration - Sheets Pulldown
+title:
+  en_us: Revision
+# Pulldown Layout Configuration
+layout:
+  - removeallrevisionbyprintset
+  - RevSet
+  - DownRev
+  - UpRev

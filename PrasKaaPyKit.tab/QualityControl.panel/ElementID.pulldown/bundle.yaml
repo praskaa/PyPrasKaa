@@ -2,61 +2,8 @@
 
 title:
   en_us: ElementID
-  id_ID: ElementID
 
-tooltip:
-  en_us: |
-    ElementID Tools - Create 3D views from Element IDs
-
-    Tools to create isolated 3D views based on Element IDs.
-    Useful for inspecting specific elements, similar to Revit
-    isolate warning functionality.
-
-    FEATURES:
-    • Create 3D view from ElementIDs
-    • Isolate specific elements in view
-    • Support various input formats
-
-    INPUT FORMATS:
-    • Newline separated (2687043\n2687049)
-    • Comma separated (2687043, 2687049)
-    • Space separated (2687043 2687049)
-    • Mixed formats
-
-    Version: 1.0 | Author: PrasKaa Team
-  id_ID: |
-    Alat ElementID - Buat 3D view dari ID Element
-
-    Alat untuk membuat 3D view terisolasi berdasarkan Element ID.
-    Berguna untuk inspect element tertentu, mirip fungsi
-    isolate warning di Revit.
-
-    FITUR:
-    • Buat 3D view dari ElementIDs
-    • Isolasi element tertentu di view
-    • Support berbagai format input
-
-    FORMAT INPUT:
-    • Baris baru (2687043\n2687049)
-    • Koma (2687043, 2687049)
-    • Spasi (2687043 2687049)
-    • Format campuran
-
-    Versi: 1.0 | Penulis: Tim PrasKaa
-
-author: PrasKaa Team
-
-# Pulldown Layout Configuration
 layout:
   - 3D view by ElementID
+  - IsolateElementbyModifiedDate
 
-# Engine Configuration
-engine:
-  clean: true
-  full_frame: false
-  persistent: false
-
-# Context and Version Requirements
-context: ["Project"]
-min_revit_ver: 2018
-max_revit_ver: 2026

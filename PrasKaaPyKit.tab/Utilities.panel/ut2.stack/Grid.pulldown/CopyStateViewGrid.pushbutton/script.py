@@ -1,14 +1,39 @@
 # -*- coding: utf-8 -*-
-"""Sync Grid Visibility: match which Grids are visible in Source View into Target View(s)"""
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Synchronizes grid visibility from a source view to target views. If a grid
+is visible in the source view, it will be made visible in target views,
+and vice versa. Useful for maintaining consistent grid display across views.
+_____________________________________________________________________
+How-to:
+1. Click "Sync Grid Visibility"
+2. Select source view (reference for grid visibility)
+3. Select target view(s) to apply the sync
+4. Grid visibility will be matched to source view
+
+Notes:
+- Works with floor plans, engineering plans, ceiling plans, sections, elevations
+- Shows toast notifications with sync results for each target view
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
 
 __title__ = "Sync Grid Visibility"
 __author__ = "PrasKaa Team"
+__version__ = "1.0"
 
 from pyrevit import revit, DB, forms
 from System.Collections.Generic import List
 
 doc   = revit.doc
-uidoc = __revit__.ActiveUIDocument
+uidoc = revit.uidoc
 
 # --- helpers ----------------------------------------------------------------
 VIEW_TYPES = {
@@ -22,7 +47,7 @@ VIEW_TYPES = {
 
 def candidate_views():
     vs = DB.FilteredElementCollector(doc).OfClass(DB.View).ToElements()
-    return [v for v in vs if not v.IsTemplate and v.ViewType in VIEW_TYPES]
+    return [v for v in vs if not v.IsTemplates and v.ViewType in VIEW_TYPES]
 
 def get_visible_grids_in_view(view):
     # Collector berbasis view otomatis menghitung visibilitas aktual (kategori, filter, hide, crop)

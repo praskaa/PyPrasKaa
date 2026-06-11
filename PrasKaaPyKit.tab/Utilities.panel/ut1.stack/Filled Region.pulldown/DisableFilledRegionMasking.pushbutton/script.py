@@ -1,10 +1,32 @@
 # -*- coding: utf-8 -*-
-"""Disable Masking for Filled Region Types
-Disables the masking property for selected filled region types.
-"""
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Disables the masking property for selected filled region types. When masking
+is disabled, elements behind the filled region will be visible (transparent mode).
+_____________________________________________________________________
+How-to:
+1. Click "Disable Filled Region Masking"
+2. Select Filled Region Types to modify (or select from list)
+3. Masking will be disabled for selected types
+
+Notes:
+- Can work with pre-selected Filled Region Types
+- Shows results in output window
+- Types already transparent will be skipped
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
 
 __title__ = "Disable Filled Region Masking"
 __author__ = "PrasKaa Team"
+__version__ = "1.0"
 
 # pyRevit imports
 from pyrevit import revit, DB, forms, script

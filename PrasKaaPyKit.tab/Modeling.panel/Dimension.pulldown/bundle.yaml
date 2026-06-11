@@ -2,7 +2,6 @@
 
 title:
   en_us: Dimension
-  id_ID: Dimensi
 
 tooltip:
   en_us: |
@@ -25,26 +24,6 @@ tooltip:
     • Transaction-safe operations
 
     Version: 2.0 | Author: PrasKaa Team
-  id_ID: |
-    Alat Dimensi - Pendimensian Otomatis untuk Elemen Struktur
-
-    Alat pendimensian cerdas untuk kolom dan dinding dengan penempatan
-    otomatis dan kalkulasi jarak. Merampingkan alur kerja dokumentasi
-    dengan presisi dan konsistensi.
-
-    FITUR:
-    • Auto Dimension Kolom - Pendimensian kolom otomatis
-    • Auto Dimension Dinding - Pendimensian dinding cerdas
-    • Jarak Cerdas - Jarak garis dimensi otomatis
-    • Dukungan Multi-elemen - Kemampuan pendimensian batch
-
-    DUKUNGAN ALUR KERJA:
-    • Pendimensian berbasis proyek
-    • Aturan jarak yang dapat dikonfigurasi
-    • Penanganan error dan validasi
-    • Operasi aman transaksi
-
-    Versi: 2.0 | Penulis: Tim PrasKaa
 
 author: PrasKaa Team
 help_url: https://github.com/praskaa/pyrevit-tools/wiki/Dimension-Tools
@@ -52,8 +31,11 @@ help_url: https://github.com/praskaa/pyrevit-tools/wiki/Dimension-Tools
 # Pulldown Layout Configuration
 layout:
   - AutoDimensionColumn
+  - AutoDimensionColumnv2
   - AutoDimensionWall
-
+  - -----
+  - DimensionTextReplace
+  - DimensionLevel
 # Engine Configuration
 engine:
   clean: true

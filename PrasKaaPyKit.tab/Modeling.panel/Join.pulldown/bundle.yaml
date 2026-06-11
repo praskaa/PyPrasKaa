@@ -2,7 +2,6 @@
 
 title:
   en_us: Join
-  id_ID: Join
 
 tooltip:
   en_us: |
@@ -26,39 +25,17 @@ tooltip:
     • Wall attachment management
 
     Version: 2.0 | Author: PrasKaa Team
-  id_ID: |
-    Alat Join - Manajemen Koneksi Elemen Struktur
-
-    Alat canggih untuk mengelola join antar elemen struktur.
-    Kontrol perilaku auto-join dan selesaikan operasi join secara manual
-    untuk koneksi struktur yang kompleks.
-
-    FITUR:
-    • Disallow/Allow Join - Toggle fungsionalitas auto-join
-    • Join All Elements - Penyelesaian join manual untuk elemen struktur
-    • Join Columns - Join kolom dengan elemen sekitar
-    • Join Foundation - Alat join foundation khusus
-    • Join Walls to Structure - Koneksi dinding ke elemen struktur
-
-    DUKUNGAN ALUR KERJA:
-    • Kontrol auto-join selektif
-    • Penyelesaian join pasca-matching
-    • Logika join spesifik foundation
-    • Manajemen attachment dinding
-
-    Versi: 2.0 | Penulis: Tim PrasKaa
 
 author: PrasKaa Team
 help_url: https://github.com/praskaa/pyrevit-tools/wiki/Join-Tools
 
 # Pulldown Layout Configuration
 layout:
-  - DisallowAllowJoin
-  - JoinAllElements
   - JoinColumns
-  - JoinFoundation
   - Join Regular Wall
   - Join Shearwall & Corewall
+  - -----
+  - JoinSelection
 # Engine Configuration
 engine:
   clean: true

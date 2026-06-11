@@ -1,5 +1,0 @@
-# Panel Layout Configuration
-layout:
-  - SetNumberLoadPlan
-  - Copy
-  - Paste

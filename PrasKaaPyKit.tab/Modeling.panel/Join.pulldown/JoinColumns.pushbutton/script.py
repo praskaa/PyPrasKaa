@@ -46,7 +46,7 @@ selected_columns = []
 if selected_elements:
     for elem in selected_elements:
         if (elem and elem.Category and
-            elem.Category.Id.IntegerValue == int(BuiltInCategory.OST_StructuralColumns)):
+            elem.Category.Id.Value == int(BuiltInCategory.OST_StructuralColumns)):
             selected_columns.append(elem)
 
 # If no columns selected, prompt user to select

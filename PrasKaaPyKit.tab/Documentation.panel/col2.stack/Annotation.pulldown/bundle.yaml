@@ -1,0 +1,47 @@
+# pyRevit Bundle Configuration - Annotation Pulldown
+
+title:
+  en_us: Annotation
+
+tooltip:
+  en_us: |
+    Annotation Tools - Smart Tagging & Detail Placement
+
+    Intelligent annotation tools for structural documentation. Automated
+    tagging systems and precise detail placement for professional
+    construction documents.
+
+    FEATURES:
+    • Smart Tag - Intelligent structural element tagging
+    • Collect View Title - Automated view title collection
+    • Place Detail at Pile Center - Precise detail placement
+    • Multi-view Processing - Batch annotation operations
+
+    WORKFLOW SUPPORT:
+    • Size-based tag positioning
+    • Real-time view filtering
+    • Native Revit integration
+    • Performance optimized operations
+
+    Version: 2.0 | Author: PrasKaa Team
+
+author: PrasKaa Team
+help_url: https://github.com/praskaa/pyrevit-tools/wiki/Annotation-Tools
+
+# Pulldown Layout Configuration
+layout:
+  - SmartTag
+  - ToggleLeader
+  - -----
+
+
+# Engine Configuration
+engine:
+  clean: true
+  full_frame: false
+  persistent: false
+
+# Context and Version Requirements
+context: ["Project"]
+min_revit_ver: 2018
+max_revit_ver: 2026

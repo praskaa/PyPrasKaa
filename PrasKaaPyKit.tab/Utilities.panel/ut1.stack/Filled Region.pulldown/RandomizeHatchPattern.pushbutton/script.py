@@ -1,10 +1,33 @@
 # -*- coding: utf-8 -*-
-"""Randomize Filled Region Foreground Pattern Types
-Randomly assigns FilledRegionTypes with selected foreground patterns to multiple filled regions.
-"""
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Randomly assigns foreground hatch patterns from selected fill patterns to multiple
+filled region types. Useful for creating visual variety in filled regions.
+_____________________________________________________________________
+How-to:
+1. Click "Randomize Hatch Pattern"
+2. Select Filled Region Types to modify
+3. Select Fill Patterns to use for randomization
+4. Patterns will be randomly assigned to selected types
+
+Notes:
+- Distributes patterns evenly across selected types
+- Shows results in output window
+- Does not modify types that already have the assigned pattern
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
 
 __title__ = "Randomize Hatch Pattern"
 __author__ = "PrasKaa Team"
+__version__ = "1.0"
 
 # pyRevit imports
 from pyrevit import revit, DB, forms, script

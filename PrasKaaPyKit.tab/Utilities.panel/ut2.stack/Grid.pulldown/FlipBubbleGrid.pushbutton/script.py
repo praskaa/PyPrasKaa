@@ -1,17 +1,40 @@
 # -*- coding: utf-8 -*-
-"""Toggle bubble Grid di Active View: kalau salah satu sisi ON, balikkan ke sisi lain
-Kalau keduanya ON atau keduanya OFF -> diabaikan
-"""
+'''
+Version: 1.0
+Date    = 04.03.2026
+_____________________________________________________________________
+Description:
+Toggles grid bubble visibility in the active view. If one end is visible,
+it switches to the other end. If both are visible or both hidden, it skips.
+Useful for quickly adjusting grid bubble display orientation.
+_____________________________________________________________________
+How-to:
+1. Click "Toggle Grid Bubble"
+2. Select grids in the view (or pick from selection)
+3. Grid bubbles will toggle from one end to the other
+
+Notes:
+- Only toggles if exactly one end is visible
+- Works on selected grids or allows picking grids
+- Shows toast with count of toggled and skipped grids
+
+_____________________________________________________
+Last update:
+- 04.03.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa Team
+'''
 
 __title__ = "Toggle Grid Bubble"
 __author__ = "PrasKaa Team"
+__version__ = "1.0"
 
 from Autodesk.Revit.DB import Transaction, Grid, DatumEnds
 from Autodesk.Revit.UI.Selection import ISelectionFilter, ObjectType
 from pyrevit import revit, forms
 
-uidoc = __revit__.ActiveUIDocument
-doc = uidoc.Document
+uidoc = revit.uidoc
+doc = revit.doc
 active_view = doc.ActiveView
 
 class GridFilter(ISelectionFilter):
@@ -77,12 +100,11 @@ def main():
     if not grids:
         forms.alert("Tidak ada Grid yang dipilih.", title="Toggle Grid Bubbles", warn_icon=True)
         return
-    changed, skipped = toggle_bubbles(grids)
-    forms.toast(
+    changed, skipped = toggle_bubbles(forms.toast(
         "Grid diproses: {} | Di-toggle: {} | Dilewati: {}".format(len(grids), changed, skipped),
         title="Toggle Grid Bubbles (Instance)",
         appid="PrasKaaPyKit"
-    )
+    ))
 
 if __name__ == "__main__":
     main()
