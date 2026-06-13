@@ -1,9 +1,40 @@
 # -*- coding: utf-8 -*-
-# Author: PrasKaa
-# Description: Set Tender Notes X offset and Y offset on SELECTED title blocks across chosen sheets
-# Version: 1.1
+__title__   = "Set Tender Notes Batch"
+__author__  = "PrasKaa"
+__doc__ = """Version = 1.0
+Date    = 13.06.2026
+_____________________________________________________________________
+Description:
+Batch-updates Tender Notes X / Y offset parameters on title blocks
+across multiple selected sheets. Pre-selects sheets via Project Browser
+with pyRevit forms.select_sheets.
+
+Converts user-provided mm values to Revit internal feet units using
+UnitUtils.ConvertToInternalUnits. Handles Revit 2021 fallback for older
+API. Cross-version safe for Revit 2024/2025/2026.
+
+_____________________________________________________________________
+How-to:
+  1. Select target sheets in Project Browser (multi-select with Ctrl)
+  2. Run tool
+  3. Enter X offset value in mm (e.g. 0.0)
+  4. Enter Y offset value in mm (e.g. 260.0)
+  5. Tool applies values to all title blocks on selected sheets
+  6. Report shown with success/skip count
+_____________________________________________________________________
+Last update:
+- 13.06.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+"""
 
 from pyrevit import revit, DB, forms, script
+from Autodesk.Revit.DB import WorksharingUtils
+
+from Snippets._worksharing import (
+    is_workshared,
+    is_element_owned_by_other_user
+)
 
 doc = revit.doc
 
@@ -60,6 +91,34 @@ title_blocks = [tb for tb in all_title_blocks if _id_int(tb.OwnerViewId) in sele
 
 if not title_blocks:
     forms.alert("No title blocks found on the selected sheets.", exitscript=True)
+
+# ── 3b. Worksharing check ──────────────────────────────────────────────────────
+if is_workshared(doc):
+    non_editable = [tb for tb in title_blocks if is_element_owned_by_other_user(tb, doc)]
+
+    if non_editable:
+        owner_names = sorted(set(
+            _get_owner_name(tb, doc) for tb in non_editable
+        ))
+
+        msg_lines = [
+            "Script cannot continue.",
+            "",
+            "{} title block(s) owned by other users:".format(len(non_editable)),
+        ]
+        for tb in non_editable:
+            msg_lines.append("  - {}".format(tb.Id))
+        msg_lines.append("")
+        msg_lines.append("Owners: {}".format(", ".join(owner_names)))
+
+        forms.alert("\n".join(msg_lines), exitscript=True)
+
+def _get_owner_name(element, doc):
+    try:
+        info = WorksharingUtils.GetWorksharingTooltipInfo(doc, element.Id)
+        return info.LastChangedBy or "Unknown User"
+    except:
+        return "Unknown User"
 
 # ── 4. Apply values in a single transaction ────────────────────────────────────
 PARAM_X = "Tender Notes X offset"

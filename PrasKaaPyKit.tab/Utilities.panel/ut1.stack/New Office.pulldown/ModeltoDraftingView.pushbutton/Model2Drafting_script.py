@@ -1,8 +1,30 @@
 # -*- coding: utf-8 -*-
-# Author: PrasKaa
-# Description: Converts current view to a drafting view with [ViewName]_2D naming
-# Version: 1.0
+__title__   = "Model to Drafting View"
+__author__  = "PrasKaa"
+__doc__ = """Version = 1.0
+Date    = 13.06.2026
+_____________________________________________________________________
+Description:
+Converts active graphical Revit view to a drafting view via DWG round-trip.
+Handles curves, polylines, solids, and filled regions from exploded import.
 
+Automatically creates temporary drafting view, exports view to DWG,
+re-imports into drafting view, reconstructs detail curves and filled regions,
+then deletes imported DWG import symbol. 3D views get sheet viewport wrapper
+for valid DWG export.
+
+_____________________________________________________________________
+How-to:
+  1. Open target view (plan, section, elevation, 3D, detail, drafting, sheet)
+  2. Run tool
+  3. New drafting view created named [ViewName]_2D
+  4. Active view switches to new drafting view on completion
+_____________________________________________________________________
+Last update:
+- 13.06.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+"""
 import os
 import clr
 import shutil
@@ -177,87 +199,9 @@ def on_dialog_temp_view_mode(sender, args):
             logger.info('Canceling Export with Temporary Hide/Isolate dialog')
             args.OverrideResult(1002)
     except Exception as err:
-        return InvalidOperationException('Failed canceling dialog.'
-                                         '\nerror: {}'.format(err))
-
-
-def export_to_dwg(dir_path, file_name, view, options=DB.DWGExportOptions()):
-    # type: (os.path, str, DB.View, DB.DWGExportOptions) -> bool
-    """Exports view to AutoCAD DWG file."""
-    logger.info(
-        'Exporting DWG to {}'.format(os.path.join(dir_path, file_name)))
-    view_id = List[DB.ElementId]()
-    view_id.Add(view.Id)
-    export_result = doc.Export(dir_path, file_name, view_id, options)
-    if export_result is True:
-        return export_result
-    else:
-        raise InvalidOperationException(
-            "Could not convert the view due to DWG export failure")
-
-
-def import_dwg(file_path, view):
-    # type: (str, DB.View) -> DB.ElementId
-    """Imports DWG to a view."""
-    logger.info('Importing DWG from {}'.format(file_path))
-    imported_id = clr.Reference[DB.ElementId]()
-    options = DB.DWGImportOptions()
-    options.ThisViewOnly = True
-    imported = doc.Import(file_path, options, view, imported_id)
-    if imported is True:
-        return imported_id.Value
-    else:
-        raise InvalidOperationException(
-            "Could not convert the view due to DWG import failure"
-            "\nImport file path: {}".format(file_path))
-
-
-def get_first_drafting_view_type():
-    # type: () -> DB.ViewFamilyType
-    view_types = DB.FilteredElementCollector(doc).OfClass(DB.ViewFamilyType)
-    for view_type in view_types:
-        if view_type.ViewFamily == DB.ViewFamily.Drafting:
-            return view_type
-
-
-def polyline_to_curve_array(polyline):
-    # type: (DB.PolyLine) -> DB.CurveArray
-    """Converts a poly line to a curve array
-    skipping excessively short curves.
-    """
-    points = polyline.GetCoordinates()
-    curve_array = DB.CurveArray()
-    for i in range(len(points) - 1):
-        if not is_too_short(points[i].DistanceTo(points[i + 1])):
-            line = DB.Line.CreateBound(points[i], points[i + 1])
-            curve_array.Append(line)
-    return curve_array
-
-
-def is_too_short(length):
-    # type: (float) -> bool
-    return length <= app.ShortCurveTolerance
-
-
-def get_first_filled_region_type():
-    # type: () -> DB.Element
-    return DB.FilteredElementCollector(doc)\
-        .OfClass(DB.FilledRegionType)\
-        .FirstElement()
-
-
-def get_unique_drafting_view_name(base_name):
-    # type: (str) -> str
-    """Returns a unique drafting view name.
-    Starts with base_name, appends '*' until no collision is found.
-    """
-    existing_names = set(
-        v.Name
-        for v in DB.FilteredElementCollector(doc)
-                   .OfClass(DB.ViewDrafting)
-                   .WhereElementIsNotElementType()
-                   .ToElements()
-    )
+        shutil.rmtree(temp_dir, True)
+        unsubscribe_dialog_temp_view_mode()
+        raise Exception(err)
     candidate = base_name
     while candidate in existing_names:
         candidate = candidate + '*'

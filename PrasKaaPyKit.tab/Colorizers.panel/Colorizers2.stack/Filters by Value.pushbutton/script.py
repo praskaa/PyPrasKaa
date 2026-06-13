@@ -1,14 +1,29 @@
-"""
-Filters by Value
-Description: Create color filters based on parameter values
-Author: PrasKaa
-Version: 1.1.0
-Last Updated: 2026-03-18
+__title__ = "Filters by Value"
+__author__ = "PrasKaa"
+__version__ = "1.1.0"
 
-Changelog:
-    v1.1.0 (2026-03-18): Added post-filter dialog to apply filters to Active View
-                         or one/more selected View Templates
-    v1.0.0 (2026-02-22): Initial release
+"""
+Version: 1.1.0
+Date    = 18.03.2026
+_____________________________________________________________________
+Description:
+Create color filters based on parameter values.
+This tool identifies unique values of a selected parameter across chosen categories in the active view, then generates Revit view filters with graphic overrides for each value. Supports applying filters to the active view or one/more selected View Templates.
+
+_____________________________________________________________________
+How-to:
+1. Select one or more categories from the list.
+2. Pick a parameter from the common parameters of selected categories.
+3. Configure override options (colors, line weights, etc.).
+4. Choose destination: Active View or View Template(s).
+5. Confirm to create and apply filters automatically.
+
+_____________________________________________________
+Last update:
+- v1.0.0 (2026-02-22) - Initial release
+- v1.1.0 (2026-03-18) - Added post-filter dialog to apply filters to Active View or one/more selected View Templates
+_____________________________________________________________________
+Author:  PrasKaa
 """
 
 from pyrevit import revit, DB, forms, script
@@ -340,7 +355,10 @@ with revit.Transaction("Filters by Value", doc):
             param_value = param_value[1]
         else:
             value_name = str(param_value)
-        filter_name = param_dict[selected_parameter].replace(SHARED_PARAMETER_LABEL, "") + " - " + value_name
+        FILTER_AUTHOR = "PK"
+        cat_label = "+".join(sorted(selected_cat))
+        param_label = param_dict[selected_parameter].replace(SHARED_PARAMETER_LABEL, "")
+        filter_name = "PK-{}!{}!-{}".format(cat_label, param_label, value_name)
         # replace forbidden characters:
         filter_name = filter_name.strip("{}[]:\|?/<>*")
         filter_id = None

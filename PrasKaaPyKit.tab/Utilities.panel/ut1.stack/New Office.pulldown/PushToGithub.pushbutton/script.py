@@ -1,8 +1,32 @@
 # -*- coding: utf-8 -*-
-# Author: PrasKaa
-# Description: Push entire extension folder to private GitHub repo via REST API (no git required)
-# Version: 3.0
+__title__   = "Push to GitHub"
+__author__  = "PrasKaa"
+__doc__ = """Version = 1.0
+Date    = 13.06.2026
+_____________________________________________________________________
+Description:
+Pushes entire PrasKaaPyKitv2 extension folder to GitHub repository via API.
+Uploads files as Git blobs, creates tree, commits, and updates branch ref.
+No local git required — uses GitHub REST API with personal access token.
 
+Supports multi-step progress with HTML output: SHA retrieval, tree creation,
+blob upload, commit creation, and ref update. Handles partial upload failure
+gracefully with per-file error reporting.
+
+_____________________________________________________________________
+How-to:
+  1. Ensure github_config.json exists at configured CONFIG_PATH
+     Required keys: github_token_write, repo_owner, repo_name, local_path
+  2. Run tool
+  3. Enter commit message in dialog
+  4. Tool uploads all tracked files to repo main branch
+  5. View result with commit link in output window
+_____________________________________________________________________
+Last update:
+- 13.06.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+"""
 import os
 import json
 import base64
