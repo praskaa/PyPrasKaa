@@ -1,0 +1,6 @@
+# Pulldown Layout Configuration
+layout:
+  - Wall Detail Generator
+  - -----
+  - WallClashChecker
+  - MultiWallClashChecker
