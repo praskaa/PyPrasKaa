@@ -32,6 +32,7 @@ layout:
   - SelectAllHatch
   - SelectAllPlanRegion
   - SelectAllTags
+  - SelectGroupedElement
 
 # Engine Configuration
 engine:
