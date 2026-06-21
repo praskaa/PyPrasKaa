@@ -3,24 +3,41 @@
 Link CAD Batch - PrasKaaPyKitv2
 Batch link DWG/DXF files to floor plan views with WPF UI.
 Author: PrasKaa
-Version: 2.0
+Version: 2.4
 """
 
 __title__ = "Link CAD\nSuperimposed Batch"
-__doc__ = """2025.01.01 - v2.0
+__doc__ = """2025.06.01 - v2.1
 Batch link DWG/DXF files to floor plan views.
-Scan folder -> pair CAD to views -> set X/Y offset -> link all at once."""
+Scan folder -> pair CAD to views -> set X/Y offset -> link all at once.
+
+Fix v2.1:
+- Use doc.Import() instead of ImportInstance.Create() to correctly
+  bind CAD link to the target view (ThisViewOnly = True).
+- Added opts.Placement = ImportPlacement.Origin for predictable placement.
+- clr.Reference[ElementId] used to capture resulting instance ID.
+
+Fix v2.2:
+- Set IMPORT_BACKGROUND parameter to 0 (Foreground) after linking.
+  Revit defaults new CAD links to Background; this forces Foreground
+  automatically so no manual change is needed per view.
+
+Fix v2.3:
+- Replace legacy FolderBrowserDialog with forms.pick_folder().
+  Now shows modern Windows Explorer folder picker instead of old tree dialog.
+
+Fix v2.4:
+- Replace non-existent op.print_html_table() with manual HTML table via op.print_html().
+  print_html_table does not exist in pyRevit 5.1."""
 
 import os
+import clr
 import System
 import traceback
 
-import clr
-clr.AddReference("System.Windows.Forms")
 clr.AddReference("WindowsBase")
 clr.AddReference("PresentationCore")
 clr.AddReference("PresentationFramework")
-from System.Windows.Forms import FolderBrowserDialog, DialogResult
 from System.Collections.ObjectModel import ObservableCollection
 
 from pyrevit import HOST_APP, DB, forms, script
@@ -31,7 +48,11 @@ op     = pyoutput.get_output()
 
 doc = HOST_APP.doc
 
-# unit conversion — Revit 2024+ uses UnitTypeId
+
+# =============================================================================
+# UNIT CONVERSION
+# =============================================================================
+
 try:
     def mm_to_ft(mm):
         return DB.UnitUtils.ConvertToInternalUnits(mm, DB.UnitTypeId.Millimeters)
@@ -65,18 +86,29 @@ def scan_cad_files(folder):
 
 
 def get_already_linked_names(view_id):
+    """Return lowercased basenames/names of CAD instances already linked in a view."""
     names = []
     try:
-        for inst in DB.FilteredElementCollector(doc, view_id).OfClass(DB.ImportInstance).ToElements():
+        for inst in DB.FilteredElementCollector(doc, view_id)\
+                      .OfClass(DB.ImportInstance)\
+                      .WhereElementIsNotElementType()\
+                      .ToElements():
             lt = doc.GetElement(inst.GetTypeId())
-            if lt:
+            if lt is None:
+                continue
+            # try external file reference path
+            try:
+                ref = lt.GetExternalFileReference()
+                if ref is not None:
+                    names.append(os.path.basename(ref.GetAbsolutePath()).lower())
+            except Exception:
+                pass
+            # try element name
+            try:
+                names.append(lt.Name.lower())
+            except Exception:
                 try:
-                    names.append(os.path.basename(
-                        lt.GetExternalFileReference().GetAbsolutePath()).lower())
-                except Exception:
-                    pass
-                try:
-                    names.append(lt.Name.lower())
+                    names.append(DB.Element.Name.GetValue(lt).lower())
                 except Exception:
                     pass
     except Exception:
@@ -107,6 +139,66 @@ def _safe_float(s, default=0.0):
         return float(str(s).replace(",", "."))
     except Exception:
         return default
+
+
+# =============================================================================
+# CORE LINK FUNCTION  (fixed — uses doc.Import with clr.Reference)
+# =============================================================================
+
+def link_cad_to_view(doc, view, cad_path, offset_x_mm=0.0, offset_y_mm=0.0):
+    """
+    Link a DWG/DXF file superimposed into a specific view only.
+
+    Uses doc.Import() with ThisViewOnly=True and an explicit view argument,
+    which is the correct API to guarantee placement in the target view.
+    ImportInstance.Create() does NOT reliably honour ThisViewOnly.
+
+    Returns (ElementId, error_message).
+    error_message is None on success.
+    """
+    try:
+        opts = DB.DWGImportOptions()
+        opts.ColorMode    = DB.ImportColorMode.Preserved
+        opts.ThisViewOnly = True
+        opts.Unit         = DB.ImportUnit.Millimeter
+        opts.Placement    = DB.ImportPlacement.Origin  # predictable origin placement
+
+        # clr.Reference used to receive the output ElementId from doc.Import()
+        result_id_ref = clr.Reference[DB.ElementId]()
+        doc.Import(cad_path, opts, view, result_id_ref)
+        link_id = result_id_ref.Value
+
+        if link_id is None or link_id == DB.ElementId.InvalidElementId:
+            return DB.ElementId.InvalidElementId, "doc.Import returned invalid ElementId"
+
+        elem = doc.GetElement(link_id)
+
+        # Set to Foreground (IMPORT_BACKGROUND = 0 means Foreground, 1 means Background)
+        # Revit defaults new CAD links to Background — override it here.
+        if elem is not None:
+            bg_param = elem.get_Parameter(DB.BuiltInParameter.IMPORT_BACKGROUND)
+            if bg_param is not None and not bg_param.IsReadOnly:
+                bg_param.Set(0)  # 0 = Foreground
+
+        # Apply X/Y offset if non-zero
+        ox = offset_x_mm
+        oy = offset_y_mm
+        if abs(ox) > 1e-9 or abs(oy) > 1e-9:
+            if elem is not None:
+                was_pinned = elem.Pinned
+                if was_pinned:
+                    elem.Pinned = False
+                DB.ElementTransformUtils.MoveElement(
+                    doc, link_id,
+                    DB.XYZ(mm_to_ft(ox), mm_to_ft(oy), 0.0)
+                )
+                if was_pinned:
+                    elem.Pinned = True
+
+        return link_id, None
+
+    except Exception as ex:
+        return DB.ElementId.InvalidElementId, str(ex)
 
 
 # =============================================================================
@@ -155,11 +247,11 @@ class LinkCADBatchDialog(forms.WPFWindow):
     # BROWSE
     # ------------------------------------------------------------------
     def _on_browse(self, sender, args):
-        dlg = FolderBrowserDialog()
-        dlg.Description = "Pilih folder yang berisi file DWG/DXF"
-        if dlg.ShowDialog() != DialogResult.OK:
+        # forms.pick_folder() uses modern IFileOpenDialog — proper Explorer window
+        selected = forms.pick_folder(title="Pilih folder yang berisi file DWG/DXF")
+        if not selected:
             return
-        self._folder = dlg.SelectedPath
+        self._folder = selected
         self.TxtFolder.Text       = self._folder
         self.TxtFolder.Foreground = self._brush("#CDD6F4")
 
@@ -218,7 +310,6 @@ class LinkCADBatchDialog(forms.WPFWindow):
             from System.Windows.Media import VisualTreeHelper
             from System.Windows.Controls import Button
 
-            # Walk up visual tree from clicked element to find Button named BtnPickView
             el = args.OriginalSource
             while el is not None:
                 try:
@@ -249,26 +340,22 @@ class LinkCADBatchDialog(forms.WPFWindow):
             self._refresh_grid()
             self._update_status()
 
-
-
     def _resolve_view(self, name):
         """Exact match first, then partial."""
         low = name.lower()
-        # exact
         for vname, v in self._view_map.items():
             if vname.lower() == low:
                 return v
-        # partial
         for vname, v in self._view_map.items():
             if low in vname.lower() or vname.lower() in low:
                 return v
         return None
 
     # ------------------------------------------------------------------
-    # LINK
+    # LINK  (fixed — uses link_cad_to_view with doc.Import)
     # ------------------------------------------------------------------
     def _on_link(self, sender, args):
-        # Validate first
+        # Validate / resolve views first
         active = []
         for row in self._rows:
             if not row.Enabled:
@@ -276,86 +363,68 @@ class LinkCADBatchDialog(forms.WPFWindow):
             if not row._view:
                 v = self._resolve_view(row.ViewName)
                 if v:
-                    row._view   = v
+                    row._view    = v
                     row.ViewName = v.Name
-                    row.Status  = "✅ ready"
+                    row.Status   = "✅ ready"
                 else:
-                    row.Status  = "❌ view not found"
+                    row.Status   = "❌ view not found"
                     continue
             active.append(row)
 
         self._refresh_grid()
 
         if not active:
-            forms.alert("Tidak ada pair valid untuk diproses.\nPastikan View Name sudah benar.",
-                        title="Link CAD Batch")
+            forms.alert(
+                "Tidak ada pair valid untuk diproses.\nPastikan View Name sudah benar.",
+                title="Link CAD Batch"
+            )
             return
 
         skip_existing = self.ChkSkipExisting.IsChecked
 
         success, skipped, failed = 0, 0, 0
+        # log entries: (cad_name, view_name, offset_str, status_key, status_label)
         log = []
 
-        t = DB.Transaction(doc, "PrasKaa - Link CAD Batch v2")
+        t = DB.Transaction(doc, "PrasKaa - Link CAD Batch v2.2")
         t.Start()
         try:
-            from Autodesk.Revit.DB import ImportInstance as ImpInst
-
             for row in active:
                 view = row._view
 
-                # Skip existing
+                # --- Skip if already linked in this view ---
                 if skip_existing:
                     existing = get_already_linked_names(view.Id)
                     cad_lower = row.CadName.lower()
                     if any(cad_lower in e for e in existing):
                         row.Status = "⏭ already linked"
                         skipped += 1
-                        log.append("SKIP  | {} -> {}".format(row.CadName, view.Name))
+                        log.append((row.CadName, view.Name, "-", "SKIP", "⏭ already linked"))
                         continue
 
-                try:
-                    opts = DB.DWGImportOptions()
-                    opts.ColorMode    = DB.ImportColorMode.Preserved
-                    opts.ThisViewOnly = True
-                    opts.Unit         = DB.ImportUnit.Millimeter
+                ox = _safe_float(row.OffsetX, 0.0)
+                oy = _safe_float(row.OffsetY, 0.0)
+                offset_str = "({},{})".format(ox, oy) if (abs(ox) > 1e-9 or abs(oy) > 1e-9) else "-"
 
-                    import_inst, _llr = ImpInst.Create(doc, view, row.CadPath, opts)
-                    link_id = import_inst.Id if import_inst else DB.ElementId.InvalidElementId
+                # --- Link using corrected doc.Import() approach ---
+                link_id, err = link_cad_to_view(doc, view, row.CadPath, ox, oy)
 
-                    if link_id != DB.ElementId.InvalidElementId:
-                        ox = _safe_float(row.OffsetX, 0.0)
-                        oy = _safe_float(row.OffsetY, 0.0)
-                        if abs(ox) > 1e-9 or abs(oy) > 1e-9:
-                            elem = doc.GetElement(link_id)
-                            was_pinned = elem.Pinned
-                            if was_pinned:
-                                elem.Pinned = False
-                            DB.ElementTransformUtils.MoveElement(
-                                doc, link_id,
-                                DB.XYZ(mm_to_ft(ox), mm_to_ft(oy), 0.0)
-                            )
-                            if was_pinned:
-                                elem.Pinned = True
-                        row.Status = "✅ linked"
-                        success += 1
-                        log.append("OK    | {} -> {}  ({},{})mm".format(
-                            row.CadName, view.Name, ox, oy))
-                    else:
-                        row.Status = "❌ failed"
-                        failed += 1
-                        log.append("FAIL  | {} -> {}".format(row.CadName, view.Name))
-
-                except Exception as ex:
-                    row.Status = "❌ {}".format(str(ex)[:50])
+                if err is None and link_id != DB.ElementId.InvalidElementId:
+                    row.Status = "✅ linked"
+                    success += 1
+                    log.append((row.CadName, view.Name, offset_str, "OK", "✅ linked"))
+                else:
+                    msg = err if err else "invalid ElementId"
+                    row.Status = "❌ {}".format(msg[:50])
                     failed += 1
-                    log.append("ERR   | {} -> {}  {}".format(row.CadName, view.Name, str(ex)))
+                    log.append((row.CadName, view.Name, offset_str, "FAIL",
+                                "❌ {}".format(msg[:60])))
 
             t.Commit()
 
         except Exception as outer:
             try:
-                t.RollBack()
+                t.RollbackIfPending()
             except Exception:
                 pass
             forms.alert("Transaction error:\n{}".format(str(outer)), title="Error")
@@ -365,26 +434,52 @@ class LinkCADBatchDialog(forms.WPFWindow):
         self._refresh_grid()
         self._update_status()
 
-        # Output report
-        summary = "✅ Linked: {}  |  ⏭ Skipped: {}  |  ❌ Failed: {}".format(
+        self.TxtStatus.Text = "Done. Linked: {} | Skipped: {} | Failed: {}".format(
             success, skipped, failed)
-        self.TxtStatus.Text = summary
 
-        op.print_md("## Link CAD Batch — Hasil")
-        op.print_md("**{}**".format(summary))
-        op.print_md("---")
-        op.print_md("```\n{}\n```".format("\n".join(log)))
+        # --- Output panel report ---
+        op.set_title("Link CAD Batch — {}".format(doc.Title))
+        op.print_md("## Link CAD Batch v2.4")
+        op.print_md("**Linked: {}** | **Skipped: {}** | **Failed: {}**".format(
+            success, skipped, failed))
 
-        forms.alert(
-            "Selesai!\n\n{}".format(summary),
-            title="Link CAD Batch"
-        )
+        if log:
+            STATUS_COLORS = {
+                "OK":   "#A6E3A1",
+                "SKIP": "#FAB387",
+                "FAIL": "#F38BA8",
+            }
+            # Build HTML table manually — print_html_table does not exist in pyRevit 5.1
+            rows_html = ""
+            for cad_name, view_name, offset_str, key, label in log:
+                color = STATUS_COLORS.get(key, "#CDD6F4")
+                rows_html += (
+                    "<tr>"
+                    "<td style='padding:3px 8px;width:250px;'>{}</td>"
+                    "<td style='padding:3px 8px;width:200px;'>{}</td>"
+                    "<td style='padding:3px 8px;width:120px;text-align:center;'>{}</td>"
+                    "<td style='padding:3px 8px;width:120px;text-align:center;"
+                    "font-weight:bold;color:{};'>{}</td>"
+                    "</tr>"
+                ).format(cad_name, view_name, offset_str, color, label)
+
+            op.print_html(
+                "<table style='border-collapse:collapse;font-size:12px;'>"
+                "<thead><tr style='border-bottom:1px solid #555;'>"
+                "<th style='padding:4px 8px;text-align:left;width:250px;'>CAD File</th>"
+                "<th style='padding:4px 8px;text-align:left;width:200px;'>View</th>"
+                "<th style='padding:4px 8px;text-align:center;width:120px;'>Offset (mm)</th>"
+                "<th style='padding:4px 8px;text-align:center;width:120px;'>Status</th>"
+                "</tr></thead>"
+                "<tbody>{}</tbody>"
+                "</table>".format(rows_html)
+            )
 
     # ------------------------------------------------------------------
     # HELPERS
     # ------------------------------------------------------------------
     def _refresh_grid(self):
-        """Force DataGrid to re-read rows."""
+        """Force DataGrid to re-read rows by toggling ItemsSource."""
         src = self.PairingGrid.ItemsSource
         self.PairingGrid.ItemsSource = None
         self.PairingGrid.ItemsSource = src
@@ -407,8 +502,10 @@ class LinkCADBatchDialog(forms.WPFWindow):
 def main():
     views = get_floor_plan_views()
     if not views:
-        forms.alert("Tidak ada Floor Plan / Engineering Plan view di project ini.",
-                    title="Link CAD Batch")
+        forms.alert(
+            "Tidak ada Floor Plan / Engineering Plan view di project ini.",
+            title="Link CAD Batch"
+        )
         return
     try:
         dlg = LinkCADBatchDialog(views)
