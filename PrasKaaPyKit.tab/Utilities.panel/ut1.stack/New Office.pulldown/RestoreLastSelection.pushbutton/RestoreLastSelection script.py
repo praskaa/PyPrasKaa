@@ -1,29 +1,30 @@
 # -*- coding: utf-8 -*-
-__title__   = "Restore Last Selection"
-__author__  = "PrasKaa"
-__doc__ = """Version = 1.1
+'''
+Version: 1.1
 Date    = 13.06.2026
 _____________________________________________________________________
 Description:
-Restores element selection from last auto-saved state.
-Useful after accidental Esc that clears Revit selection.
+Restores element selection from last auto-saved state. Useful after
+accidental Esc that clears Revit selection.
 
 Reads serialized file (pickle) written by command-before-exec hooks,
 verifies elements still exist in document, then restores selection.
 Skips elements removed after last auto-save.
 _____________________________________________________________________
 How-to:
-  1. Run Move/Copy/Delete/Rotate (selection auto-saved by hook)
-  2. Accidentally press Esc — selection cleared
-  3. Run this tool
-  4. Selection restored to pre-command state
-_____________________________________________________________________
+1. Run Move/Copy/Delete/Rotate (selection auto-saved by hook)
+2. Accidentally press Esc — selection cleared
+3. Run this tool
+4. Selection restored to pre-command state
+_____________________________________________________
 Last update:
 - 13.06.2026 - 1.1 Faster: batch GetElement via ElementMulticlassFilter
 - 13.06.2026 - 1.0 Initial release
 _____________________________________________________________________
-Author: PrasKaa
-"""
+Author:  PrasKaa
+'''
+
+__title__ = "Restore Last Selection"
 
 import pickle
 from pyrevit import script, revit, forms
