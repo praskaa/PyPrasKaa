@@ -1,7 +1,29 @@
 # -*- coding: utf-8 -*-
-# Author: PrasKaa
-# Description: Align viewport title positions - vertical (shared Y) and horizontal (centered per viewport)
-# Version: 1.3
+'''
+Version: 1.4
+Date    = 21.06.2026
+_____________________________________________________________________
+Description:
+Aligns viewport title labels on a sheet to share the same Y position (vertical
+alignment) while each label remains horizontally centered within its respective
+viewport. Uses the lowest viewport bottom edge as the baseline, offset by a
+user-specified mm value.
+
+Requires 2+ viewports selected on the active sheet.
+_____________________________________________________________________
+How-to:
+1. Select 2 or more viewports on a sheet
+2. Click the button and enter Y offset in mm
+   (positive = title below viewport, negative = above)
+3. All selected viewport titles will be aligned to the same Y position
+4. Each title stays horizontally centered within its viewport
+_____________________________________________________
+Last update:
+- 21.06.2026 - 1.4 Added rollback guard and improved error handling
+- 17.06.2026 - 1.3 Initial release with viewport title alignment
+_____________________________________________________________________
+Author:  PrasKaa
+'''
 
 from pyrevit import revit, DB, forms, script
 
@@ -82,10 +104,8 @@ try:
 
     t.Commit()
 except Exception as e:
-    try:
-        t.Rollback()
-    except Exception:
-        pass
+    if t.HasStarted() and not t.HasEnded():
+        t.RollbackIfPending()
     forms.alert("Error: {}".format(str(e)), exitscript=True)
 
 forms.alert("Done! {} viewport titles aligned.".format(len(viewports)))

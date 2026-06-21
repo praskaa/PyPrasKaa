@@ -1,7 +1,25 @@
 # -*- coding: utf-8 -*-
-# Author: PrasKaa
-# Description: Click TextNotes one by one to assign sequential numbered labels (e.g. 1FS-1, 1FS-2, ...)
-# Version: 1.1
+'''
+Version: 1.1
+Date    = 21.06.2026
+_____________________________________________________________________
+Description:
+Click TextNotes one by one to assign sequential numbered labels (e.g. 1FS-1,
+1FS-2, ...). Each click assigns the next number in sequence and advances the
+counter. Press ESC to finish.
+_____________________________________________________________________
+How-to:
+1. Click the button and enter a label prefix (e.g. "1FS-")
+2. Enter the starting number
+3. Click each TextNote to assign sequential labels
+4. Press ESC to finish when done
+_____________________________________________________
+Last update:
+- 21.06.2026 - 1.1 Added rollback guard on error
+- 13.06.2026 - 1.0 Initial release
+_____________________________________________________________________
+Author:  PrasKaa
+'''
 
 from pyrevit import revit, DB, forms, script
 from Autodesk.Revit.UI.Selection import ISelectionFilter, ObjectType

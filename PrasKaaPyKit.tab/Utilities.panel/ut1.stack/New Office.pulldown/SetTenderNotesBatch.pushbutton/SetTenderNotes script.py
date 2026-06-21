@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-__title__   = "Set Tender Notes Batch"
-__author__  = "PrasKaa"
-__doc__ = """Version = 1.0
+'''
+Version: 1.0
 Date    = 13.06.2026
 _____________________________________________________________________
 Description:
@@ -12,21 +11,22 @@ with pyRevit forms.select_sheets.
 Converts user-provided mm values to Revit internal feet units using
 UnitUtils.ConvertToInternalUnits. Handles Revit 2021 fallback for older
 API. Cross-version safe for Revit 2024/2025/2026.
-
 _____________________________________________________________________
 How-to:
-  1. Select target sheets in Project Browser (multi-select with Ctrl)
-  2. Run tool
-  3. Enter X offset value in mm (e.g. 0.0)
-  4. Enter Y offset value in mm (e.g. 260.0)
-  5. Tool applies values to all title blocks on selected sheets
-  6. Report shown with success/skip count
-_____________________________________________________________________
+1. Select target sheets in Project Browser (multi-select with Ctrl)
+2. Run tool
+3. Enter X offset value in mm (e.g. 0.0)
+4. Enter Y offset value in mm (e.g. 260.0)
+5. Tool applies values to all title blocks on selected sheets
+6. Report shown with success/skip count
+_____________________________________________________
 Last update:
 - 13.06.2026 - 1.0 Initial release
 _____________________________________________________________________
 Author:  PrasKaa
-"""
+'''
+
+__title__ = "Set Tender Notes Batch"
 
 from pyrevit import revit, DB, forms, script
 from Autodesk.Revit.DB import WorksharingUtils

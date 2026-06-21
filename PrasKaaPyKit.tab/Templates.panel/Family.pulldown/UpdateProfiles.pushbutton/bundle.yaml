@@ -2,8 +2,5 @@
 # This file is used by pyRevit to create the button in the UI.
 
 title:
-  en_us: "Update Family Types by CSV"
-context: doc-family
-tooltip:
-  en_us: "Update or create family types from a CSV file."
-author: "Kilo Code"
+  en_us: "Family Type Generator\n(Project Mode)"
+context: doc-project

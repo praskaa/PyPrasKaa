@@ -2,21 +2,21 @@
 '''
 Version: 1.1
 Date    = 13.06.2026
-_____________________________________________________________________
+---------------------------------------------------------------------
 Description:
 Sets grid extent mode to 2D (ViewSpecific) for selected grids or all
-visible grids in the active view. No toggle — always forces 2D extents.
-_____________________________________________________________________
+visible grids in the active view. No toggle -- always forces 2D extents.
+---------------------------------------------------------------------
 How-to:
 1. Click "Set Grid to 2D Extents"
 2. Select grids (or uses all visible grids in active view)
 3. All targeted grids set to 2D (ViewSpecific) in the active view
 
-_____________________________________________________
+---------------------------------------------------------------------
 Last update:
 - 04.03.2026 - 1.0 Initial release as toggle
 - 13.06.2026 - 1.1 Changed to non-toggle; always sets 2D extents
-_____________________________________________________________________
+---------------------------------------------------------------------
 Author:  PrasKaa Team
 '''
 
