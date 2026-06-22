@@ -1,61 +1,49 @@
 # -*- coding: utf-8 -*-
 '''
 Version: 1.0
-Date    = 04.03.2026
+Date    = 21.06.2026
 _____________________________________________________________________
 Description:
-Selects all Independent Tags and Spot Dimensions (Elevation & Slope) in the
-active view and highlights them in the selection. Useful for batch operations.
+Pick rectangle to select all elements that belong to any Group (Detail or
+Model) within the picked area. The tool filters elements by checking if
+they have a valid GroupId, then sets the selection to those grouped elements.
+
+This is useful for quickly selecting all members of nested groups without
+manually picking each element individually.
 _____________________________________________________________________
 How-to:
-1. Click "Select All Tags"
-2. All tags and spot dimensions in active view will be selected
+1. Click the button to activate the selection tool
+2. Draw a rectangle (pick rectangle) in the viewport to define the area
+3. All elements within the rectangle that belong to a group will be selected
+4. Selection can include elements from multiple groups (both Detail and Model)
 
-Notes:
-- Works on Independent Tags and Spot Dimensions
-- Only processes elements in the active view
-
+Note: Elements outside groups within the rectangle will be excluded.
 _____________________________________________________
 Last update:
-- 04.03.2026 - 1.0 Initial release
+- 21.06.2026 - 1.0 Initial release
 _____________________________________________________________________
-Author:  PrasKaa Team
+Author:  PrasKaa
 '''
 
-__title__ = "Select All Tags"
-__author__ = "PrasKaa Team"
-__version__ = "1.0"
+from pyrevit import revit, UI
 
-from pyrevit import revit, forms
-from Autodesk.Revit import DB as db
+selection = revit.get_selection()
 
-doc = revit.doc
-uidoc = revit.uidoc
-view = revit.active_view
+class GroupMemberSelectionFilter(UI.Selection.ISelectionFilter):
+    def AllowElement(self, element):
+        # Allow any element that belongs to a group (GroupId is valid)
+        # Works across multiple groups in the same pick rectangle
+        invalid_id = element.GroupId.InvalidElementId
+        return element.GroupId != invalid_id
 
-# 1. Ambil ID untuk Independent Tags
-tags = db.FilteredElementCollector(doc, view.Id) \
-         .OfClass(db.IndependentTag) \
-         .ToElementIds()
+    def AllowReference(self, refer, point):
+        return False
 
-# 2. Ambil ID untuk Spot Dimensions (Elevation & Slope)
-spot_dimensions = db.FilteredElementCollector(doc, view.Id) \
-                    .OfClass(db.SpotDimension) \
-                    .ToElementIds()
-
-# 3. Gabungkan kedua daftar ID
-final_selection = list(tags) + list(spot_dimensions)
-
-# 4. Eksekusi Seleksi di Layar
-if final_selection:
-    # Convert ke List[ElementId] untuk Revit API
-    from System.Collections.Generic import List
-    id_list = List[db.ElementId](final_selection)
-    
-    uidoc.Selection.SetElementIds(id_list)
-    
-    forms.toast("Terpilih: {} Tags & {} Spot Dimensions"
-                .format(len(tags), len(spot_dimensions)), 
-                title="Selection Success")
-else:
-    forms.alert("Tidak ada Tags atau Spot Dimensions di view ini.", title="Empty View")
+try:
+    gfilter = GroupMemberSelectionFilter()
+    selection_list = revit.pick_rectangle(pick_filter=gfilter)
+    filtered_ids = [el.Id for el in selection_list]
+    selection.set_to(filtered_ids)
+    revit.uidoc.RefreshActiveView()
+except Exception:
+    pass

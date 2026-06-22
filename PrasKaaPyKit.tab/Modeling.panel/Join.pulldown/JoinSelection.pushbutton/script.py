@@ -1,8 +1,3 @@
-"""Join elements with configurable priority-based join order.
-Shift+Click to configure join order priority."""
-__title__ = 'Join\nwith Order'
-__author__ = 'PrasKaa'
-__doc__ = 'Joins selected structural elements with intersecting elements and applies priority-based join order. Shift+Click to configure priority.'
 # -*- coding: utf-8 -*-
 import clr
 clr.AddReference('RevitAPI')
@@ -28,8 +23,16 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'lib'))
 from Snippets._selection import get_selected_elements, pick_by_category
 from Snippets._context_manager import ef_Transaction
-from join_order_manager import (join_with_order, get_intersecting_structural,
-                                 ALL_CATEGORIES, JOIN_PRIORITY)
+
+# UPDATED IMPORT: Now pulling CAT_MAP and DEFAULT_ORDER from the manager
+from join_order_manager import (
+    join_with_order, 
+    get_intersecting_structural,
+    ALL_CATEGORIES, 
+    JOIN_PRIORITY,
+    DEFAULT_ORDER,
+    CAT_MAP
+)
 
 doc = revit.doc
 uidoc = revit.uidoc
@@ -38,28 +41,9 @@ uidoc = revit.uidoc
 CFG_SECTION = 'join_order_manager'
 CFG_KEY = 'priority_order'
 
-# Default priority order (category name strings, ordered highest to lowest priority)
-DEFAULT_ORDER = [
-    'OST_StructuralColumns',
-    'OST_StructuralFraming',
-    'OST_StructuralFoundation',
-    'OST_Floors',
-    'OST_Walls',
-    'OST_IOSModelGroups',
-    'OST_EdgeSlab',    
-]
-
-# Map string name to BuiltInCategory and display name
-CAT_MAP = {
-    'OST_StructuralColumns':    (BuiltInCategory.OST_StructuralColumns,    'Structural Columns'),
-    'OST_StructuralFraming':    (BuiltInCategory.OST_StructuralFraming,    'Structural Framing'),
-    'OST_StructuralFoundation': (BuiltInCategory.OST_StructuralFoundation, 'Structural Foundations'),
-    'OST_Floors':               (BuiltInCategory.OST_Floors,               'Floors'),
-    'OST_Walls':                (BuiltInCategory.OST_Walls,                'Walls'),
-    'OST_IOSModelGroups':       (BuiltInCategory.OST_IOSModelGroups,       'Model Groups'),
-    'OST_EdgeSlab':             (BuiltInCategory.OST_EdgeSlab,             'Slab Edges'),
-}
-
+def load_priority_order():
+    """Load saved priority order from pyRevit config, fallback to default."""
+    # ... [rest of the file remains exactly the same] ...
 
 def load_priority_order():
     """Load saved priority order from pyRevit config, fallback to default."""

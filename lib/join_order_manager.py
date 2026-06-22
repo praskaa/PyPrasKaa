@@ -9,19 +9,26 @@ clr.AddReference('RevitAPI')
 from Autodesk.Revit.DB import *
 from System.Collections.Generic import List
 
-# Join order priority configuration
-# Lower number = higher priority = cuts through lower priority elements
-JOIN_PRIORITY = {
-    BuiltInCategory.OST_StructuralColumns:    1,
-    BuiltInCategory.OST_StructuralFraming:    2,
-    BuiltInCategory.OST_StructuralFoundation: 3,
-    BuiltInCategory.OST_Floors:               4,
-    BuiltInCategory.OST_Walls:                5,
-    BuiltInCategory.OST_IOSModelGroups:       6,
-}
+# --- Unified Category Configuration ---
+# Single source of truth: (BuiltInCategory, key_string, display_name)
+CATEGORY_DEFS = [
+    (BuiltInCategory.OST_StructuralColumns,    'OST_StructuralColumns',    'Structural Columns'),
+    (BuiltInCategory.OST_StructuralFraming,    'OST_StructuralFraming',    'Structural Framing'),
+    (BuiltInCategory.OST_StructuralFoundation, 'OST_StructuralFoundation', 'Structural Foundations'),
+    (BuiltInCategory.OST_Floors,               'OST_Floors',               'Floors'),
+    (BuiltInCategory.OST_Walls,                'OST_Walls',                'Walls'),
+    (BuiltInCategory.OST_IOSModelGroups,       'OST_IOSModelGroups',       'Model Groups'),
+    (BuiltInCategory.OST_EdgeSlab,             'OST_EdgeSlab',             'Slab Edges'),
+]
 
-ALL_CATEGORIES = list(JOIN_PRIORITY.keys())
+# Auto-generated mappings
+DEFAULT_ORDER = [key for _, key, _ in CATEGORY_DEFS]
+CAT_MAP = {key: (bic, name) for bic, key, name in CATEGORY_DEFS}
+ALL_CATEGORIES = [bic for bic, _, _ in CATEGORY_DEFS]
 
+# Default priority based on DEFAULT_ORDER (lower number = higher priority)
+JOIN_PRIORITY = {CAT_MAP[key][0]: i + 1 for i, key in enumerate(DEFAULT_ORDER)}
+# --------------------------------------
 
 def get_priority(element):
     """Get join priority for an element. Returns 99 if category not in config."""
@@ -29,7 +36,6 @@ def get_priority(element):
         return 99
     cat = element.Category.BuiltInCategory
     return JOIN_PRIORITY.get(cat, 99)
-
 
 def get_cutting_element(elem_a, elem_b):
     """
